@@ -4,13 +4,16 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ScanLine, Users, ClipboardList, Church, QrCode, AlertCircle } from "lucide-react";
+import { usePremiumStatus } from "@/lib/premium";
+import PremiumLockedPanel from "@/components/PremiumLockedPanel";
+import { ScanLine, Users, ClipboardList, Church, QrCode, AlertCircle, Clock, MessageCircle, ListChecks, Tag } from "lucide-react";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const parishId = user?.parish_id;
   const [counts, setCounts] = useState({ groups: 0, children: 0, today: 0 });
   const [parish, setParish] = useState(null);
+  const status = usePremiumStatus(parish);
 
   useEffect(() => {
     if (!parishId) return;
@@ -65,6 +68,19 @@ export default function Dashboard() {
         <p className="text-muted-foreground">{parish?.name || "Tu parroquia"} · {user?.role === "admin" ? "Administrador" : "Catequista"}</p>
       </div>
 
+      {user?.role === "admin" && status.tier === "trial" && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+          <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary shrink-0" />Prueba de funciones premium: quedan <strong>{status.daysLeft} días</strong>.</span>
+          <Link to="/premium" className="text-primary font-medium hover:underline shrink-0">Ver plan</Link>
+        </div>
+      )}
+      {user?.role === "admin" && status.tier === "locked" && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm rounded-lg border border-border bg-muted px-4 py-3">
+          <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground shrink-0" />Tu prueba de funciones premium terminó.</span>
+          <Link to="/premium" className="text-primary font-medium hover:underline shrink-0">Ver plan</Link>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-3">
         {cards.map((c) => (
           <Card key={c.label} className={c.accent ? "border-gold/40" : undefined}>
@@ -89,6 +105,17 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {user?.role === "admin" && (
+        <div>
+          <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Funciones premium</h3>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <PremiumLockedPanel icon={MessageCircle} title="Mensajería a tutores" description="Recordatorios por WhatsApp o correo. Próximamente en Premium." />
+            <PremiumLockedPanel icon={ListChecks} title="Tareas de catecismo" description="Asigna tareas y da seguimiento a las entregas. Próximamente en Premium." />
+            <PremiumLockedPanel icon={Tag} title="Pulseras y etiquetas" description="Identificación física para grupos grandes. Próximamente en Premium." />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

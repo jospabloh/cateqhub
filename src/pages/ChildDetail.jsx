@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import QRCard, { downloadQRCard } from "@/components/QRCard";
-import { ArrowLeft, Download, Printer, Plus, Trash2, Phone, Mail } from "lucide-react";
+import { usePremiumStatus } from "@/lib/premium";
+import { ArrowLeft, Download, Printer, Plus, Trash2, Phone, Mail, Lock } from "lucide-react";
 
 export default function ChildDetail() {
   const { id } = useParams();
@@ -23,6 +24,7 @@ export default function ChildDetail() {
   const [openG, setOpenG] = useState(false);
   const [gForm, setGForm] = useState({ name: "", phone: "", email: "", relationship: "tutor", pickup_authorized: true });
   const [loading, setLoading] = useState(false);
+  const status = usePremiumStatus(parish);
 
   const load = async () => {
     const c = await base44.entities.Child.get(id);
@@ -107,10 +109,25 @@ export default function ChildDetail() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">Tutores</CardTitle>
-              <Button size="sm" variant="ghost" onClick={() => setOpenG(true)}><Plus className="w-4 h-4 mr-1" />Agregar</Button>
+              <CardTitle className="text-base flex items-center gap-2">
+                Tutores
+                {!status.isPremium && <Badge variant="outline" className="font-normal text-[10px]">Premium</Badge>}
+              </CardTitle>
+              {status.isPremium ? (
+                <Button size="sm" variant="ghost" onClick={() => setOpenG(true)}><Plus className="w-4 h-4 mr-1" />Agregar</Button>
+              ) : (
+                <Button size="sm" variant="ghost" disabled title="Disponible con el plan Premium">
+                  <Lock className="w-3.5 h-3.5 mr-1" />Agregar
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="space-y-3">
+              {!status.isPremium && (
+                <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
+                  Agregar tutores es una función premium. Lo que ya registraste sigue aquí — puedes eliminarlo cuando quieras.{" "}
+                  <Link to="/premium" className="text-primary hover:underline">Ver plan Premium</Link>
+                </p>
+              )}
               {guardians.length === 0 && <p className="text-sm text-muted-foreground">Sin tutores registrados.</p>}
               {guardians.map((g) => {
                 const rel = relMap(g.id);
