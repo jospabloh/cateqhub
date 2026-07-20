@@ -1,0 +1,40 @@
+{
+  "name": "Child",
+  "type": "object",
+  "properties": {
+    "parish_id": {
+      "type": "string",
+      "title": "Parroquia",
+      "x-ref": "Parish"
+    },
+    "group_id": {
+      "type": "string",
+      "title": "Grupo",
+      "x-ref": "Group"
+    },
+    "name": {
+      "type": "string",
+      "title": "Nombre del ni\u00f1o"
+    },
+    "birth_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Fecha de nacimiento"
+    },
+    "qr_token": {
+      "type": "string",
+      "title": "Token QR (UUID)",
+      "description": "\u00danico e infalsificable, generado al crear el ni\u00f1o"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "title": "Activo"
+    }
+  },
+  "required": [
+    "parish_id",
+    "name",
+    "qr_token"
+  ]
+}

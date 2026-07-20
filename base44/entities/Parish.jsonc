@@ -1,0 +1,22 @@
+{
+  "name": "Parish",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Nombre"
+    },
+    "admin_contact": {
+      "type": "string",
+      "title": "Contacto del administrador"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "title": "Activa"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

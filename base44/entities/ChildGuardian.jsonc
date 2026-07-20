@@ -1,0 +1,42 @@
+{
+  "name": "ChildGuardian",
+  "type": "object",
+  "properties": {
+    "parish_id": {
+      "type": "string",
+      "title": "Parroquia",
+      "x-ref": "Parish"
+    },
+    "child_id": {
+      "type": "string",
+      "title": "Ni\u00f1o",
+      "x-ref": "Child"
+    },
+    "guardian_id": {
+      "type": "string",
+      "title": "Tutor",
+      "x-ref": "Guardian"
+    },
+    "relationship": {
+      "type": "string",
+      "enum": [
+        "padre",
+        "madre",
+        "tutor",
+        "otro"
+      ],
+      "default": "tutor",
+      "title": "Relaci\u00f3n"
+    },
+    "pickup_authorized": {
+      "type": "boolean",
+      "default": true,
+      "title": "Autorizado para recoger"
+    }
+  },
+  "required": [
+    "parish_id",
+    "child_id",
+    "guardian_id"
+  ]
+}

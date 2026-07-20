@@ -1,0 +1,38 @@
+{
+  "name": "Attendance",
+  "type": "object",
+  "properties": {
+    "parish_id": {
+      "type": "string",
+      "title": "Parroquia",
+      "x-ref": "Parish"
+    },
+    "group_id": {
+      "type": "string",
+      "title": "Grupo",
+      "x-ref": "Group"
+    },
+    "child_id": {
+      "type": "string",
+      "title": "Ni\u00f1o",
+      "x-ref": "Child"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Fecha de la clase"
+    },
+    "recorded_by": {
+      "type": "string",
+      "title": "Registrado por (usuario)",
+      "x-ref": "User"
+    }
+  },
+  "required": [
+    "parish_id",
+    "group_id",
+    "child_id",
+    "date",
+    "recorded_by"
+  ]
+}

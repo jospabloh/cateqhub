@@ -6,6 +6,17 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Layout from '@/components/Layout';
+import Dashboard from '@/pages/Dashboard';
+import Scan from '@/pages/Scan';
+import Groups from '@/pages/Groups';
+import Children from '@/pages/Children';
+import ChildDetail from '@/pages/ChildDetail';
+import Reports from '@/pages/Reports';
+import Parishes from '@/pages/Parishes';
+import Users from '@/pages/Users';
+import { Navigate } from 'react-router-dom';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -34,7 +45,18 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/escanear" element={<Scan />} />
+          <Route path="/grupos" element={<Groups />} />
+          <Route path="/ninos" element={<Children />} />
+          <Route path="/ninos/:id" element={<ChildDetail />} />
+          <Route path="/reportes" element={<Reports />} />
+          <Route path="/parroquia" element={<Parishes />} />
+          <Route path="/usuarios" element={<Users />} />
+        </Route>
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

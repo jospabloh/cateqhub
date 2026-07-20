@@ -1,0 +1,29 @@
+{
+  "name": "Group",
+  "type": "object",
+  "properties": {
+    "parish_id": {
+      "type": "string",
+      "title": "Parroquia",
+      "x-ref": "Parish"
+    },
+    "name": {
+      "type": "string",
+      "title": "Nombre del grupo"
+    },
+    "level": {
+      "type": "string",
+      "title": "Nivel",
+      "description": "A\u00f1o de catecismo, grupo de edad, etc."
+    },
+    "catechist_id": {
+      "type": "string",
+      "title": "Catequista asignado",
+      "x-ref": "User"
+    }
+  },
+  "required": [
+    "parish_id",
+    "name"
+  ]
+}

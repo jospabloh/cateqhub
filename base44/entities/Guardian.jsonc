@@ -1,0 +1,33 @@
+{
+  "name": "Guardian",
+  "type": "object",
+  "properties": {
+    "parish_id": {
+      "type": "string",
+      "title": "Parroquia",
+      "x-ref": "Parish"
+    },
+    "name": {
+      "type": "string",
+      "title": "Nombre completo"
+    },
+    "phone": {
+      "type": "string",
+      "title": "Tel\u00e9fono"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "title": "Correo electr\u00f3nico"
+    },
+    "whatsapp_opt_in": {
+      "type": "boolean",
+      "default": false,
+      "title": "Acepta mensajes por WhatsApp"
+    }
+  },
+  "required": [
+    "parish_id",
+    "name"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "properties": {
+    "role": {
+      "type": "string",
+      "description": "Rol del usuario en la app",
+      "enum": [
+        "admin",
+        "catechist"
+      ]
+    },
+    "parish_id": {
+      "type": "string",
+      "title": "Parroquia",
+      "description": "Parroquia a la que pertenece el usuario",
+      "x-ref": "Parish"
+    },
+    "group_id": {
+      "type": "string",
+      "title": "Grupo asignado",
+      "description": "Si es catequista, el grupo que dirige",
+      "x-ref": "Group"
+    }
+  },
+  "required": [
+    "role"
+  ],
+  "name": "User",
+  "type": "object"
+}
