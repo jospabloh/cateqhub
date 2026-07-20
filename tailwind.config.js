@@ -50,6 +50,18 @@ module.exports = {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			},
+  			gold: {
+  				DEFAULT: 'hsl(var(--gold))',
+  				foreground: 'hsl(var(--gold-foreground))'
+  			},
+  			stamp: {
+  				DEFAULT: 'hsl(var(--stamp))',
+  				foreground: 'hsl(var(--stamp-foreground))'
+  			},
+  			moss: {
+  				DEFAULT: 'hsl(var(--moss))',
+  				foreground: 'hsl(var(--moss-foreground))'
+  			},
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',

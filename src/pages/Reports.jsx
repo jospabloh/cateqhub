@@ -78,7 +78,7 @@ export default function Reports() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><QrCode className="w-6 h-6" />Reportes</h1>
+        <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><QrCode className="w-6 h-6 text-gold" />Reportes</h1>
         <p className="text-muted-foreground text-sm">Asistencia por fecha y faltas acumuladas.</p>
       </div>
 
@@ -114,8 +114,8 @@ export default function Reports() {
               <TableBody>
                 {byDate.map(([date, count]) => (
                   <TableRow key={date}>
-                    <TableCell>{format(parseISO(date), "EEEE d 'de' MMMM yyyy", { locale: es })}</TableCell>
-                    <TableCell className="text-right font-medium">{count}</TableCell>
+                    <TableCell className="capitalize">{format(parseISO(date), "EEEE d 'de' MMMM yyyy", { locale: es })}</TableCell>
+                    <TableCell className="text-right font-mono font-medium tabular-nums">{count}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -136,9 +136,9 @@ export default function Reports() {
                 {absences.map(({ child, present, absences: ab, totalSessions }) => (
                   <TableRow key={child.id}>
                     <TableCell className="font-medium">{child.name}</TableCell>
-                    <TableCell className="text-right">{totalSessions}</TableCell>
-                    <TableCell className="text-right text-green-600">{present}</TableCell>
-                    <TableCell className="text-right text-red-500">{ab}</TableCell>
+                    <TableCell className="text-right font-mono tabular-nums text-muted-foreground">{totalSessions}</TableCell>
+                    <TableCell className="text-right font-mono tabular-nums text-moss font-medium">{present}</TableCell>
+                    <TableCell className="text-right font-mono tabular-nums text-destructive font-medium">{ab}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

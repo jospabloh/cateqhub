@@ -67,7 +67,7 @@ export default function Users() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><UserCog className="w-6 h-6" />Usuarios</h1>
+          <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><UserCog className="w-6 h-6 text-gold" />Usuarios</h1>
           <p className="text-muted-foreground text-sm">Catequistas y administradores de tu parroquia.</p>
         </div>
         <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" />Invitar</Button>

@@ -76,7 +76,7 @@ export default function ChildDetail() {
     load();
   };
 
-  if (!child) return <div className="grid place-items-center py-20"><div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" /></div>;
+  if (!child) return <div className="grid place-items-center py-20"><div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" /></div>;
 
   const relMap = (id) => links.find((l) => l.guardian_id === id);
 
@@ -89,8 +89,13 @@ export default function ChildDetail() {
           <Card>
             <CardContent className="pt-6 space-y-2">
               <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-heading font-bold">{child.name}</h1>
-                <Badge variant={child.active ? "default" : "secondary"}>{child.active ? "Activo" : "Inactivo"}</Badge>
+                <h1 className="text-2xl font-heading font-semibold">{child.name}</h1>
+                <Badge
+                  variant={child.active ? "default" : "secondary"}
+                  className={child.active ? "bg-moss text-moss-foreground hover:bg-moss/90" : undefined}
+                >
+                  {child.active ? "Activo" : "Inactivo"}
+                </Badge>
               </div>
               {group && <p className="text-muted-foreground">Grupo: {group.name}{group.level ? ` · ${group.level}` : ""}</p>}
               {child.birth_date && <p className="text-muted-foreground text-sm">Nacimiento: {child.birth_date}</p>}
@@ -118,7 +123,7 @@ export default function ChildDetail() {
                       {g.phone && <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1"><Phone className="w-3 h-3" />{g.phone}</p>}
                       {g.email && <p className="text-sm text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{g.email}</p>}
                     </div>
-                    <Button size="icon" variant="ghost" onClick={() => removeGuardian(rel.id)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => removeGuardian(rel.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </div>
                 );
               })}

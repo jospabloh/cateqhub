@@ -32,8 +32,8 @@ export default function Dashboard() {
       <div className="max-w-md mx-auto mt-10">
         <Card>
           <CardContent className="pt-6 text-center space-y-4">
-            <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 grid place-items-center">
-              <AlertCircle className="w-6 h-6 text-amber-600" />
+            <div className="w-12 h-12 mx-auto rounded-full bg-gold/15 grid place-items-center">
+              <AlertCircle className="w-6 h-6 text-gold" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">Configura tu parroquia</h2>
@@ -55,24 +55,24 @@ export default function Dashboard() {
   const cards = [
     { label: "Grupos", value: counts.groups, icon: Users, to: "/grupos" },
     { label: "Niños activos", value: counts.children, icon: ClipboardList, to: "/ninos" },
-    { label: "Asistencia hoy", value: counts.today, icon: QrCode, to: "/reportes" },
+    { label: "Asistencia hoy", value: counts.today, icon: QrCode, to: "/reportes", accent: true },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-heading font-bold">Hola 👋</h1>
+        <h1 className="text-2xl font-heading font-semibold">Hola 👋</h1>
         <p className="text-muted-foreground">{parish?.name || "Tu parroquia"} · {user?.role === "admin" ? "Administrador" : "Catequista"}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         {cards.map((c) => (
-          <Card key={c.label}>
+          <Card key={c.label} className={c.accent ? "border-gold/40" : undefined}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{c.label}</CardTitle>
-              <c.icon className="w-4 h-4 text-muted-foreground" />
+              <c.icon className={`w-4 h-4 ${c.accent ? "text-gold" : "text-muted-foreground"}`} />
             </CardHeader>
-            <CardContent><p className="text-3xl font-bold">{c.value}</p></CardContent>
+            <CardContent><p className="text-3xl font-heading font-semibold">{c.value}</p></CardContent>
           </Card>
         ))}
       </div>

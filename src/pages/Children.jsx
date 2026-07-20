@@ -65,7 +65,7 @@ export default function Children() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><ClipboardList className="w-6 h-6" />Niños</h1>
+          <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><ClipboardList className="w-6 h-6 text-gold" />Niños</h1>
           <p className="text-muted-foreground text-sm">Alta de niños y sus códigos QR.</p>
         </div>
         <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
@@ -83,7 +83,7 @@ export default function Children() {
           {filtered.map((c) => (
             <Card key={c.id}>
               <CardContent className="pt-5 flex items-center gap-4">
-                <div className="w-11 h-11 rounded-full bg-primary/10 text-primary grid place-items-center font-bold uppercase">
+                <div className="w-11 h-11 rounded-full bg-primary text-primary-foreground grid place-items-center font-heading font-semibold uppercase ring-2 ring-gold/25">
                   {c.name.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -92,7 +92,7 @@ export default function Children() {
                   {!c.active && <Badge variant="secondary" className="mt-1">Inactivo</Badge>}
                 </div>
                 <Button asChild size="icon" variant="ghost">
-                  <Link to={`/ninos/${c.id}`}><QrCode className="w-5 h-5" /></Link>
+                  <Link to={`/ninos/${c.id}`}><QrCode className="w-5 h-5 text-gold" /></Link>
                 </Button>
               </CardContent>
             </Card>
