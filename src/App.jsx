@@ -16,6 +16,7 @@ import ChildDetail from '@/pages/ChildDetail';
 import Reports from '@/pages/Reports';
 import Parishes from '@/pages/Parishes';
 import Users from '@/pages/Users';
+import Premium from '@/pages/Premium';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -63,6 +64,7 @@ const AuthenticatedApp = () => {
           <Route path="/reportes" element={<Reports />} />
           <Route path="/parroquia" element={<Parishes />} />
           <Route path="/usuarios" element={<Users />} />
+          <Route path="/premium" element={<Premium />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
