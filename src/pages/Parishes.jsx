@@ -41,7 +41,7 @@ export default function Parishes() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Church className="w-6 h-6" />Parroquia</h1>
+        <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><Church className="w-6 h-6 text-gold" />Parroquia</h1>
         <p className="text-muted-foreground text-sm">Crea tu parroquia y asígnala a tu cuenta.</p>
       </div>
 
@@ -52,7 +52,7 @@ export default function Parishes() {
             (() => {
               const p = parishes.find((x) => x.id === user.parish_id);
               return (
-                <div className="flex items-center gap-2 text-green-600">
+                <div className="flex items-center gap-2 text-moss">
                   <Check className="w-5 h-5" />
                   <span className="font-medium">{p?.name || "Asignada"}</span>
                 </div>
@@ -84,7 +84,7 @@ export default function Parishes() {
                   {p.admin_contact && <p className="text-xs text-muted-foreground">{p.admin_contact}</p>}
                 </div>
                 {user?.parish_id === p.id ? (
-                  <span className="text-xs text-green-600 flex items-center gap-1"><Check className="w-4 h-4" />Asignada</span>
+                  <span className="text-xs text-moss flex items-center gap-1"><Check className="w-4 h-4" />Asignada</span>
                 ) : (
                   <Button size="sm" variant="outline" onClick={() => assignToMe(p.id)}><UserRound className="w-4 h-4 mr-1" />Asignarme</Button>
                 )}

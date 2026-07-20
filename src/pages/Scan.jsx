@@ -135,16 +135,16 @@ export default function Scan() {
 
   const statusStyles = {
     idle: "bg-muted text-muted-foreground",
-    success: "bg-green-500 text-white",
-    duplicate: "bg-amber-500 text-white",
-    error: "bg-red-500 text-white",
+    success: "bg-moss text-moss-foreground",
+    duplicate: "bg-gold text-gold-foreground",
+    error: "bg-stamp text-stamp-foreground",
   };
   const StatusIcon = status.kind === "success" ? CheckCircle2 : status.kind === "duplicate" ? AlertTriangle : status.kind === "error" ? XCircle : null;
 
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><ScanLine className="w-6 h-6" />Escanear asistencia</h1>
+        <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><ScanLine className="w-6 h-6 text-gold" />Escanear asistencia</h1>
         <p className="text-muted-foreground text-sm">Apunta la cámara al código QR del niño.</p>
       </div>
 
@@ -160,7 +160,7 @@ export default function Scan() {
         </div>
       )}
 
-      <Card>
+      <Card className="overflow-hidden border-2 border-primary/10">
         <CardContent className="p-0 overflow-hidden">
           <div className="relative aspect-square max-w-md mx-auto bg-black">
             <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
@@ -173,8 +173,20 @@ export default function Scan() {
               </div>
             )}
             {active && (
-              <div className="absolute inset-8 border-2 border-white/70 rounded-2xl pointer-events-none" />
+              <div className="absolute inset-8 border-2 border-gold/80 rounded-2xl pointer-events-none" />
             )}
+
+            {status.kind === "success" && (
+              <div className="absolute inset-0 grid place-items-center pointer-events-none">
+                <div className="animate-stamp -rotate-6 rounded-full border-[6px] border-moss/90 bg-moss/10 backdrop-blur-[1px] w-40 h-40 grid place-items-center">
+                  <div className="text-center">
+                    <p className="font-heading font-bold text-moss text-xl leading-none tracking-wide">PRESENTE</p>
+                    <p className="text-[10px] font-mono uppercase tracking-widest text-moss/80 mt-1">Registrado</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {status.kind !== "idle" && (
               <div className={`absolute inset-x-0 bottom-0 p-4 flex items-center gap-3 ${statusStyles[status.kind]}`}>
                 {StatusIcon && <StatusIcon className="w-6 h-6 shrink-0" />}
@@ -188,7 +200,7 @@ export default function Scan() {
         </CardContent>
       </Card>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="flex gap-3">
         {!active ? (

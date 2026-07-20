@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Lint, typecheck, build, e2e smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Informational only: this project's tsc + @types/react setup already
+      # reports pre-existing errors on main (loose JSX typing in the shadcn
+      # UI components), so it isn't a reliable pass/fail gate yet. Surfaced
+      # here for visibility without blocking unrelated PRs.
+      - name: Typecheck (non-blocking)
+        run: npm run typecheck
+        continue-on-error: true
+
+      # Runs lint (prebuild), then `vite build`, then the build-artifact
+      # sanity check (postbuild) — see package.json scripts. This is the
+      # real gate: it fails the job on lint errors or a broken/empty build.
+      - name: Build (lint, build, verify artifacts)
+        run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # Functional/UI smoke test against the actual production build,
+      # served via `vite preview`. Covers the screens that don't require
+      # a live backend: public auth pages, 404, and route protection.
+      - name: Run e2e smoke tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

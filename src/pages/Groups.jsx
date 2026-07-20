@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,7 +60,7 @@ export default function Groups() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Users className="w-6 h-6" />Grupos</h1>
+          <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><Users className="w-6 h-6 text-gold" />Grupos</h1>
           <p className="text-muted-foreground text-sm">Clases de catecismo de tu parroquia.</p>
         </div>
         <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
@@ -81,7 +81,7 @@ export default function Groups() {
                   </div>
                   <div className="flex gap-1">
                     <Button size="icon" variant="ghost" onClick={() => openEdit(g)}><Pencil className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => remove(g.id)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => remove(g.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </div>
                 </div>
               </CardContent>
