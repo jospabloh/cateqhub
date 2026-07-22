@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { usePremiumStatus } from "@/lib/premium";
+import { isParishAdmin } from "@/lib/roles";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, Sparkles, Clock } from "lucide-react";
 
@@ -94,9 +95,9 @@ export default function Premium() {
         </Card>
       </div>
 
-      {user?.role === "admin" && status.tier !== "premium" && (
+      {isParishAdmin(user) && status.tier !== "premium" && (
         <p className="text-sm text-muted-foreground">
-          Aún no hay activación automática de pago — contacta a quien administra la app para activar el plan Premium en tu parroquia.
+          Aún no hay activación automática de pago — {user?.role === "admin" ? "activa el plan Premium desde el panel de administración de Base44 para tu parroquia." : "contacta a quien administra la app para activar el plan Premium en tu parroquia."}
         </p>
       )}
     </div>
