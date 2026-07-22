@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { isParishAdmin } from "@/lib/roles";
+import RestrictedNotice from "@/components/RestrictedNotice";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +115,8 @@ export default function Users() {
 
   const groupName = (id) => groups.find((g) => g.id === id)?.name || "—";
   const isMe = (u) => u.id === user?.id;
+
+  if (!isParishAdmin(user)) return <RestrictedNotice />;
 
   return (
     <div className="space-y-5">

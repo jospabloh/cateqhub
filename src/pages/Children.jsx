@@ -115,7 +115,7 @@ export default function Children() {
             </div>
             <div className="space-y-1.5">
               <Label>Grupo</Label>
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.group_id} onChange={(e) => setForm({ ...form, group_id: e.target.value })}>
+              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.group_id} onChange={(e) => setForm({ ...form, group_id: e.target.value })} disabled={isCatechist(user)}>
                 <option value="">Selecciona…</option>
                 {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>

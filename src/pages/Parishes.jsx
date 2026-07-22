@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { isParishAdmin } from "@/lib/roles";
+import RestrictedNotice from "@/components/RestrictedNotice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +24,8 @@ export default function Parishes() {
     setContact(p?.admin_contact || "");
   };
   useEffect(() => { load(); }, [user?.parish_id]);
+
+  if (!isParishAdmin(user)) return <RestrictedNotice />;
 
   const save = async () => {
     if (!name) return;

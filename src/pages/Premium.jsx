@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { usePremiumStatus } from "@/lib/premium";
 import { isParishAdmin } from "@/lib/roles";
+import RestrictedNotice from "@/components/RestrictedNotice";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, Sparkles, Clock } from "lucide-react";
 
@@ -30,6 +31,8 @@ export default function Premium() {
   }, [user]);
 
   const status = usePremiumStatus(parish);
+
+  if (!isParishAdmin(user)) return <RestrictedNotice />;
 
   return (
     <div className="space-y-6 max-w-2xl">

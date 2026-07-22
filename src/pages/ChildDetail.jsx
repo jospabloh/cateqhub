@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import QRCard, { downloadQRCard } from "@/components/QRCard";
 import { usePremiumStatus } from "@/lib/premium";
+import { isParishAdmin } from "@/lib/roles";
 import { ArrowLeft, Download, Printer, Plus, Trash2, Phone, Mail, Lock } from "lucide-react";
 
 export default function ChildDetail() {
@@ -101,9 +102,11 @@ export default function ChildDetail() {
               </div>
               {group && <p className="text-muted-foreground">Grupo: {group.name}{group.level ? ` · ${group.level}` : ""}</p>}
               {child.birth_date && <p className="text-muted-foreground text-sm">Nacimiento: {child.birth_date}</p>}
-              <Button variant="outline" size="sm" onClick={toggleActive} className="mt-2">
-                {child.active ? "Dar de baja" : "Reactivar"}
-              </Button>
+              {isParishAdmin(user) && (
+                <Button variant="outline" size="sm" onClick={toggleActive} className="mt-2">
+                  {child.active ? "Dar de baja" : "Reactivar"}
+                </Button>
+              )}
             </CardContent>
           </Card>
 
