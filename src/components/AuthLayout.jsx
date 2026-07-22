@@ -19,7 +19,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
 
         <div className="relative flex items-center gap-3">
           <Logo className="w-9 h-9" />
-          <p className="font-heading font-semibold text-lg tracking-tight">CatequesisQR</p>
+          <p className="font-heading font-semibold text-lg tracking-tight">CateqHub</p>
         </div>
 
         <div className="relative max-w-sm">
@@ -31,7 +31,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           </p>
         </div>
 
-        <p className="relative text-xs text-primary-foreground/50">© {new Date().getFullYear()} CatequesisQR</p>
+        <p className="relative text-xs text-primary-foreground/50">© {new Date().getFullYear()} CateqHub</p>
       </div>
 
       {/* Panel de formulario */}
@@ -39,7 +39,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
         <div className="w-full max-w-sm mx-auto">
           <div className="md:hidden flex items-center gap-2.5 mb-10">
             <Logo className="w-8 h-8" />
-            <span className="font-heading font-semibold tracking-tight">CatequesisQR</span>
+            <span className="font-heading font-semibold tracking-tight">CateqHub</span>
           </div>
 
           <div className="hidden md:flex w-10 h-10 rounded-md bg-primary/10 text-primary items-center justify-center mb-6">
