@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { QrCode, Users, ClipboardList, ScanLine, Home, Church, LogOut, UserCog, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isParishAdmin, parishRoleLabel } from "@/lib/roles";
+import Logo from "@/components/Logo";
 
 const navItems = [
   { to: "/", label: "Inicio", icon: Home, end: true },
@@ -31,9 +32,7 @@ export default function Layout() {
       {/* Sidebar (desktop) */}
       <aside className="hidden md:flex fixed inset-y-0 left-0 w-60 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
         <div className="h-16 flex items-center gap-3 px-6 border-b border-sidebar-border">
-          <div className="w-8 h-8 rounded-md bg-sidebar-primary text-sidebar-primary-foreground grid place-items-center font-heading font-semibold text-sm">
-            C
-          </div>
+          <Logo className="w-8 h-8" />
           <div>
             <p className="font-heading font-semibold leading-tight tracking-tight text-sm">CatequesisQR</p>
             <p className="text-xs text-sidebar-foreground/55">{parishRoleLabel(user)}</p>
@@ -79,7 +78,7 @@ export default function Layout() {
       {/* Mobile top bar */}
       <header className="md:hidden sticky top-0 z-30 h-14 flex items-center justify-between px-4 bg-sidebar text-sidebar-foreground border-b border-sidebar-border">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md bg-sidebar-primary text-sidebar-primary-foreground grid place-items-center font-heading font-semibold text-xs">C</div>
+          <Logo className="w-7 h-7" />
           <span className="font-heading font-semibold text-sm tracking-tight">CatequesisQR</span>
         </div>
         <button onClick={handleLogout} className="p-2 text-sidebar-foreground/65"><LogOut className="w-5 h-5" /></button>

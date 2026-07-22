@@ -1,4 +1,5 @@
 import React from "react";
+import Logo from "@/components/Logo";
 
 export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
   return (
@@ -16,7 +17,10 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           <div className="absolute inset-[28px] border-[10px] border-current rounded-xl" />
         </div>
 
-        <p className="relative font-heading font-semibold text-lg tracking-tight">CatequesisQR</p>
+        <div className="relative flex items-center gap-3">
+          <Logo className="w-9 h-9" />
+          <p className="font-heading font-semibold text-lg tracking-tight">CatequesisQR</p>
+        </div>
 
         <div className="relative max-w-sm">
           <p className="font-heading text-3xl font-semibold leading-tight tracking-tight">
@@ -34,9 +38,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
       <div className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-20">
         <div className="w-full max-w-sm mx-auto">
           <div className="md:hidden flex items-center gap-2.5 mb-10">
-            <div className="w-8 h-8 rounded-md bg-primary text-primary-foreground grid place-items-center">
-              <Icon className="w-4 h-4" aria-hidden="true" />
-            </div>
+            <Logo className="w-8 h-8" />
             <span className="font-heading font-semibold tracking-tight">CatequesisQR</span>
           </div>
 
