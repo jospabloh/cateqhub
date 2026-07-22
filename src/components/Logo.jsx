@@ -8,7 +8,7 @@ export default function Logo({ className }) {
   return (
     <Image
       src={LOGO_URL}
-      alt="CatequesisQR"
+      alt="CateqHub"
       fittingType="fit"
       className={cn("rounded-md bg-white p-0.5", className)}
     />
