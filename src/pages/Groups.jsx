@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Users, Plus, Pencil, Trash2 } from "lucide-react";
 
-const empty = { name: "", level: "", catechist_id: "" };
+const empty = { name: "", level: "", user_id: "" };
 
 export default function Groups() {
   const { user } = useAuth();
@@ -23,7 +23,7 @@ export default function Groups() {
     if (!user?.parish_id) return;
     const [g, s] = await Promise.all([
       base44.entities.Group.filter({ parish_id: user.parish_id }),
-      base44.entities.User.filter({ parish_id: user.parish_id, role: "catechist" }).catch(() => []),
+      base44.entities.User.filter({ parish_id: user.parish_id, role: "user" }).catch(() => []),
     ]);
     setGroups(g);
     setStaff(s);
@@ -32,7 +32,7 @@ export default function Groups() {
   useEffect(() => { load(); }, [user]);
 
   const openNew = () => { setForm(empty); setEditingId(null); setOpen(true); };
-  const openEdit = (g) => { setForm({ name: g.name, level: g.level || "", catechist_id: g.catechist_id || "" }); setEditingId(g.id); setOpen(true); };
+  const openEdit = (g) => { setForm({ name: g.name, level: g.level || "", user_id: g.user_id || "" }); setEditingId(g.id); setOpen(true); };
 
   const save = async () => {
     if (!form.name) return;
@@ -77,7 +77,7 @@ export default function Groups() {
                   <div>
                     <p className="font-semibold">{g.name}</p>
                     {g.level && <p className="text-sm text-muted-foreground">Nivel: {g.level}</p>}
-                    <p className="text-sm text-muted-foreground mt-1">Catequista: {staffName(g.catechist_id)}</p>
+                    <p className="text-sm text-muted-foreground mt-1">Catequista: {staffName(g.user_id)}</p>
                   </div>
                   <div className="flex gap-1">
                     <Button size="icon" variant="ghost" onClick={() => openEdit(g)}><Pencil className="w-4 h-4" /></Button>
@@ -104,7 +104,7 @@ export default function Groups() {
             </div>
             <div className="space-y-1.5">
               <Label>Catequista</Label>
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.catechist_id} onChange={(e) => setForm({ ...form, catechist_id: e.target.value })}>
+              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })}>
                 <option value="">Sin asignar</option>
                 {staff.map((s) => <option key={s.id} value={s.id}>{s.full_name || s.email}</option>)}
               </select>

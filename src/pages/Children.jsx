@@ -24,7 +24,7 @@ export default function Children() {
   const load = async () => {
     if (!user?.parish_id) return;
     const filter = { parish_id: user.parish_id };
-    if (user.role === "catechist" && user.group_id) filter.group_id = user.group_id;
+    if (user.role === "user" && user.group_id) filter.group_id = user.group_id;
     const [c, g] = await Promise.all([
       base44.entities.Child.filter(filter, "-created_date"),
       base44.entities.Group.filter({ parish_id: user.parish_id }),
@@ -41,7 +41,7 @@ export default function Children() {
     c.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const openNew = () => { setForm({ ...empty, group_id: user.role === "catechist" ? user.group_id : "" }); setOpen(true); };
+  const openNew = () => { setForm({ ...empty, group_id: user.role === "user" ? user.group_id : "" }); setOpen(true); };
 
   const save = async () => {
     if (!form.name || !form.group_id) return;

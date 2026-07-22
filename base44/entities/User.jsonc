@@ -2,10 +2,10 @@
   "properties": {
     "role": {
       "type": "string",
-      "description": "Rol del usuario en la app",
+      "description": "Rol del usuario en la app (admin = administrador de parroquia, user = catequista)",
       "enum": [
         "admin",
-        "catechist"
+        "user"
       ]
     },
     "parish_id": {

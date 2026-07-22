@@ -24,14 +24,14 @@ export default function Reports() {
     const gFilter = { parish_id: user.parish_id };
     let gf = base44.entities.Group.filter(gFilter);
     let cf = base44.entities.Child.filter(gFilter);
-    if (user.role === "catechist" && user.group_id) {
+    if (user.role === "user" && user.group_id) {
       gf = base44.entities.Group.filter({ id: user.group_id }).catch(() => []);
       cf = base44.entities.Child.filter({ parish_id: user.parish_id, group_id: user.group_id });
     }
     Promise.all([gf, cf]).then(([g, c]) => {
       setGroups(g);
       setChildren(c);
-      if (user.role === "catechist" && user.group_id) setGroupId(user.group_id);
+      if (user.role === "user" && user.group_id) setGroupId(user.group_id);
     });
   }, [user]);
 
@@ -86,7 +86,7 @@ export default function Reports() {
         <CardContent className="pt-5 grid gap-3 sm:grid-cols-3">
           <div className="space-y-1.5">
             <Label>Grupo</Label>
-            {user?.role === "catechist" ? (
+            {user?.role === "user" ? (
               <Input disabled value={groups.find((g) => g.id === groupId)?.name || ""} />
             ) : (
               <Select value={groupId} onValueChange={setGroupId}>

@@ -20,12 +20,12 @@ export default function Scan() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState({ kind: "idle", childName: "", message: "" });
 
-  // Load groups for this parish (admin: all; catechist: own group)
+  // Load groups for this parish (admin: all; user: own group)
   useEffect(() => {
     if (!user?.parish_id) return;
     base44.entities.Group.filter({ parish_id: user.parish_id }).then((g) => {
       setGroups(g);
-      if (user.role === "catechist" && user.group_id) setGroupId(user.group_id);
+      if (user.role === "user" && user.group_id) setGroupId(user.group_id);
       else if (g.length === 1) setGroupId(g[0].id);
     });
   }, [user]);
