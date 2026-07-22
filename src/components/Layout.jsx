@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Outlet, NavLink } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -19,6 +20,7 @@ const navItems = [
 
 export default function Layout() {
   const { user } = useAuth();
+  const [parishName, setParishName] = useState(null);
 
   const items = navItems.filter((i) => !i.adminOnly || isParishAdmin(user));
 
@@ -27,6 +29,16 @@ export default function Layout() {
     window.location.href = "/login";
   };
 
+  // Cada tenant (parroquia) muestra su propio nombre bajo la marca CateqHub.
+  useEffect(() => {
+    if (!user?.parish_id) { setParishName(null); return; }
+    base44.entities.Parish.get(user.parish_id)
+      .then((p) => setParishName(p?.name ?? null))
+      .catch(() => setParishName(null));
+  }, [user?.parish_id]);
+
+  const subtitle = parishName ?? parishRoleLabel(user);
+
   return (
     <div className="min-h-screen">
       {/* Sidebar (desktop) */}
@@ -34,8 +46,8 @@ export default function Layout() {
         <div className="h-16 flex items-center gap-3 px-6 border-b border-sidebar-border">
           <Logo className="w-8 h-8" />
           <div>
-            <p className="font-heading font-semibold leading-tight tracking-tight text-sm">CatequesisQR</p>
-            <p className="text-xs text-sidebar-foreground/55">{parishRoleLabel(user)}</p>
+            <p className="font-heading font-semibold leading-tight tracking-tight text-sm">CateqHub</p>
+            <p className="text-xs text-sidebar-foreground/55 truncate max-w-[9rem]">{subtitle}</p>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-0.5">
@@ -79,7 +91,7 @@ export default function Layout() {
       <header className="md:hidden sticky top-0 z-30 h-14 flex items-center justify-between px-4 bg-sidebar text-sidebar-foreground border-b border-sidebar-border">
         <div className="flex items-center gap-2.5">
           <Logo className="w-7 h-7" />
-          <span className="font-heading font-semibold text-sm tracking-tight">CatequesisQR</span>
+          <span className="font-heading font-semibold text-sm tracking-tight">CateqHub</span>
         </div>
         <button onClick={handleLogout} className="p-2 text-sidebar-foreground/65"><LogOut className="w-5 h-5" /></button>
       </header>
