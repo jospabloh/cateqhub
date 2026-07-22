@@ -14,44 +14,50 @@ export default function Users() {
   const [groups, setGroups] = useState([]);
   const [open, setOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("user");
-  const [editing, setEditing] = useState(null);
-  const [editForm, setEditForm] = useState({ parish_id: "", group_id: "", role: "user" });
+  const [inviteRole, setInviteRole] = useState("catequist"); // parish_role (tenant)
   const [inviteGroupId, setInviteGroupId] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignEmail, setAssignEmail] = useState("");
   const [assignGroupId, setAssignGroupId] = useState("");
+  const [editing, setEditing] = useState(null);
+  const [editForm, setEditForm] = useState({ group_id: "", parish_role: "catequist" });
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
     if (!user?.parish_id) return;
-    const [s, g] = await Promise.all([
-      base44.entities.User.filter({ parish_id: user.parish_id }),
-      base44.entities.Group.filter({ parish_id: user.parish_id }),
-    ]);
-    setStaff(s);
-    setGroups(g);
+    try {
+      const [res, g] = await Promise.all([
+        base44.functions.invoke("list_parish_users", {}),
+        base44.entities.Group.filter({ parish_id: user.parish_id }),
+      ]);
+      setStaff(res.data?.users || []);
+      setGroups(g);
+    } catch (e) {
+      setStaff([]);
+    }
   };
   useEffect(() => { load(); }, [user]);
 
-  const assignToParish = async (email, groupId, role) => {
+  const assignToParish = async (email, groupId, parishRole) => {
     const res = await base44.functions.invoke("assign_parish_user", {
       email,
       parish_id: user.parish_id,
-      group_id: role === "user" ? groupId : "",
-      role,
+      group_id: parishRole === "catequist" ? groupId : "",
+      parish_role: parishRole,
     });
-    return res.data || res;
+    return res.data;
   };
 
   const invite = async () => {
     if (!inviteEmail) return;
     setLoading(true);
     try {
-      await base44.users.inviteUser(inviteEmail, inviteRole);
+      // La invitación a la app es siempre como `user` de plataforma.
+      // El rol dentro de la parroquia (tenant) se asigna por backend.
+      await base44.users.inviteUser(inviteEmail, "user");
       const data = await assignToParish(inviteEmail, inviteGroupId, inviteRole).catch(() => null);
       if (data?.assigned) {
-        alert(`Invitación enviada a ${inviteEmail}. ${inviteRole === "user" ? "Catequista vinculado a tu parroquia." : "Administrador vinculado."}`);
+        alert(`Invitación enviada a ${inviteEmail}. ${inviteRole === "catequist" ? "Catequista vinculado a tu parroquia." : "Administrador de parroquia vinculado."}`);
       } else if (data?.found === false) {
         alert(`Invitación enviada a ${inviteEmail}.\n\nCuando registre su cuenta, presiona "Asignar" e ingresa su correo para vincularlo a tu parroquia.`);
       } else {
@@ -70,7 +76,7 @@ export default function Users() {
     if (!assignEmail) return;
     setLoading(true);
     try {
-      const data = await assignToParish(assignEmail, assignGroupId, "user");
+      const data = await assignToParish(assignEmail, assignGroupId, "catequist");
       if (data?.assigned) {
         alert(`Catequista vinculado a tu parroquia (${data.user?.email || assignEmail}).`);
         setAssignOpen(false);
@@ -87,23 +93,26 @@ export default function Users() {
 
   const openEdit = (u) => {
     setEditing(u);
-    setEditForm({ parish_id: u.parish_id || user.parish_id, group_id: u.group_id || "", role: u.role || "user" });
+    setEditForm({ group_id: u.group_id || "", parish_role: u.parish_role || "catequist" });
   };
 
   const saveEdit = async () => {
     setLoading(true);
     try {
-      await base44.entities.User.update(editing.id, {
-        parish_id: user.parish_id,
-        group_id: editForm.role === "user" ? editForm.group_id : undefined,
-        role: editForm.role,
-      });
-      setEditing(null);
-      load();
+      const data = await assignToParish(editing.email, editForm.group_id, editForm.parish_role);
+      if (data?.assigned) {
+        setEditing(null);
+        load();
+      } else {
+        alert(data?.message || "No se pudo actualizar.");
+      }
+    } catch (e) {
+      alert("No se pudo guardar: " + (e.message || "error"));
     } finally { setLoading(false); }
   };
 
   const groupName = (id) => groups.find((g) => g.id === id)?.name || "—";
+  const isMe = (u) => u.id === user?.id;
 
   return (
     <div className="space-y-5">
@@ -128,13 +137,15 @@ export default function Users() {
                 <div>
                   <p className="font-medium">{u.full_name || u.email}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role === "admin" ? "Administrador" : "Catequista"}</Badge>
-                    {u.role === "user" && <span className="text-sm text-muted-foreground">Grupo: {groupName(u.group_id)}</span>}
+                    <Badge variant={u.parish_role === "admin" ? "default" : "secondary"}>{u.parish_role === "admin" ? "Administrador" : "Catequista"}</Badge>
+                    {u.parish_role === "catequist" && <span className="text-sm text-muted-foreground">Grupo: {groupName(u.group_id)}</span>}
                   </div>
                 </div>
-                {u.role !== "admin" || u.id !== user?.id ? (
+                {isMe(u) ? (
+                  <Badge variant="outline">Tú</Badge>
+                ) : (
                   <Button size="sm" variant="outline" onClick={() => openEdit(u)}>Editar</Button>
-                ) : <Badge variant="outline">Tú</Badge>}
+                )}
               </CardContent>
             </Card>
           ))}
@@ -150,13 +161,13 @@ export default function Users() {
               <input type="email" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="correo@ejemplo.com" />
             </div>
             <div className="space-y-1.5">
-              <Label>Rol</Label>
+              <Label>Rol en la parroquia</Label>
               <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-                <option value="user">Catequista</option>
-                <option value="admin">Administrador</option>
+                <option value="catequist">Catequista</option>
+                <option value="admin">Administrador de parroquia</option>
               </select>
             </div>
-            {inviteRole === "user" && (
+            {inviteRole === "catequist" && (
               <div className="space-y-1.5">
                 <Label>Grupo</Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={inviteGroupId} onChange={(e) => setInviteGroupId(e.target.value)}>
@@ -165,7 +176,7 @@ export default function Users() {
                 </select>
               </div>
             )}
-            <p className="text-xs text-muted-foreground">El invitado recibirá un correo. Se vinculará a tu parroquia al registrarse; si aún no lo ha hecho, usa "Asignar" después.</p>
+            <p className="text-xs text-muted-foreground">El invitado recibirá un correo con acceso a la app. Su rol y grupo quedan limitados a tu parroquia.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -179,13 +190,13 @@ export default function Users() {
           <DialogHeader><DialogTitle>Editar usuario</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label>Rol</Label>
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}>
-                <option value="user">Catequista</option>
-                <option value="admin">Administrador</option>
+              <Label>Rol en la parroquia</Label>
+              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={editForm.parish_role} onChange={(e) => setEditForm({ ...editForm, parish_role: e.target.value })}>
+                <option value="catequist">Catequista</option>
+                <option value="admin">Administrador de parroquia</option>
               </select>
             </div>
-            {editForm.role === "user" && (
+            {editForm.parish_role === "catequist" && (
               <div className="space-y-1.5">
                 <Label>Grupo asignado</Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={editForm.group_id} onChange={(e) => setEditForm({ ...editForm, group_id: e.target.value })}>

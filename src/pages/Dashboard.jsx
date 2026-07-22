@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { usePremiumStatus } from "@/lib/premium";
 import PremiumLockedPanel from "@/components/PremiumLockedPanel";
 import { ScanLine, Users, ClipboardList, Church, QrCode, AlertCircle, Clock, MessageCircle, ListChecks, Tag } from "lucide-react";
+import { isParishAdmin } from "@/lib/roles";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -41,10 +42,10 @@ export default function Dashboard() {
             <div>
               <h2 className="text-xl font-semibold">Configura tu parroquia</h2>
               <p className="text-muted-foreground text-sm mt-1">
-                Aún no tienes una parroquia asignada. {user?.role === "admin" ? "Crea una y asígnala a tu cuenta para empezar." : "Contacta al administrador para que te asigne una."}
+                Aún no tienes una parroquia asignada. {isParishAdmin(user) ? "Crea una y asígnala a tu cuenta para empezar." : "Contacta al administrador para que te asigne una."}
               </p>
             </div>
-            {user?.role === "admin" && (
+            {isParishAdmin(user) && (
               <Button asChild>
                 <Link to="/parroquia">Ir a configuración</Link>
               </Button>
@@ -65,16 +66,16 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-heading font-semibold">Hola 👋</h1>
-        <p className="text-muted-foreground">{parish?.name || "Tu parroquia"} · {user?.role === "admin" ? "Administrador" : "Catequista"}</p>
+        <p className="text-muted-foreground">{parish?.name || "Tu parroquia"} · {isParishAdmin(user) ? "Administrador" : "Catequista"}</p>
       </div>
 
-      {user?.role === "admin" && status.tier === "trial" && (
+      {isParishAdmin(user) && status.tier === "trial" && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
           <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary shrink-0" />Prueba de funciones premium: quedan <strong>{status.daysLeft} días</strong>.</span>
           <Link to="/premium" className="text-primary font-medium hover:underline shrink-0">Ver plan</Link>
         </div>
       )}
-      {user?.role === "admin" && status.tier === "locked" && (
+      {isParishAdmin(user) && status.tier === "locked" && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm rounded-lg border border-border bg-muted px-4 py-3">
           <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground shrink-0" />Tu prueba de funciones premium terminó.</span>
           <Link to="/premium" className="text-primary font-medium hover:underline shrink-0">Ver plan</Link>
@@ -99,14 +100,14 @@ export default function Dashboard() {
           <div className="flex flex-wrap gap-3">
             <Button asChild size="lg"><Link to="/escanear"><ScanLine className="w-4 h-4 mr-2" />Escanear asistencia</Link></Button>
             <Button asChild size="lg" variant="outline"><Link to="/ninos"><ClipboardList className="w-4 h-4 mr-2" />Ver niños</Link></Button>
-            {user?.role === "admin" && (
+            {isParishAdmin(user) && (
               <Button asChild size="lg" variant="outline"><Link to="/grupos"><Church className="w-4 h-4 mr-2" />Gestionar grupos</Link></Button>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {user?.role === "admin" && (
+      {isParishAdmin(user) && (
         <div>
           <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Funciones premium</h3>
           <div className="grid gap-3 sm:grid-cols-3">

@@ -23,7 +23,7 @@ export default function Groups() {
     if (!user?.parish_id) return;
     const [g, s] = await Promise.all([
       base44.entities.Group.filter({ parish_id: user.parish_id }),
-      base44.entities.User.filter({ parish_id: user.parish_id, role: "user" }).catch(() => []),
+      base44.functions.invoke("list_parish_users", {}).then((r) => (r.data?.users || []).filter((u) => u.parish_role === "catequist")).catch(() => []),
     ]);
     setGroups(g);
     setStaff(s);

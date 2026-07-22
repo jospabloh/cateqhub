@@ -2,16 +2,26 @@
   "properties": {
     "role": {
       "type": "string",
-      "description": "Rol del usuario en la app (admin = administrador de parroquia, user = catequista)",
+      "description": "Rol de plataforma: admin = propietario de la app; user = cualquier persona invitada. No define permisos por parroquia.",
       "enum": [
         "admin",
         "user"
       ]
     },
+    "parish_role": {
+      "type": "string",
+      "title": "Rol en la parroquia",
+      "description": "Rol dentro del tenant (parroquia): admin = administrador de la parroquia, catequist = catequista",
+      "enum": [
+        "admin",
+        "catequist"
+      ],
+      "default": "catequist"
+    },
     "parish_id": {
       "type": "string",
       "title": "Parroquia",
-      "description": "Parroquia a la que pertenece el usuario",
+      "description": "Tenant al que pertenece el usuario (aislamiento de datos)",
       "x-ref": "Parish"
     },
     "group_id": {

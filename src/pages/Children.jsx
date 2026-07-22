@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ClipboardList, Plus, Search, QrCode } from "lucide-react";
+import { isCatechist } from "@/lib/roles";
 
 const empty = { name: "", birth_date: "", group_id: "" };
 
@@ -24,7 +25,7 @@ export default function Children() {
   const load = async () => {
     if (!user?.parish_id) return;
     const filter = { parish_id: user.parish_id };
-    if (user.role === "user" && user.group_id) filter.group_id = user.group_id;
+    if (isCatechist(user) && user.group_id) filter.group_id = user.group_id;
     const [c, g] = await Promise.all([
       base44.entities.Child.filter(filter, "-created_date"),
       base44.entities.Group.filter({ parish_id: user.parish_id }),
@@ -41,7 +42,7 @@ export default function Children() {
     c.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const openNew = () => { setForm({ ...empty, group_id: user.role === "user" ? user.group_id : "" }); setOpen(true); };
+  const openNew = () => { setForm({ ...empty, group_id: isCatechist(user) ? user.group_id : "" }); setOpen(true); };
 
   const save = async () => {
     if (!form.name || !form.group_id) return;

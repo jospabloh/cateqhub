@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScanLine, CheckCircle2, XCircle, AlertTriangle, Camera, CameraOff } from "lucide-react";
+import { isParishAdmin, isCatechist } from "@/lib/roles";
 
 export default function Scan() {
   const { user } = useAuth();
@@ -25,7 +26,7 @@ export default function Scan() {
     if (!user?.parish_id) return;
     base44.entities.Group.filter({ parish_id: user.parish_id }).then((g) => {
       setGroups(g);
-      if (user.role === "user" && user.group_id) setGroupId(user.group_id);
+      if (isCatechist(user) && user.group_id) setGroupId(user.group_id);
       else if (g.length === 1) setGroupId(g[0].id);
     });
   }, [user]);
@@ -148,7 +149,7 @@ export default function Scan() {
         <p className="text-muted-foreground text-sm">Apunta la cámara al código QR del niño.</p>
       </div>
 
-      {user?.role === "admin" && (
+      {isParishAdmin(user) && (
         <div className="space-y-1.5">
           <Label>Grupo</Label>
           <Select value={groupId} onValueChange={setGroupId} disabled={active}>

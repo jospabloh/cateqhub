@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { QrCode, Users, ClipboardList, ScanLine, Home, Church, LogOut, UserCog, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isParishAdmin, parishRoleLabel } from "@/lib/roles";
 
 const navItems = [
   { to: "/", label: "Inicio", icon: Home, end: true },
@@ -18,7 +19,7 @@ const navItems = [
 export default function Layout() {
   const { user } = useAuth();
 
-  const items = navItems.filter((i) => !i.adminOnly || user?.role === "admin");
+  const items = navItems.filter((i) => !i.adminOnly || isParishAdmin(user));
 
   const handleLogout = async () => {
     await base44.auth.logout();
@@ -35,7 +36,7 @@ export default function Layout() {
           </div>
           <div>
             <p className="font-heading font-semibold leading-tight tracking-tight text-sm">CatequesisQR</p>
-            <p className="text-xs text-sidebar-foreground/55">{user?.role === "admin" ? "Administrador" : "Catequista"}</p>
+            <p className="text-xs text-sidebar-foreground/55">{parishRoleLabel(user)}</p>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-0.5">

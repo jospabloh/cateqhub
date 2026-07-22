@@ -26,7 +26,7 @@ export default function Parishes() {
     try {
       const parish = await base44.entities.Parish.create({ name, admin_contact: contact, active: true });
       // Auto-assign the current admin to this parish
-      await base44.auth.updateMe({ parish_id: parish.id });
+      await base44.auth.updateMe({ parish_id: parish.id, parish_role: "admin" });
       setName(""); setContact("");
       await load();
       await checkUserAuth();
@@ -34,7 +34,7 @@ export default function Parishes() {
   };
 
   const assignToMe = async (id) => {
-    await base44.auth.updateMe({ parish_id: id });
+    await base44.auth.updateMe({ parish_id: id, parish_role: "admin" });
     await checkUserAuth();
   };
 
