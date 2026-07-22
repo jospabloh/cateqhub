@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Users, Plus, Pencil, Trash2 } from "lucide-react";
+import { isParishAdmin } from "@/lib/roles";
 
 const empty = { name: "", level: "", user_id: "" };
 
@@ -63,7 +64,7 @@ export default function Groups() {
           <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><Users className="w-6 h-6 text-gold" />Grupos</h1>
           <p className="text-muted-foreground text-sm">Clases de catecismo de tu parroquia.</p>
         </div>
-        <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
+        {isParishAdmin(user) && <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Nuevo</Button>}
       </div>
 
       {groups.length === 0 ? (
@@ -79,10 +80,12 @@ export default function Groups() {
                     {g.level && <p className="text-sm text-muted-foreground">Nivel: {g.level}</p>}
                     <p className="text-sm text-muted-foreground mt-1">Catequista: {staffName(g.user_id)}</p>
                   </div>
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(g)}><Pencil className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => remove(g.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                  </div>
+                  {isParishAdmin(user) && (
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(g)}><Pencil className="w-4 h-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => remove(g.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
