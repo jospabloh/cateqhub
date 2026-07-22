@@ -2,12 +2,43 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { usePremiumStatus } from "@/lib/premium";
 import PremiumLockedPanel from "@/components/PremiumLockedPanel";
-import { ScanLine, Users, ClipboardList, Church, QrCode, AlertCircle, Clock, MessageCircle, ListChecks, Tag } from "lucide-react";
+import { ScanLine, Users, ClipboardList, Church, AlertCircle, Clock, MessageCircle, ListChecks, Tag } from "lucide-react";
 import { isParishAdmin } from "@/lib/roles";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+
+function AttendanceRing({ value, total }) {
+  const pct = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0;
+  const radius = 52;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - pct / 100);
+  return (
+    <div className="relative w-28 h-28 shrink-0">
+      <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+        <circle cx="60" cy="60" r={radius} strokeWidth="10" fill="none" className="stroke-muted" />
+        <circle
+          cx="60"
+          cy="60"
+          r={radius}
+          strokeWidth="10"
+          fill="none"
+          stroke="hsl(var(--chart-2))"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 700ms cubic-bezier(0.2, 0.8, 0.3, 1)" }}
+        />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center">
+        <p className="text-2xl font-heading font-semibold leading-none">{pct}%</p>
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -56,12 +87,6 @@ export default function Dashboard() {
     );
   }
 
-  const cards = [
-    { label: "Grupos", value: counts.groups, icon: Users, to: "/grupos" },
-    { label: "Niños activos", value: counts.children, icon: ClipboardList, to: "/ninos" },
-    { label: "Asistencia hoy", value: counts.today, icon: QrCode, to: "/reportes", accent: true },
-  ];
-
   return (
     <div className="space-y-6">
       <div>
@@ -82,16 +107,42 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        {cards.map((c) => (
-          <Card key={c.label} className={c.accent ? "border-gold/40" : undefined}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{c.label}</CardTitle>
-              <c.icon className={`w-4 h-4 ${c.accent ? "text-gold" : "text-muted-foreground"}`} />
-            </CardHeader>
-            <CardContent><p className="text-3xl font-heading font-semibold">{c.value}</p></CardContent>
-          </Card>
-        ))}
+      <Card className="overflow-hidden">
+        <CardContent className="pt-6 flex items-center gap-6 flex-wrap">
+          <AttendanceRing value={counts.today} total={counts.children} />
+          <div className="min-w-0">
+            <p className="text-sm text-muted-foreground capitalize">{format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</p>
+            <p className="text-3xl font-heading font-semibold mt-0.5">
+              {counts.today} <span className="text-base font-normal text-muted-foreground">de {counts.children} niños activos hoy</span>
+            </p>
+            <Link to="/reportes" className="text-sm text-primary font-medium hover:underline mt-1 inline-block">Ver reportes →</Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardContent className="pt-5 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Grupos</p>
+              <p className="text-2xl font-heading font-semibold mt-0.5">{counts.groups}</p>
+            </div>
+            <Link to="/grupos" className="w-9 h-9 rounded-md bg-muted grid place-items-center text-muted-foreground hover:text-foreground transition-colors">
+              <Users className="w-4 h-4" />
+            </Link>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Niños activos</p>
+              <p className="text-2xl font-heading font-semibold mt-0.5">{counts.children}</p>
+            </div>
+            <Link to="/ninos" className="w-9 h-9 rounded-md bg-muted grid place-items-center text-muted-foreground hover:text-foreground transition-colors">
+              <ClipboardList className="w-4 h-4" />
+            </Link>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
