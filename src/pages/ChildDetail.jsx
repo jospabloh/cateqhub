@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import QRCard, { downloadQRCard } from "@/components/QRCard";
 import { usePremiumStatus } from "@/lib/premium";
 import { isParishAdmin } from "@/lib/roles";
-import { ArrowLeft, Download, Printer, Plus, Trash2, Phone, Mail, Lock } from "lucide-react";
+import { normalizeCurp, isValidCurp } from "@/lib/curp";
+import { ArrowLeft, Download, Printer, Plus, Trash2, Phone, Mail, Lock, IdCard } from "lucide-react";
 
 export default function ChildDetail() {
   const { id } = useParams();
@@ -23,7 +24,7 @@ export default function ChildDetail() {
   const [links, setLinks] = useState([]);
   const [guardians, setGuardians] = useState([]);
   const [openG, setOpenG] = useState(false);
-  const [gForm, setGForm] = useState({ name: "", phone: "", email: "", relationship: "tutor", pickup_authorized: true });
+  const [gForm, setGForm] = useState({ name: "", phone: "", email: "", curp: "", relationship: "tutor", pickup_authorized: true });
   const [loading, setLoading] = useState(false);
   const status = usePremiumStatus(parish);
 
@@ -58,6 +59,7 @@ export default function ChildDetail() {
         name: gForm.name,
         phone: gForm.phone,
         email: gForm.email,
+        curp: normalizeCurp(gForm.curp) || undefined,
         whatsapp_opt_in: false,
       });
       await base44.entities.ChildGuardian.create({
@@ -68,7 +70,7 @@ export default function ChildDetail() {
         pickup_authorized: gForm.pickup_authorized,
       });
       setOpenG(false);
-      setGForm({ name: "", phone: "", email: "", relationship: "tutor", pickup_authorized: true });
+      setGForm({ name: "", phone: "", email: "", curp: "", relationship: "tutor", pickup_authorized: true });
       load();
     } finally { setLoading(false); }
   };
@@ -102,6 +104,7 @@ export default function ChildDetail() {
               </div>
               {group && <p className="text-muted-foreground">Grupo: {group.name}{group.level ? ` · ${group.level}` : ""}</p>}
               {child.birth_date && <p className="text-muted-foreground text-sm">Nacimiento: {child.birth_date}</p>}
+              {child.curp && <p className="text-muted-foreground text-sm flex items-center gap-1"><IdCard className="w-3.5 h-3.5" />CURP: <span className="font-mono">{child.curp}</span></p>}
               {isParishAdmin(user) && (
                 <Button variant="outline" size="sm" onClick={toggleActive} className="mt-2">
                   {child.active ? "Dar de baja" : "Reactivar"}
@@ -142,6 +145,7 @@ export default function ChildDetail() {
                       {rel?.pickup_authorized && <Badge variant="outline" className="mt-1">Autorizado para recoger</Badge>}
                       {g.phone && <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1"><Phone className="w-3 h-3" />{g.phone}</p>}
                       {g.email && <p className="text-sm text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{g.email}</p>}
+                      {g.curp && <p className="text-sm text-muted-foreground flex items-center gap-1"><IdCard className="w-3 h-3" /><span className="font-mono">{g.curp}</span></p>}
                     </div>
                     <Button size="icon" variant="ghost" onClick={() => removeGuardian(rel.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </div>
@@ -168,6 +172,19 @@ export default function ChildDetail() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Teléfono</Label><Input value={gForm.phone} onChange={(e) => setGForm({ ...gForm, phone: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Correo</Label><Input type="email" value={gForm.email} onChange={(e) => setGForm({ ...gForm, email: e.target.value })} /></div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>CURP <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <Input
+                value={gForm.curp}
+                onChange={(e) => setGForm({ ...gForm, curp: normalizeCurp(e.target.value) })}
+                maxLength={18}
+                placeholder="18 caracteres"
+                className="font-mono uppercase tracking-wide"
+              />
+              {gForm.curp && !isValidCurp(gForm.curp) && (
+                <p className="text-xs text-destructive">El formato de la CURP no parece válido.</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Relación</Label>

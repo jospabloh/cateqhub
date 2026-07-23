@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Badge } from "@/components/ui/badge";
 import { ClipboardList, Plus, Search, QrCode } from "lucide-react";
 import { isCatechist } from "@/lib/roles";
+import { normalizeCurp, isValidCurp } from "@/lib/curp";
 
-const empty = { name: "", birth_date: "", group_id: "" };
+const empty = { name: "", birth_date: "", group_id: "", curp: "" };
 
 export default function Children() {
   const { user } = useAuth();
@@ -52,6 +53,7 @@ export default function Children() {
       await base44.entities.Child.create({
         name: form.name,
         birth_date: form.birth_date || undefined,
+        curp: normalizeCurp(form.curp) || undefined,
         group_id: form.group_id,
         parish_id: user.parish_id,
         qr_token,
@@ -112,6 +114,19 @@ export default function Children() {
             <div className="space-y-1.5">
               <Label>Fecha de nacimiento</Label>
               <Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>CURP <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <Input
+                value={form.curp}
+                onChange={(e) => setForm({ ...form, curp: normalizeCurp(e.target.value) })}
+                maxLength={18}
+                placeholder="18 caracteres"
+                className="font-mono uppercase tracking-wide"
+              />
+              {form.curp && !isValidCurp(form.curp) && (
+                <p className="text-xs text-destructive">El formato de la CURP no parece válido.</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Grupo</Label>
