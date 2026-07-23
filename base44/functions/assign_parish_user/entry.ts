@@ -38,6 +38,18 @@ Deno.serve(async (req) => {
     }
 
     const target = users[0];
+
+    // Prevenir secuestro de cuentas cross-tenant: un admin de parroquia no puede
+    // reasociar un usuario que ya pertenece a otra parroquia. Solo un admin de
+    // plataforma puede mover usuarios entre parroquias.
+    if (!isPlatformAdmin && target.parish_id && target.parish_id !== parish_id) {
+      return Response.json({
+        found: true,
+        assigned: false,
+        message: 'El usuario ya pertenece a otra parroquia. Solo un administrador de plataforma puede reasociarlo.',
+      }, { status: 403 });
+    }
+
     await base44.asServiceRole.entities.User.update(target.id, {
       parish_id,
       group_id,
