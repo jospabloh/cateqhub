@@ -31,9 +31,12 @@
     --border: 210 16% 90%;
     --input: 210 16% 90%;
     --ring: 195 45% 17%;
-    --chart-1: 195 45% 17%;
-    --chart-2: 150 25% 35%;
-    --chart-3: 6 58% 40%;
+    /* Tonos de gráficas: más saturados/claros que la tinta de UI a propósito
+       (validados con dataviz/scripts/validate_palette.js — la tinta de UI
+       falla el piso de croma como marca de gráfica). */
+    --chart-1: 195 60% 38%;
+    --chart-2: 150 45% 38%;
+    --chart-3: 6 65% 48%;
     --chart-4: 210 15% 55%;
     --chart-5: 38 45% 45%;
     --radius: 0.5rem;
@@ -80,9 +83,9 @@
     --border: 210 20% 18%;
     --input: 210 20% 18%;
     --ring: 195 45% 62%;
-    --chart-1: 195 45% 62%;
-    --chart-2: 150 22% 50%;
-    --chart-3: 6 55% 60%;
+    --chart-1: 195 55% 55%;
+    --chart-2: 150 40% 52%;
+    --chart-3: 6 60% 58%;
     --chart-4: 210 12% 65%;
     --chart-5: 38 40% 55%;
 

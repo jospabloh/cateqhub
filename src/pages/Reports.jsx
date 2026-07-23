@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { QrCode, CalendarDays } from "lucide-react";
+import { QrCode, CalendarDays, ChevronDown } from "lucide-react";
 import { format, parseISO, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { isCatechist } from "@/lib/roles";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function Reports() {
   const { user } = useAuth();
@@ -46,12 +47,22 @@ export default function Reports() {
 
   useEffect(() => { loadAttendances(); }, [user, groupId, from, to]);
 
-  // Attendance counts by date
+  // Attendance counts by date, most recent first (for the table)
   const byDate = useMemo(() => {
     const map = {};
     attendances.forEach((a) => { map[a.date] = (map[a.date] || 0) + 1; });
     return Object.entries(map).sort((a, b) => (a[0] < b[0] ? 1 : -1));
   }, [attendances]);
+
+  // Same data, chronological (for the chart)
+  const chartData = useMemo(
+    () => [...byDate].reverse().map(([date, count]) => ({
+      date,
+      count,
+      label: format(parseISO(date), "d MMM", { locale: es }),
+    })),
+    [byDate]
+  );
 
   // Absences: for each child, count of dates (within range where their group had attendance) they were absent
   const absences = useMemo(() => {
@@ -67,13 +78,15 @@ export default function Reports() {
       childAttDates[a.child_id] = childAttDates[a.child_id] || new Set();
       childAttDates[a.child_id].add(a.date);
     });
-    return activeChildren.map((c) => {
-      const groupDates = datesPerGroup[c.group_id] || new Set();
-      const present = childAttDates[c.id] || new Set();
-      let absences = 0;
-      groupDates.forEach((d) => { if (!present.has(d)) absences++; });
-      return { child: c, present: present.size, absences, totalSessions: groupDates.size };
-    });
+    return activeChildren
+      .map((c) => {
+        const groupDates = datesPerGroup[c.group_id] || new Set();
+        const present = childAttDates[c.id] || new Set();
+        let absences = 0;
+        groupDates.forEach((d) => { if (!present.has(d)) absences++; });
+        return { child: c, present: present.size, absences, totalSessions: groupDates.size };
+      })
+      .sort((a, b) => b.absences - a.absences);
   }, [attendances, children, groupId]);
 
   return (
@@ -107,41 +120,95 @@ export default function Reports() {
       <Card>
         <CardHeader><CardTitle className="text-base flex items-center gap-2"><CalendarDays className="w-4 h-4" />Asistencia por fecha</CardTitle></CardHeader>
         <CardContent>
-          {byDate.length === 0 ? (
+          {chartData.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin registros en el rango seleccionado.</p>
           ) : (
-            <Table>
-              <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead className="text-right">Asistencias</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {byDate.map(([date, count]) => (
-                  <TableRow key={date}>
-                    <TableCell className="capitalize">{format(parseISO(date), "EEEE d 'de' MMMM yyyy", { locale: es })}</TableCell>
-                    <TableCell className="text-right font-mono font-medium tabular-nums">{count}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <>
+              <div className="h-56 -ml-2 mb-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis
+                      dataKey="label"
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tickLine={false}
+                      axisLine={false}
+                      width={28}
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "hsl(var(--muted))" }}
+                      contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                      labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600, marginBottom: 2 }}
+                      itemStyle={{ color: "hsl(var(--foreground))" }}
+                      formatter={(value) => [`${value} niños`, "Asistencia"]}
+                    />
+                    <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} maxBarSize={36} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <details className="text-sm">
+                <summary className="cursor-pointer text-muted-foreground inline-flex items-center gap-1 select-none">
+                  <ChevronDown className="w-3.5 h-3.5" />Ver tabla de datos
+                </summary>
+                <Table className="mt-2">
+                  <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead className="text-right">Asistencias</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {byDate.map(([date, count]) => (
+                      <TableRow key={date}>
+                        <TableCell className="capitalize">{format(parseISO(date), "EEEE d 'de' MMMM yyyy", { locale: es })}</TableCell>
+                        <TableCell className="text-right font-mono font-medium tabular-nums">{count}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </details>
+            </>
           )}
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Faltas acumuladas por niño</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Faltas acumuladas por niño</CardTitle>
+          {absences.length > 0 && (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]" />Presente</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[hsl(var(--chart-3))]" />Falta</span>
+            </div>
+          )}
+        </CardHeader>
         <CardContent>
           {absences.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin datos.</p>
           ) : (
             <Table>
-              <TableHeader><TableRow><TableHead>Niño</TableHead><TableHead className="text-right">Sesiones</TableHead><TableHead className="text-right">Presentes</TableHead><TableHead className="text-right">Faltas</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Niño</TableHead><TableHead>Asistencia</TableHead><TableHead className="text-right">Faltas</TableHead></TableRow></TableHeader>
               <TableBody>
-                {absences.map(({ child, present, absences: ab, totalSessions }) => (
-                  <TableRow key={child.id}>
-                    <TableCell className="font-medium">{child.name}</TableCell>
-                    <TableCell className="text-right font-mono tabular-nums text-muted-foreground">{totalSessions}</TableCell>
-                    <TableCell className="text-right font-mono tabular-nums text-moss font-medium">{present}</TableCell>
-                    <TableCell className="text-right font-mono tabular-nums text-destructive font-medium">{ab}</TableCell>
-                  </TableRow>
-                ))}
+                {absences.map(({ child, present, absences: ab, totalSessions }) => {
+                  const presentPct = totalSessions ? (present / totalSessions) * 100 : 0;
+                  const absentPct = totalSessions ? (ab / totalSessions) * 100 : 0;
+                  return (
+                    <TableRow key={child.id}>
+                      <TableCell className="font-medium">{child.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 min-w-[72px] max-w-[140px] h-2 rounded-full bg-muted overflow-hidden flex gap-0.5">
+                            {presentPct > 0 && <div className="h-full rounded-full bg-[hsl(var(--chart-2))]" style={{ width: `${presentPct}%` }} />}
+                            {absentPct > 0 && <div className="h-full rounded-full bg-[hsl(var(--chart-3))]" style={{ width: `${absentPct}%` }} />}
+                          </div>
+                          <span className="text-xs text-muted-foreground font-mono tabular-nums shrink-0">{present}/{totalSessions}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums text-destructive font-medium">{ab}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

@@ -1,5 +1,6 @@
 import { QRCodeCanvas } from "qrcode.react";
 import { forwardRef } from "react";
+import Logo from "@/components/Logo";
 
 const QRCard = forwardRef(function QRCard({ child, parish, group }, ref) {
   return (
@@ -7,9 +8,12 @@ const QRCard = forwardRef(function QRCard({ child, parish, group }, ref) {
       ref={ref}
       className="bg-white text-[#101820] rounded-xl p-6 w-full max-w-[320px] mx-auto border border-[#E4E7EB] shadow-sm print:shadow-none"
     >
+      <div className="flex items-center justify-center gap-1.5 mb-1">
+        <Logo className="w-4 h-4" />
+        <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A94A3] font-medium">CateqHub</p>
+      </div>
       <div className="text-center mb-4">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A94A3] font-medium">Tarjeta de asistencia</p>
-        {parish && <p className="text-sm font-medium text-[#101820]/70 mt-1">{parish.name}</p>}
+        {parish && <p className="text-sm font-medium text-[#101820]/70">{parish.name}</p>}
       </div>
 
       <div className="flex justify-center my-4">
