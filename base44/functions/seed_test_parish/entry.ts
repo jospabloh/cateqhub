@@ -7,6 +7,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 // algo"), así que invocarla varias veces completa lo que falte en vez de
 // quedarse atorada si una corrida anterior quedó parcial (p. ej. probada desde
 // el editor de Base44 y cancelada a medio camino).
+//
+// También: (1) limpia cualquier grupo "extra" que no sea uno de los 3
+// canónicos (p. ej. de una corrida parcial anterior con otro nombre),
+// reasignando a sus niños antes de borrarlo; y (2) deja al admin de
+// plataforma que invoca la función asignado a esta parroquia, para que pueda
+// entrar a la app como usuario normal y ver los datos sembrados de inmediato
+// — si su cuenta ya apuntaba a otra parroquia (p. ej. una vacía creada antes
+// por accidente vía "crear tu parroquia" con el mismo nombre), se reasigna.
 const PARISH_NAME = 'Parroquia San Testing';
 
 const GROUPS = ['Iniciación', 'Primera Comunión', 'Confirmación'];
@@ -40,12 +48,22 @@ Deno.serve(async (req) => {
     const existingParish = await sr.entities.Parish.filter({ name: PARISH_NAME });
     const parish = existingParish?.[0] ?? await sr.entities.Parish.create({ name: PARISH_NAME, active: true });
 
-    // Grupos: crea solo los nombres que falten (por nombre, no por conteo).
-    const existingGroups = await sr.entities.Group.filter({ parish_id: parish.id });
-    const existingGroupNames = new Set(existingGroups.map((g) => g.name));
+    // Grupos: crea solo los nombres canónicos que falten.
+    const allGroupsBefore = await sr.entities.Group.filter({ parish_id: parish.id });
+    const existingGroupNames = new Set(allGroupsBefore.map((g) => g.name));
     const missingGroups = GROUPS.filter((name) => !existingGroupNames.has(name));
     const newGroups = await Promise.all(missingGroups.map((name) => sr.entities.Group.create({ parish_id: parish.id, name })));
-    const groups = [...existingGroups, ...newGroups];
+    const canonicalGroups = [...allGroupsBefore.filter((g) => GROUPS.includes(g.name)), ...newGroups];
+
+    // Limpieza: cualquier grupo que NO sea uno de los 3 canónicos es un
+    // residuo de una corrida parcial anterior (nombre distinto por la razón
+    // que sea) — mueve a sus niños al primer grupo canónico y bórralo.
+    const strayGroups = allGroupsBefore.filter((g) => !GROUPS.includes(g.name));
+    for (const stray of strayGroups) {
+      const strayChildren = await sr.entities.Child.filter({ group_id: stray.id });
+      await Promise.all(strayChildren.map((c) => sr.entities.Child.update(c.id, { group_id: canonicalGroups[0].id })));
+      await sr.entities.Group.delete(stray.id);
+    }
 
     // Niños: completa hasta CHILD_NAMES.length (por conteo existente, no por
     // nombre — dos niños pueden compartir nombre en la vida real).
@@ -55,7 +73,7 @@ Deno.serve(async (req) => {
         const i = existingChildren.length + offset;
         return sr.entities.Child.create({
           parish_id: parish.id,
-          group_id: groups[i % groups.length].id,
+          group_id: canonicalGroups[i % canonicalGroups.length].id,
           name,
           qr_token: crypto.randomUUID(),
           curp: CURPS[i] || '',
@@ -93,15 +111,25 @@ Deno.serve(async (req) => {
     }
     await Promise.all(records.map((r) => sr.entities.Attendance.create(r)));
 
+    // Deja al admin que invoca esto viendo la parroquia sembrada como usuario
+    // normal de la app, sin importar a qué parroquia apuntaba antes.
+    const previousParishId = me.parish_id ?? null;
+    if (previousParishId !== parish.id) {
+      await sr.entities.User.update(me.id, { parish_id: parish.id, parish_role: 'admin' });
+    }
+
     return Response.json({
       ok: true,
       parish: { id: parish.id, name: parish.name },
-      groups: groups.length,
+      groups: canonicalGroups.length,
       groups_created: newGroups.length,
+      stray_groups_removed: strayGroups.length,
       children: children.length,
       children_created: newChildren.length,
       attendance_total: existingAttendance.length + records.length,
       attendance_created: records.length,
+      reassigned_caller: previousParishId !== parish.id,
+      previous_parish_id: previousParishId,
     });
   } catch (error) {
     return Response.json({ error: (error as Error).message }, { status: 500 });
