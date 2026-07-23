@@ -1,0 +1,42 @@
+{
+  "name": "SupportTicketMessage",
+  "type": "object",
+  "description": "Un mensaje dentro del hilo de un SupportTicket. Las notas internas (is_internal_note=true) solo las ve el soporte (owner), vía RLS y UI.",
+  "properties": {
+    "ticket_id": { "type": "string", "title": "Ticket", "x-ref": "SupportTicket" },
+    "parish_id": { "type": "string", "title": "Parroquia", "description": "Denormalizado, para RLS", "x-ref": "Parish" },
+    "author_id": { "type": "string", "title": "Autor (ID)" },
+    "author_email": { "type": "string", "title": "Correo del autor" },
+    "author_name": { "type": "string", "title": "Nombre del autor" },
+    "author_role": { "type": "string", "title": "Rol del autor", "enum": ["owner", "tenant"] },
+    "body": { "type": "string", "title": "Contenido" },
+    "is_internal_note": { "type": "boolean", "title": "Nota interna", "default": false, "description": "Visible solo para el soporte (owner)" }
+  },
+  "required": ["ticket_id", "parish_id", "body"],
+  "rls": {
+    "create": {
+      "$or": [
+        { "$and": [
+          { "data.parish_id": "{{user.data.parish_id}}" },
+          { "data.is_internal_note": false }
+        ] },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "read": {
+      "$or": [
+        { "$and": [
+          { "data.parish_id": "{{user.data.parish_id}}" },
+          { "data.is_internal_note": false }
+        ] },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "update": {
+      "user_condition": { "role": "admin" }
+    },
+    "delete": {
+      "user_condition": { "role": "admin" }
+    }
+  }
+}

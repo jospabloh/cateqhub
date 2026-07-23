@@ -17,6 +17,10 @@ import Reports from '@/pages/Reports';
 import Parishes from '@/pages/Parishes';
 import Users from '@/pages/Users';
 import Premium from '@/pages/Premium';
+import Permissions from '@/pages/Permissions';
+import Manual from '@/pages/Manual';
+import SupportTickets from '@/pages/SupportTickets';
+import About from '@/pages/About';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -65,6 +69,10 @@ const AuthenticatedApp = () => {
           <Route path="/parroquia" element={<Parishes />} />
           <Route path="/usuarios" element={<Users />} />
           <Route path="/premium" element={<Premium />} />
+          <Route path="/permisos" element={<Permissions />} />
+          <Route path="/manual" element={<Manual />} />
+          <Route path="/soporte" element={<SupportTickets />} />
+          <Route path="/acerca-de" element={<About />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

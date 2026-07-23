@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Outlet, NavLink } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { QrCode, Users, ClipboardList, ScanLine, Home, Church, LogOut, UserCog, Sparkles } from "lucide-react";
+import { QrCode, Users, ClipboardList, ScanLine, Home, Church, LogOut, UserCog, Sparkles, ShieldCheck, BookOpen, LifeBuoy, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isParishAdmin, parishRoleLabel } from "@/lib/roles";
 import Logo from "@/components/Logo";
@@ -16,6 +16,10 @@ const navItems = [
   { to: "/parroquia", label: "Parroquia", icon: Church, adminOnly: true },
   { to: "/usuarios", label: "Usuarios", icon: UserCog, adminOnly: true },
   { to: "/premium", label: "Premium", icon: Sparkles, adminOnly: true },
+  { to: "/permisos", label: "Permisos", icon: ShieldCheck, adminOnly: true },
+  { to: "/manual", label: "Manual", icon: BookOpen },
+  { to: "/soporte", label: "Soporte", icon: LifeBuoy },
+  { to: "/acerca-de", label: "Acerca de", icon: Info },
 ];
 
 export default function Layout() {

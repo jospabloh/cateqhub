@@ -1,0 +1,49 @@
+{
+  "name": "SupportTicket",
+  "type": "object",
+  "description": "Ticket de soporte que una parroquia (tenant) abre a la plataforma. Los mensajes del hilo viven en SupportTicketMessage.",
+  "properties": {
+    "parish_id": { "type": "string", "title": "Parroquia", "description": "ID de la parroquia que abrió el ticket", "x-ref": "Parish" },
+    "parish_name": { "type": "string", "title": "Nombre de la parroquia", "description": "Denormalizado, para mostrar sin otra consulta" },
+    "subject": { "type": "string", "title": "Asunto" },
+    "description": { "type": "string", "title": "Descripción", "description": "Descripción inicial del problema" },
+    "category": { "type": "string", "title": "Categoría", "enum": ["billing", "technical", "account", "feature_request", "other"], "default": "other", "description": "'feature_request' = solicitud de función/mejora; el resto son incidentes/problemas." },
+    "priority": { "type": "string", "title": "Prioridad", "enum": ["low", "normal", "high", "urgent"], "default": "normal" },
+    "status": { "type": "string", "title": "Estado", "enum": ["open", "in_progress", "waiting_customer", "resolved", "closed"], "default": "open" },
+    "created_by_id": { "type": "string", "title": "Creado por (ID)" },
+    "created_by_email": { "type": "string", "title": "Correo del creador" },
+    "assigned_to": { "type": "string", "title": "Agente asignado", "description": "Correo del agente de soporte (owner)" },
+    "first_response_at": { "type": "string", "format": "date-time", "title": "Primera respuesta" },
+    "resolved_at": { "type": "string", "format": "date-time", "title": "Resuelto el" },
+    "closed_at": { "type": "string", "format": "date-time", "title": "Cerrado el" },
+    "last_message_at": { "type": "string", "format": "date-time", "title": "Último mensaje" },
+    "last_message_by_role": { "type": "string", "title": "Último mensaje de", "enum": ["owner", "tenant"] },
+    "messages_count": { "type": "number", "title": "Número de mensajes", "default": 0 },
+    "unread_for_owner": { "type": "boolean", "title": "Sin leer para soporte", "default": true },
+    "unread_for_tenant": { "type": "boolean", "title": "Sin leer para la parroquia", "default": false }
+  },
+  "required": ["parish_id", "subject"],
+  "rls": {
+    "create": {
+      "$or": [
+        { "data.parish_id": "{{user.data.parish_id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "read": {
+      "$or": [
+        { "data.parish_id": "{{user.data.parish_id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "update": {
+      "$or": [
+        { "data.parish_id": "{{user.data.parish_id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "delete": {
+      "user_condition": { "role": "admin" }
+    }
+  }
+}
