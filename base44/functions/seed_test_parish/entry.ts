@@ -1,10 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
-// Siembra (o reutiliza) "Parroquia San Testing": 3 grupos, 20 niños y
+// Siembra (o completa) "Parroquia San Testing": 3 grupos, 20 niños y
 // asistencia de prueba de las últimas semanas — para probar Mission Control
 // (sync de licencia/uso) y las vistas de Reportes/Dashboard con datos reales.
-// Gated a admin de plataforma. Idempotente: si la parroquia/niños/asistencia
-// ya existen, no se duplica nada — solo se reporta lo que ya había.
+// Gated a admin de plataforma. Idempotente por NOMBRE/fecha (no por "ya existe
+// algo"), así que invocarla varias veces completa lo que falte en vez de
+// quedarse atorada si una corrida anterior quedó parcial (p. ej. probada desde
+// el editor de Base44 y cancelada a medio camino).
 const PARISH_NAME = 'Parroquia San Testing';
 
 const GROUPS = ['Iniciación', 'Primera Comunión', 'Confirmación'];
@@ -38,60 +40,68 @@ Deno.serve(async (req) => {
     const existingParish = await sr.entities.Parish.filter({ name: PARISH_NAME });
     const parish = existingParish?.[0] ?? await sr.entities.Parish.create({ name: PARISH_NAME, active: true });
 
-    let groups = await sr.entities.Group.filter({ parish_id: parish.id });
-    if (!groups || groups.length === 0) {
-      groups = await Promise.all(GROUPS.map((name) => sr.entities.Group.create({ parish_id: parish.id, name })));
-    }
+    // Grupos: crea solo los nombres que falten (por nombre, no por conteo).
+    const existingGroups = await sr.entities.Group.filter({ parish_id: parish.id });
+    const existingGroupNames = new Set(existingGroups.map((g) => g.name));
+    const missingGroups = GROUPS.filter((name) => !existingGroupNames.has(name));
+    const newGroups = await Promise.all(missingGroups.map((name) => sr.entities.Group.create({ parish_id: parish.id, name })));
+    const groups = [...existingGroups, ...newGroups];
 
-    let children = await sr.entities.Child.filter({ parish_id: parish.id });
-    if (!children || children.length === 0) {
-      children = await Promise.all(
-        CHILD_NAMES.map((name, i) => sr.entities.Child.create({
+    // Niños: completa hasta CHILD_NAMES.length (por conteo existente, no por
+    // nombre — dos niños pueden compartir nombre en la vida real).
+    const existingChildren = await sr.entities.Child.filter({ parish_id: parish.id });
+    const newChildren = await Promise.all(
+      CHILD_NAMES.slice(existingChildren.length).map((name, offset) => {
+        const i = existingChildren.length + offset;
+        return sr.entities.Child.create({
           parish_id: parish.id,
           group_id: groups[i % groups.length].id,
           name,
           qr_token: crypto.randomUUID(),
           curp: CURPS[i] || '',
           active: true,
-        })),
-      );
+        });
+      }),
+    );
+    const children = [...existingChildren, ...newChildren];
+
+    // Asistencia: hoy + los últimos 4 domingos (deduplicado). Completa solo
+    // los pares (niño, fecha) que aún no tengan un registro.
+    const dateSet = new Set<string>();
+    const today = new Date();
+    dateSet.add(today.toISOString().slice(0, 10));
+    const sunday = new Date(today);
+    sunday.setDate(sunday.getDate() - sunday.getDay());
+    for (let w = 0; w < 4; w++) {
+      const day = new Date(sunday);
+      day.setDate(day.getDate() - w * 7);
+      dateSet.add(day.toISOString().slice(0, 10));
     }
 
-    let attendanceCreated = 0;
     const existingAttendance = await sr.entities.Attendance.filter({ parish_id: parish.id });
-    if (!existingAttendance || existingAttendance.length === 0) {
-      // Hoy + los últimos 4 domingos (deduplicado), para que Dashboard/Reportes
-      // tengan datos incluso si hoy no cae en domingo.
-      const dateSet = new Set<string>();
-      const today = new Date();
-      dateSet.add(today.toISOString().slice(0, 10));
-      const sunday = new Date(today);
-      sunday.setDate(sunday.getDate() - sunday.getDay());
-      for (let w = 0; w < 4; w++) {
-        const day = new Date(sunday);
-        day.setDate(day.getDate() - w * 7);
-        dateSet.add(day.toISOString().slice(0, 10));
-      }
+    const existingKeys = new Set(existingAttendance.map((a) => `${a.child_id}|${a.date}`));
 
-      const records: Record<string, unknown>[] = [];
-      for (const date of dateSet) {
-        for (const child of children) {
-          if (Math.random() < 0.85) { // ~85% asistencia, para variación real en "faltas acumuladas"
-            records.push({ parish_id: parish.id, group_id: child.group_id, child_id: child.id, date, recorded_by: me.id });
-          }
+    const records: Record<string, unknown>[] = [];
+    for (const date of dateSet) {
+      for (const child of children) {
+        const key = `${child.id}|${date}`;
+        if (existingKeys.has(key)) continue;
+        if (Math.random() < 0.85) { // ~85% asistencia, para variación real en "faltas acumuladas"
+          records.push({ parish_id: parish.id, group_id: child.group_id, child_id: child.id, date, recorded_by: me.id });
         }
       }
-      await Promise.all(records.map((r) => sr.entities.Attendance.create(r)));
-      attendanceCreated = records.length;
     }
+    await Promise.all(records.map((r) => sr.entities.Attendance.create(r)));
 
     return Response.json({
       ok: true,
       parish: { id: parish.id, name: parish.name },
       groups: groups.length,
+      groups_created: newGroups.length,
       children: children.length,
-      attendance_created: attendanceCreated,
-      note: attendanceCreated === 0 ? 'La parroquia ya existía con niños/asistencia — no se duplicó nada.' : undefined,
+      children_created: newChildren.length,
+      attendance_total: existingAttendance.length + records.length,
+      attendance_created: records.length,
     });
   } catch (error) {
     return Response.json({ error: (error as Error).message }, { status: 500 });
