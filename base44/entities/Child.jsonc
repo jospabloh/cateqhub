@@ -21,6 +21,11 @@
       "format": "date",
       "title": "Fecha de nacimiento"
     },
+    "curp": {
+      "type": "string",
+      "title": "CURP",
+      "description": "Clave Única de Registro de Población (México), 18 caracteres. Opcional."
+    },
     "qr_token": {
       "type": "string",
       "title": "Token QR (UUID)",
