@@ -22,24 +22,60 @@
   "rls": {
     "create": {
       "$or": [
-        { "created_by_id": "{{user.id}}" },
-        { "user_condition": { "role": "admin" } }
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.parish_role": "admin"
+          }
+        }
       ]
     },
     "read": {
       "$or": [
-        { "id": "{{user.data.parish_id}}" },
-        { "user_condition": { "role": "admin" } }
+        {
+          "id": "{{user.data.parish_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
       ]
     },
     "update": {
       "$or": [
-        { "id": "{{user.data.parish_id}}" },
-        { "user_condition": { "role": "admin" } }
+        {
+          "id": "{{user.data.parish_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.parish_role": "admin"
+          }
+        }
       ]
     },
     "delete": {
-      "user_condition": { "role": "admin" }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.parish_role": "admin"
+          }
+        }
+      ]
     }
   }
 }
