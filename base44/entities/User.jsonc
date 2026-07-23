@@ -16,24 +16,41 @@
         "admin",
         "catequist"
       ],
-      "default": "catequist"
+      "default": "catequist",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "parish_id": {
       "type": "string",
       "title": "Parroquia",
-      "description": "Tenant al que pertenece el usuario (aislamiento de datos)",
-      "x-ref": "Parish"
+      "description": "Tenant al que pertenece el usuario (aislamiento de datos). Solo se asigna vía las funciones create_parish/assign_parish_user (rol de servicio) — un usuario no puede auto-asignarse a otra parroquia.",
+      "x-ref": "Parish",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "group_id": {
       "type": "string",
       "title": "Grupo asignado",
       "description": "Si es catequista, el grupo que dirige",
-      "x-ref": "Group"
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
   },
   "required": [
     "role"
   ],
   "name": "User",
-  "type": "object"
+  "type": "object",
+  "rls": {
+    "read": {
+      "$or": [
+        { "id": "{{user.id}}" },
+        { "data.parish_id": "{{user.data.parish_id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "update": {
+      "$or": [
+        { "id": "{{user.id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    }
+  }
 }
