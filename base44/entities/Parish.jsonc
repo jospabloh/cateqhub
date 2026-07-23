@@ -18,16 +18,9 @@
     "plan": {
       "type": "string",
       "title": "Plan",
-      "description": "Nivel de suscripción. Se activa desde Mission Control (rol de servicio) o el panel de Base44 — un admin de parroquia puede verlo pero no activarlo por sí mismo.",
-      "enum": ["trial", "premium"],
-      "default": "trial",
-      "rls": { "write": { "user_condition": { "role": "admin" } } }
-    },
-    "trial_ends_at": {
-      "type": "string",
-      "format": "date-time",
-      "title": "Fin del periodo de prueba",
-      "description": "Si no se define, src/lib/premium.js calcula created_date + 90 días.",
+      "description": "Nivel de suscripción. CateqHub es free por default (sin vencimiento); el límite de niños del plan free aún no está definido. Se activa a premium desde Mission Control (rol de servicio) o el panel de Base44 — un admin de parroquia puede verlo pero no activarlo por sí mismo.",
+      "enum": ["free", "premium"],
+      "default": "free",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
   },

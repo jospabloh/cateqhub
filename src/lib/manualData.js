@@ -82,16 +82,16 @@ La gráfica de barras muestra cuántos niños asistieron en cada fecha. Abajo, "
     keywords: ["tutor", "padre", "madre", "recoger", "autorizado", "premium"],
     content: `Desde la ficha del niño, sección "Tutores", puedes agregar nombre, teléfono, correo, CURP opcional, relación y si está autorizado para recoger al niño.
 
-Agregar tutores es una función Premium. Durante los primeros 90 días de tu parroquia puedes usarla libremente; después, si no activas el plan, se bloquea agregar nuevos tutores — pero los que ya registraste siguen visibles y los puedes eliminar cuando quieras.`,
+Agregar tutores es una función Premium. Tu parroquia empieza en el plan gratuito, donde se puede ver pero no agregar tutores nuevos — los que ya registraste siguen visibles y los puedes eliminar cuando quieras. Para agregar tutores hay que activar el plan Premium.`,
   },
   {
     id: "premium",
     category: "Tutores y Premium",
     title: "Plan Premium y licencia",
-    keywords: ["premium", "licencia", "plan", "precio", "pago", "prueba", "trial"],
-    content: `La asistencia por QR, los reportes básicos y el alta de niños/grupos son gratis para siempre. El plan Premium suma tutores, mensajería a tutores, tareas de catecismo y pulseras/etiquetas físicas.
+    keywords: ["premium", "licencia", "plan", "precio", "pago", "gratis", "free"],
+    content: `CateqHub es gratis por default: la asistencia por QR, los reportes básicos y el alta de niños/grupos no tienen costo ni vencimiento. El plan Premium suma tutores, mensajería a tutores, tareas de catecismo y pulseras/etiquetas físicas.
 
-Ve a "Premium" para ver el estado de tu parroquia (en prueba, vencido o activo), cuántos días de prueba te quedan, y el precio de referencia. Ahí mismo se explica cómo activar el plan.`,
+Ve a "Premium" para ver el estado de tu parroquia (gratuito o activo) y el precio de referencia. Ahí mismo se explica cómo activar el plan.`,
   },
   {
     id: "permisos",
