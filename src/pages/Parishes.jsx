@@ -15,6 +15,7 @@ export default function Parishes() {
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const load = async () => {
     if (!user?.parish_id) return;
@@ -30,15 +31,21 @@ export default function Parishes() {
   const save = async () => {
     if (!name) return;
     setLoading(true);
+    setError("");
     try {
       if (user?.parish_id && parish) {
         await base44.entities.Parish.update(parish.id, { name, admin_contact: contact });
       } else {
-        const created = await base44.entities.Parish.create({ name, admin_contact: contact, active: true });
-        await base44.auth.updateMe({ parish_id: created.id, parish_role: "admin" });
+        // parish_id/parish_role solo se pueden escribir con rol de servicio (ver
+        // User.jsonc) — create_parish es el único camino para reclamar una
+        // primera parroquia como administrador.
+        const res = await base44.functions.invoke("create_parish", { name, admin_contact: contact });
+        if (res?.data?.error) throw new Error(res.data.error);
         await checkUserAuth();
       }
       await load();
+    } catch (e) {
+      setError(e.message || "No se pudo guardar la parroquia.");
     } finally { setLoading(false); }
   };
 
@@ -63,6 +70,7 @@ export default function Parishes() {
         <CardContent className="space-y-3">
           <div className="space-y-1.5"><Label>Nombre</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Parroquia San Juan" /></div>
           <div className="space-y-1.5"><Label>Contacto del administrador</Label><Input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Nombre o email" /></div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button onClick={save} disabled={loading || !name}>{loading ? "Guardando…" : user?.parish_id ? "Guardar cambios" : "Crear y asignar"}</Button>
         </CardContent>
       </Card>
