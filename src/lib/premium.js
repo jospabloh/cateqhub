@@ -2,10 +2,9 @@ import { useMemo } from "react";
 
 // La asistencia por QR es gratis para siempre. Tutores/mensajería/tareas/pulseras
 // son premium: se ven completos durante 90 días desde que se crea la parroquia y
-// luego pasan a solo-lectura hasta que se activa el plan. Los campos `plan` /
-// `trial_ends_at` en Parish aún no existen en el esquema — si se agregan más
-// adelante (vía el panel de Base44), este cálculo los usa automáticamente sin
-// cambiar el resto del código.
+// luego pasan a solo-lectura hasta que se activa el plan. `plan`/`trial_ends_at`
+// en Parish solo se escriben con rol de servicio (Mission Control o el panel de
+// Base44) — un admin de parroquia no puede activarse el plan a sí mismo.
 export const PREMIUM_TRIAL_DAYS = 90;
 
 export function getPremiumStatus(parish) {

@@ -14,6 +14,21 @@
       "type": "boolean",
       "default": true,
       "title": "Activa"
+    },
+    "plan": {
+      "type": "string",
+      "title": "Plan",
+      "description": "Nivel de suscripción. Se activa desde Mission Control (rol de servicio) o el panel de Base44 — un admin de parroquia puede verlo pero no activarlo por sí mismo.",
+      "enum": ["trial", "premium"],
+      "default": "trial",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "trial_ends_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Fin del periodo de prueba",
+      "description": "Si no se define, src/lib/premium.js calcula created_date + 90 días.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
   },
   "required": [
