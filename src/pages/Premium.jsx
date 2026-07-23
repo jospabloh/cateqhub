@@ -6,8 +6,6 @@ import { isParishAdmin } from "@/lib/roles";
 import RestrictedNotice from "@/components/RestrictedNotice";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, Sparkles, Clock } from "lucide-react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 
 const FREE_FEATURES = [
   "Registro de asistencia por QR, sin límite de niños",
@@ -48,19 +46,10 @@ export default function Premium() {
         </p>
       </div>
 
-      {status.tier === "trial" && (
-        <div className="flex items-center gap-2 text-sm rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-          <Clock className="w-4 h-4 text-primary shrink-0" />
-          <span>
-            Tu parroquia está en periodo de prueba de las funciones premium — quedan <strong>{status.daysLeft} días</strong>
-            {status.trialEndsAt && <> (vence el {format(status.trialEndsAt, "d 'de' MMMM yyyy", { locale: es })})</>}.
-          </span>
-        </div>
-      )}
-      {status.tier === "locked" && (
+      {status.tier === "free" && (
         <div className="flex items-center gap-2 text-sm rounded-lg border border-border bg-muted px-4 py-3">
           <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-          <span>El periodo de prueba terminó. Lo que ya cargaste en Tutores sigue visible y lo puedes eliminar cuando quieras; para volver a editarlo hay que activar el plan.</span>
+          <span>Tu parroquia está en el plan gratuito. Lo que ya cargaste en Tutores sigue visible y lo puedes eliminar cuando quieras; para volver a editarlo hay que activar el plan Premium.</span>
         </div>
       )}
       {status.tier === "premium" && (

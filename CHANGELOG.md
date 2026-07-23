@@ -2,6 +2,11 @@
 
 Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appConfig.js` (consumida por la página "Acerca de" dentro de la app); este archivo es la versión en prosa.
 
+## 1.5.0 — 2026-07-23
+
+- El plan por default de `Parish` cambió de `trial` (90 días de funciones premium, luego bloqueo) a `free`: CateqHub arranca en el plan gratuito sin vencimiento, sin acceso a tutores/mensajería/tareas/pulseras hasta activar Premium. El límite de niños del plan gratuito todavía no está definido.
+- Página Premium y Dashboard actualizados: ya no muestran cuenta regresiva de prueba, solo el estado gratuito/Premium.
+
 ## 1.4.0 — 2026-07-23
 
 - **Seguridad crítica**: se agregó aislamiento de datos por parroquia (RLS) en `Parish`, `Group`, `Child`, `Guardian`, `ChildGuardian` y `Attendance`. Antes de este cambio, cualquier usuario autenticado podía leer o escribir datos de cualquier otra parroquia llamando la API de entidades directamente — el aislamiento solo existía en los filtros del lado del cliente.

@@ -1,9 +1,17 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.4.0";
+export const APP_VERSION = "1.5.0";
 export const RELEASE_DATE = "2026-07-23";
 
 export const CHANGELOG = [
+  {
+    version: "1.5.0",
+    date: "2026-07-23",
+    changes: [
+      "El plan por default de CateqHub ahora es Gratis, sin periodo de prueba ni vencimiento — antes era una prueba de 90 días de las funciones premium.",
+      "Página Premium y Dashboard actualizados para reflejar el plan gratuito en vez del estado de prueba.",
+    ],
+  },
   {
     version: "1.4.0",
     date: "2026-07-23",
