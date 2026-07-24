@@ -103,6 +103,18 @@ export default function Scan() {
         setTimeout(() => setStatus({ kind: "idle" }), 3000);
         return;
       }
+      if (child.group_id !== groupId) {
+        const actualGroup = groups.find((g) => g.id === child.group_id)?.name;
+        setStatus({
+          kind: "error",
+          childName: child.name,
+          message: actualGroup
+            ? `Pertenece a "${actualGroup}" — selecciona ese grupo para registrarlo`
+            : "No tiene grupo asignado — actualízalo en Niños",
+        });
+        setTimeout(() => setStatus({ kind: "idle" }), 3000);
+        return;
+      }
 
       const today = new Date().toISOString().slice(0, 10);
       const existing = await base44.entities.Attendance.filter({
