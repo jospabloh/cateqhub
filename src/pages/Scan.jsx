@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { usePermissions } from "@/lib/PermissionContext";
 import jsQR from "jsqr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { ScanLine, CheckCircle2, XCircle, AlertTriangle, Camera, CameraOff } fro
 
 export default function Scan() {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const cooldownRef = useRef(false);
@@ -98,6 +100,11 @@ export default function Scan() {
         setTimeout(() => setStatus({ kind: "idle" }), 3000);
         return;
       }
+      if (!can("escanear", "cualquier_grupo") && child.group_id !== user.group_id) {
+        setStatus({ kind: "error", childName: child.name, message: "Este niño no pertenece a tu grupo" });
+        setTimeout(() => setStatus({ kind: "idle" }), 3000);
+        return;
+      }
 
       const today = new Date().toISOString().slice(0, 10);
       const existing = await base44.entities.Attendance.filter({
@@ -142,7 +149,10 @@ export default function Scan() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><ScanLine className="w-6 h-6 text-gold" />Escanear asistencia</h1>
-        <p className="text-muted-foreground text-sm">Apunta la cámara al código QR del niño — el grupo se detecta automáticamente, puedes escanear niños de cualquier grupo desde aquí.</p>
+        <p className="text-muted-foreground text-sm">
+          Apunta la cámara al código QR del niño — el grupo se detecta automáticamente
+          {can("escanear", "cualquier_grupo") ? ", puedes escanear niños de cualquier grupo desde aquí." : ", solo puedes escanear niños de tu propio grupo."}
+        </p>
       </div>
 
       <Card className="overflow-hidden">

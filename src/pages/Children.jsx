@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ClipboardList, Plus, Search, QrCode } from "lucide-react";
-import { isCatechist } from "@/lib/roles";
+import { usePermissions } from "@/lib/PermissionContext";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
 
 const empty = { name: "", birth_date: "", group_id: "", curp: "" };
@@ -19,6 +19,7 @@ const isRecentGroupChange = (c) => c.group_changed_at
 
 export default function Children() {
   const { user } = useAuth();
+  const { can, loading: permsLoading } = usePermissions();
   const [children, setChildren] = useState([]);
   const [groups, setGroups] = useState([]);
   const [search, setSearch] = useState("");
@@ -29,7 +30,7 @@ export default function Children() {
   const load = async () => {
     if (!user?.parish_id) return;
     const filter = { parish_id: user.parish_id };
-    if (isCatechist(user) && user.group_id) filter.group_id = user.group_id;
+    if (!can("ninos", "ver_todos_los_grupos") && user.group_id) filter.group_id = user.group_id;
     const [c, g] = await Promise.all([
       base44.entities.Child.filter(filter, "-created_date"),
       base44.entities.Group.filter({ parish_id: user.parish_id }),
@@ -38,7 +39,7 @@ export default function Children() {
     setGroups(g);
   };
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [user, permsLoading]);
 
   const groupMap = useMemo(() => Object.fromEntries(groups.map((g) => [g.id, g.name])), [groups]);
 
@@ -46,7 +47,7 @@ export default function Children() {
     c.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const openNew = () => { setForm({ ...empty, group_id: isCatechist(user) ? user.group_id : "" }); setOpen(true); };
+  const openNew = () => { setForm({ ...empty, group_id: !can("ninos", "ver_todos_los_grupos") ? user.group_id : "" }); setOpen(true); };
 
   const save = async () => {
     if (!form.name || !form.group_id) return;
@@ -136,7 +137,7 @@ export default function Children() {
             </div>
             <div className="space-y-1.5">
               <Label>Grupo</Label>
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.group_id} onChange={(e) => setForm({ ...form, group_id: e.target.value })} disabled={isCatechist(user)}>
+              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.group_id} onChange={(e) => setForm({ ...form, group_id: e.target.value })} disabled={!can("ninos", "ver_todos_los_grupos")}>
                 <option value="">Selecciona…</option>
                 {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>

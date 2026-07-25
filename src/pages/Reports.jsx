@@ -9,11 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { QrCode, CalendarDays, ChevronDown } from "lucide-react";
 import { format, parseISO, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { isCatechist } from "@/lib/roles";
+import { usePermissions } from "@/lib/PermissionContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function Reports() {
   const { user } = useAuth();
+  const { can, loading: permsLoading } = usePermissions();
   const [groups, setGroups] = useState([]);
   const [groupId, setGroupId] = useState("all");
   const [from, setFrom] = useState(subDays(new Date(), 30).toISOString().slice(0, 10));
@@ -24,18 +25,19 @@ export default function Reports() {
   useEffect(() => {
     if (!user?.parish_id) return;
     const gFilter = { parish_id: user.parish_id };
+    const restricted = !can("reportes", "ver_todos_los_grupos") && user.group_id;
     let gf = base44.entities.Group.filter(gFilter);
     let cf = base44.entities.Child.filter(gFilter);
-    if (isCatechist(user) && user.group_id) {
+    if (restricted) {
       gf = base44.entities.Group.filter({ id: user.group_id }).catch(() => []);
       cf = base44.entities.Child.filter({ parish_id: user.parish_id, group_id: user.group_id });
     }
     Promise.all([gf, cf]).then(([g, c]) => {
       setGroups(g);
       setChildren(c);
-      if (isCatechist(user) && user.group_id) setGroupId(user.group_id);
+      if (restricted) setGroupId(user.group_id);
     });
-  }, [user]);
+  }, [user, permsLoading]);
 
   const loadAttendances = async () => {
     if (!user?.parish_id) return;
@@ -100,7 +102,7 @@ export default function Reports() {
         <CardContent className="pt-5 grid gap-3 sm:grid-cols-3">
           <div className="space-y-1.5">
             <Label>Grupo</Label>
-            {isCatechist(user) ? (
+            {!can("reportes", "ver_todos_los_grupos") ? (
               <Input disabled value={groups.find((g) => g.id === groupId)?.name || ""} />
             ) : (
               <Select value={groupId} onValueChange={setGroupId}>
