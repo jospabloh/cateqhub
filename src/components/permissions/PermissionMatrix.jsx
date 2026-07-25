@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Pencil, Save, X, RotateCcw } from "lucide-react";
 import { PERMISSION_REGISTRY, permissionKey, getRegistryDefaults } from "@/lib/permissionRegistry";
 
@@ -13,12 +12,6 @@ export default function PermissionMatrix({ permissions, onSave, saving }) {
   const defaults = useMemo(() => getRegistryDefaults(), []);
   const effective = useMemo(() => ({ ...defaults, ...permissions }), [defaults, permissions]);
   const current = editMode ? draft : effective;
-
-  const total = useMemo(
-    () => Object.values(PERMISSION_REGISTRY).reduce((sum, m) => sum + m.actions.length, 0),
-    []
-  );
-  const granted = Object.values(current).filter((v) => v === true).length;
 
   const startEdit = () => { setDraft({ ...effective }); setEditMode(true); };
   const cancelEdit = () => { setDraft(null); setEditMode(false); };
@@ -32,17 +25,16 @@ export default function PermissionMatrix({ permissions, onSave, saving }) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
+      <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-border pb-4">
         <div>
-          <CardTitle className="text-base">Qué puede hacer un catequista</CardTitle>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Catequista · reglas por módulo</p>
+          <p className="text-sm text-muted-foreground mt-1 max-w-md">
             {editMode
               ? "Activa o desactiva cada permiso y guarda para aplicarlo a todos los catequistas de tu parroquia."
-              : "El administrador de parroquia siempre tiene acceso total. Esto solo controla al rol catequista."}
+              : "Esto solo controla al rol catequista — el administrador de parroquia siempre tiene acceso total."}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Badge variant="outline">{granted}/{total}</Badge>
           {editMode ? (
             <>
               <Button size="sm" variant="outline" onClick={cancelEdit} disabled={saving}>
@@ -59,31 +51,38 @@ export default function PermissionMatrix({ permissions, onSave, saving }) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="pt-5 space-y-6">
         {editMode && (
-          <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={resetToDefault}>
+          <Button size="sm" variant="ghost" className="text-muted-foreground -mt-1 -ml-2" onClick={resetToDefault}>
             <RotateCcw className="w-3.5 h-3.5 mr-1.5" />Restaurar valores por defecto
           </Button>
         )}
         {Object.entries(PERMISSION_REGISTRY).map(([module, data]) => (
-          <div key={module} className="space-y-2">
-            <p className="text-sm font-semibold text-foreground">{data.label}</p>
-            <div className="divide-y divide-border rounded-lg border">
+          <div key={module}>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium mb-2">{data.label}</p>
+            <div className="divide-y divide-border">
               {data.actions.map((action) => {
                 const key = permissionKey(module, action.id);
                 const isOn = current[key] === true;
                 return (
-                  <div key={key} className="flex items-center justify-between gap-4 px-3 py-2.5">
-                    <div>
+                  <div
+                    key={key}
+                    className={`flex items-center justify-between gap-4 py-3 pl-3 -ml-3 border-l-2 transition-colors ${
+                      isOn ? "border-l-primary/50" : "border-l-transparent"
+                    }`}
+                  >
+                    <div className="min-w-0">
                       <p className="text-sm font-medium">{action.label}</p>
                       {action.description && (
-                        <p className="text-xs text-muted-foreground">{action.description}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
                       )}
+                      <p className="text-[10px] font-mono text-muted-foreground/60 mt-1">{key}</p>
                     </div>
                     <Switch
                       checked={isOn}
                       disabled={!editMode}
                       onCheckedChange={() => editMode && toggle(key)}
+                      className="shrink-0"
                     />
                   </div>
                 );

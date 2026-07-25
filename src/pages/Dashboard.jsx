@@ -6,39 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { usePremiumStatus } from "@/lib/premium";
 import PremiumLockedPanel from "@/components/PremiumLockedPanel";
+import ProgressRing from "@/components/ProgressRing";
 import { ScanLine, Users, ClipboardList, Church, AlertCircle, Clock, MessageCircle, ListChecks, Tag } from "lucide-react";
 import { isParishAdmin } from "@/lib/roles";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-
-function AttendanceRing({ value, total }) {
-  const pct = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0;
-  const radius = 52;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - pct / 100);
-  return (
-    <div className="relative w-28 h-28 shrink-0">
-      <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-        <circle cx="60" cy="60" r={radius} strokeWidth="10" fill="none" className="stroke-muted" />
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          strokeWidth="10"
-          fill="none"
-          stroke="hsl(var(--chart-2))"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{ transition: "stroke-dashoffset 700ms cubic-bezier(0.2, 0.8, 0.3, 1)" }}
-        />
-      </svg>
-      <div className="absolute inset-0 grid place-items-center">
-        <p className="text-2xl font-heading font-semibold leading-none">{pct}%</p>
-      </div>
-    </div>
-  );
-}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -103,7 +75,7 @@ export default function Dashboard() {
 
       <Card className="overflow-hidden">
         <CardContent className="pt-6 flex items-center gap-6 flex-wrap">
-          <AttendanceRing value={counts.today} total={counts.children} />
+          <ProgressRing value={counts.today} total={counts.children} size={112} />
           <div className="min-w-0">
             <p className="text-sm text-muted-foreground capitalize">{format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</p>
             <p className="text-3xl font-heading font-semibold mt-0.5">
