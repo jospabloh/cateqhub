@@ -4,10 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import jsQR from "jsqr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScanLine, CheckCircle2, XCircle, AlertTriangle, Camera, CameraOff } from "lucide-react";
-import { isParishAdmin, isCatechist } from "@/lib/roles";
 
 export default function Scan() {
   const { user } = useAuth();
@@ -16,27 +13,20 @@ export default function Scan() {
   const cooldownRef = useRef(false);
 
   const [groups, setGroups] = useState([]);
-  const [groupId, setGroupId] = useState(user?.group_id || "");
   const [active, setActive] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState({ kind: "idle", childName: "", message: "" });
 
-  // Load groups for this parish (admin: all; user: own group)
+  // Solo para mostrar el nombre del grupo en los mensajes — el grupo real de
+  // cada asistencia se toma del propio niño escaneado, no de una selección
+  // previa (así una sola estación puede recibir niños de cualquier grupo).
   useEffect(() => {
     if (!user?.parish_id) return;
-    base44.entities.Group.filter({ parish_id: user.parish_id }).then((g) => {
-      setGroups(g);
-      if (isCatechist(user) && user.group_id) setGroupId(user.group_id);
-      else if (g.length === 1) setGroupId(g[0].id);
-    });
+    base44.entities.Group.filter({ parish_id: user.parish_id }).then(setGroups);
   }, [user]);
 
   const start = async () => {
     setError("");
-    if (!groupId) {
-      setError("Selecciona un grupo antes de escanear.");
-      return;
-    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
@@ -77,7 +67,7 @@ export default function Scan() {
     };
     if (active) raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [active, groupId]);
+  }, [active]);
 
   const handleToken = async (token) => {
     if (cooldownRef.current) return;
@@ -103,15 +93,8 @@ export default function Scan() {
         setTimeout(() => setStatus({ kind: "idle" }), 3000);
         return;
       }
-      if (child.group_id !== groupId) {
-        const actualGroup = groups.find((g) => g.id === child.group_id)?.name;
-        setStatus({
-          kind: "error",
-          childName: child.name,
-          message: actualGroup
-            ? `Pertenece a "${actualGroup}" — selecciona ese grupo para registrarlo`
-            : "No tiene grupo asignado — actualízalo en Niños",
-        });
+      if (!child.group_id) {
+        setStatus({ kind: "error", childName: child.name, message: "No tiene grupo asignado — actualízalo en Niños" });
         setTimeout(() => setStatus({ kind: "idle" }), 3000);
         return;
       }
@@ -129,12 +112,13 @@ export default function Scan() {
 
       await base44.entities.Attendance.create({
         parish_id: user.parish_id,
-        group_id: groupId,
+        group_id: child.group_id,
         child_id: child.id,
         date: today,
         recorded_by: user.id,
       });
-      setStatus({ kind: "success", childName: child.name, message: "Asistencia registrada" });
+      const groupName = groups.find((g) => g.id === child.group_id)?.name;
+      setStatus({ kind: "success", childName: child.name, message: groupName ? `Asistencia registrada — ${groupName}` : "Asistencia registrada" });
       setTimeout(() => setStatus({ kind: "idle" }), 2500);
     } catch (e) {
       setStatus({ kind: "error", message: "Error al registrar. Intenta de nuevo." });
@@ -158,20 +142,8 @@ export default function Scan() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><ScanLine className="w-6 h-6 text-gold" />Escanear asistencia</h1>
-        <p className="text-muted-foreground text-sm">Apunta la cámara al código QR del niño.</p>
+        <p className="text-muted-foreground text-sm">Apunta la cámara al código QR del niño — el grupo se detecta automáticamente, puedes escanear niños de cualquier grupo desde aquí.</p>
       </div>
-
-      {isParishAdmin(user) && (
-        <div className="space-y-1.5">
-          <Label>Grupo</Label>
-          <Select value={groupId} onValueChange={setGroupId} disabled={active}>
-            <SelectTrigger><SelectValue placeholder="Selecciona un grupo" /></SelectTrigger>
-            <SelectContent>
-              {groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
 
       <Card className="overflow-hidden">
         <CardContent className="p-0 overflow-hidden">

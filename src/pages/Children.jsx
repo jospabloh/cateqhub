@@ -13,6 +13,9 @@ import { isCatechist } from "@/lib/roles";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
 
 const empty = { name: "", birth_date: "", group_id: "", curp: "" };
+const RECENT_GROUP_CHANGE_DAYS = 7;
+const isRecentGroupChange = (c) => c.group_changed_at
+  && (Date.now() - new Date(c.group_changed_at).getTime()) < RECENT_GROUP_CHANGE_DAYS * 24 * 60 * 60 * 1000;
 
 export default function Children() {
   const { user } = useAuth();
@@ -92,7 +95,10 @@ export default function Children() {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold truncate">{c.name}</p>
                   <p className="text-sm text-muted-foreground truncate">{groupMap[c.group_id] || "Sin grupo"}</p>
-                  {!c.active && <Badge variant="secondary" className="mt-1">Inactivo</Badge>}
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {!c.active && <Badge variant="secondary">Inactivo</Badge>}
+                    {isRecentGroupChange(c) && <Badge variant="outline" className="text-[10px] font-normal">Cambió de grupo</Badge>}
+                  </div>
                 </div>
                 <Button asChild size="icon" variant="ghost">
                   <Link to={`/ninos/${c.id}`}><QrCode className="w-5 h-5 text-gold" /></Link>
