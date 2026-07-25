@@ -63,19 +63,19 @@ Cada acción tiene `label`/`description` en español para la UI.
 
 RLS: lectura abierta a cualquier miembro de la parroquia (`data.parish_id ==
 user.data.parish_id`) o admin de plataforma — así un catequista puede resolver
-sus propios permisos sin pasar por la función backend. Escritura
-(`create`/`update`/`delete`) restringida a `parish_role: admin` o admin de
-plataforma.
+sus propios permisos. Escritura (`create`/`update`/`delete`) restringida a
+`parish_role: admin` o admin de plataforma — igual patrón que `Group.jsonc`.
 
-### Función `permissions`
+### Sin función backend dedicada
 
-- `getPermissionProfiles`: devuelve el perfil `catequist` de la parroquia del
-  usuario autenticado (defaults en memoria si no existe fila aún).
-- `upsertPermissionProfile`: solo admin de parroquia/plataforma; crea o
-  actualiza el perfil `catequist` de su parroquia.
-
-Sin `seedDefaultPermissionProfiles` ni `backfillPermissionDefaults` — no hacen
-falta sin feature-flag ni rol `admin` editable.
+A diferencia de stockflow, la RLS de `PermissionProfile` ya cubre exactamente
+el control de acceso necesario (lectura por tenant, escritura solo admin), así
+que no hace falta una función `permissions` intermedia: el frontend lee y
+escribe la entidad directamente con `base44.entities.PermissionProfile`,
+igual que ya se hace con `Group` o `Child` en el resto de la app. Esto sigue
+la convención existente del repo (funciones backend solo cuando hace falta
+lógica extra — invitar por correo, cruzar tablas, service role — no como capa
+genérica sobre CRUD).
 
 ## Frontend
 

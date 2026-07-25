@@ -1,27 +1,58 @@
+import { useState, useEffect, useCallback } from "react";
+import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { usePermissions } from "@/lib/PermissionContext";
 import { isParishAdmin } from "@/lib/roles";
 import RestrictedNotice from "@/components/RestrictedNotice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShieldCheck, Check, X } from "lucide-react";
-
-const MATRIX = [
-  { module: "Escanear asistencia", admin: "Elige cualquier grupo y escanea", catequist: "Escanea solo en su propio grupo" },
-  { module: "Niños", admin: "Ve y da de alta niños de toda la parroquia; da de baja / reactiva", catequist: "Ve y da de alta niños solo de su grupo; no puede dar de baja" },
-  { module: "Grupos", admin: "Crea, edita y elimina grupos", catequist: "Solo puede ver la lista de grupos" },
-  { module: "Tutores (Premium)", admin: "Agrega tutores mientras el plan esté activo", catequist: "Agrega tutores mientras el plan esté activo (mismo permiso que admin)" },
-  { module: "Reportes", admin: "Ve todos los grupos y puede filtrar", catequist: "Ve solo los reportes de su propio grupo" },
-  { module: "Parroquia", admin: "Edita el nombre y contacto de la parroquia", catequist: "Sin acceso" },
-  { module: "Usuarios", admin: "Invita, asigna roles y grupos", catequist: "Sin acceso" },
-  { module: "Premium / Licencia", admin: "Ve el estado del plan y cómo activarlo", catequist: "Sin acceso" },
-  { module: "Permisos (esta página)", admin: "Ve esta página", catequist: "Sin acceso" },
-  { module: "Soporte", admin: "Abre y responde tickets", catequist: "Abre y responde tickets (mismo permiso que admin)" },
-  { module: "Manual y Acerca de", admin: "Acceso libre", catequist: "Acceso libre" },
-];
+import PermissionMatrix from "@/components/permissions/PermissionMatrix";
+import { ShieldCheck } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Permissions() {
   const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const { reload: reloadPermissions } = usePermissions();
+  const { toast } = useToast();
+
+  const loadProfile = useCallback(async () => {
+    if (!user?.parish_id) return;
+    try {
+      const rows = await base44.entities.PermissionProfile.filter({ parish_id: user.parish_id, role_key: "catequist" });
+      setProfile(rows?.[0] || null);
+    } catch (_) {
+      setProfile(null);
+    }
+  }, [user?.parish_id]);
+
+  useEffect(() => { loadProfile(); }, [loadProfile]);
+
   if (!isParishAdmin(user)) return <RestrictedNotice />;
+
+  const handleSave = async (permissions) => {
+    setSaving(true);
+    try {
+      if (profile) {
+        await base44.entities.PermissionProfile.update(profile.id, { permissions });
+      } else {
+        await base44.entities.PermissionProfile.create({
+          parish_id: user.parish_id,
+          role_key: "catequist",
+          permissions,
+        });
+      }
+      await loadProfile();
+      reloadPermissions();
+      toast({ title: "Permisos guardados" });
+      return true;
+    } catch (e) {
+      toast({ title: "No se pudo guardar", description: e.message, variant: "destructive" });
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -33,47 +64,17 @@ export default function Permissions() {
       <Card>
         <CardHeader><CardTitle className="text-base">Roles</CardTitle></CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <p><strong className="text-foreground">Administrador de parroquia</strong> — gestiona grupos, niños de toda la parroquia, usuarios y la configuración de la parroquia. Puede haber más de uno por parroquia.</p>
-          <p><strong className="text-foreground">Catequista</strong> — trabaja con su propio grupo: escanea asistencia, ve sus niños y sus reportes. No gestiona usuarios ni la parroquia.</p>
+          <p><strong className="text-foreground">Administrador de parroquia</strong> — gestiona grupos, usuarios y la configuración de la parroquia, y siempre tiene acceso total a los niños de toda la parroquia. Puede haber más de uno por parroquia. No es configurable.</p>
+          <p><strong className="text-foreground">Catequista</strong> — trabaja con su propio grupo por defecto: escanea asistencia, ve sus niños y sus reportes. No gestiona usuarios ni la parroquia. Lo que sí puede hacer fuera de su grupo se configura abajo.</p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Qué puede hacer cada rol</CardTitle></CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Sección</TableHead>
-                <TableHead>Administrador de parroquia</TableHead>
-                <TableHead>Catequista</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {MATRIX.map((row) => (
-                <TableRow key={row.module}>
-                  <TableCell className="font-medium">{row.module}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    <span className="flex items-start gap-1.5"><Check className="w-3.5 h-3.5 text-moss shrink-0 mt-0.5" />{row.admin}</span>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {row.catequist === "Sin acceso" ? (
-                      <span className="flex items-center gap-1.5"><X className="w-3.5 h-3.5 text-destructive shrink-0" />{row.catequist}</span>
-                    ) : (
-                      <span className="flex items-start gap-1.5"><Check className="w-3.5 h-3.5 text-moss shrink-0 mt-0.5" />{row.catequist}</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <PermissionMatrix permissions={profile?.permissions} onSave={handleSave} saving={saving} />
 
       <Card>
         <CardHeader><CardTitle className="text-base">Cómo se protege esto</CardTitle></CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>La interfaz oculta lo que cada rol no puede usar, pero eso solo evita confusión — no es la protección real. Los datos en sí están aislados por parroquia a nivel de base de datos (ninguna parroquia puede ver ni modificar los datos de otra), y las acciones de gestión de usuarios se verifican también en el servidor, no solo en la pantalla.</p>
+          <p>Estos permisos controlan comportamiento real de la app (qué grupos ve o edita un catequista), no solo lo que se muestra en pantalla. Usuarios, Parroquia, Premium y la administración de Grupos siguen reservados al administrador de parroquia y no son configurables aquí: esas acciones están protegidas también a nivel de base de datos, así que ningún ajuste de esta pantalla puede abrirlas. Los datos en sí están aislados por parroquia a nivel de base de datos — ninguna parroquia puede ver ni modificar los datos de otra.</p>
         </CardContent>
       </Card>
     </div>

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import QRCard, { downloadQRCard } from "@/components/QRCard";
 import { usePremiumStatus } from "@/lib/premium";
-import { isParishAdmin } from "@/lib/roles";
+import { usePermissions } from "@/lib/PermissionContext";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
 import { ArrowLeft, Download, Printer, Plus, Trash2, Phone, Mail, Lock, IdCard, Repeat } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -21,6 +21,7 @@ const RECENT_GROUP_CHANGE_DAYS = 7;
 export default function ChildDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { can } = usePermissions();
   const cardRef = useRef(null);
   const [child, setChild] = useState(null);
   const [group, setGroup] = useState(null);
@@ -143,7 +144,7 @@ export default function ChildDetail() {
               ) : (
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-muted-foreground">Grupo: {group ? group.name : "Sin grupo"}{group?.level ? ` · ${group.level}` : ""}</p>
-                  {isParishAdmin(user) && (
+                  {can("ninos", "cambiar_grupo") && (
                     <Button size="sm" variant="ghost" onClick={openGroupEdit}><Repeat className="w-3.5 h-3.5 mr-1" />Cambiar</Button>
                   )}
                   {recentGroupChange && (
@@ -155,7 +156,7 @@ export default function ChildDetail() {
               )}
               {child.birth_date && <p className="text-muted-foreground text-sm">Nacimiento: {child.birth_date}</p>}
               {child.curp && <p className="text-muted-foreground text-sm flex items-center gap-1"><IdCard className="w-3.5 h-3.5" />CURP: <span className="font-mono">{child.curp}</span></p>}
-              {isParishAdmin(user) && (
+              {can("ninos", "dar_de_baja") && (
                 <Button variant="outline" size="sm" onClick={toggleActive} className="mt-2">
                   {child.active ? "Dar de baja" : "Reactivar"}
                 </Button>
@@ -169,10 +170,10 @@ export default function ChildDetail() {
                 Tutores
                 {!status.isPremium && <Badge variant="outline" className="font-normal text-[10px]">Premium</Badge>}
               </CardTitle>
-              {status.isPremium ? (
+              {status.isPremium && can("tutores", "agregar") ? (
                 <Button size="sm" variant="ghost" onClick={() => setOpenG(true)}><Plus className="w-4 h-4 mr-1" />Agregar</Button>
               ) : (
-                <Button size="sm" variant="ghost" disabled title="Disponible con el plan Premium">
+                <Button size="sm" variant="ghost" disabled title={status.isPremium ? "Tu parroquia desactivó este permiso para catequistas" : "Disponible con el plan Premium"}>
                   <Lock className="w-3.5 h-3.5 mr-1" />Agregar
                 </Button>
               )}
