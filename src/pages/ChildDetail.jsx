@@ -12,7 +12,11 @@ import QRCard, { downloadQRCard } from "@/components/QRCard";
 import { usePremiumStatus } from "@/lib/premium";
 import { isParishAdmin } from "@/lib/roles";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
-import { ArrowLeft, Download, Printer, Plus, Trash2, Phone, Mail, Lock, IdCard } from "lucide-react";
+import { ArrowLeft, Download, Printer, Plus, Trash2, Phone, Mail, Lock, IdCard, Repeat } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
+
+const RECENT_GROUP_CHANGE_DAYS = 7;
 
 export default function ChildDetail() {
   const { id } = useParams();
@@ -20,11 +24,14 @@ export default function ChildDetail() {
   const cardRef = useRef(null);
   const [child, setChild] = useState(null);
   const [group, setGroup] = useState(null);
+  const [groups, setGroups] = useState([]);
   const [parish, setParish] = useState(null);
   const [links, setLinks] = useState([]);
   const [guardians, setGuardians] = useState([]);
   const [openG, setOpenG] = useState(false);
   const [gForm, setGForm] = useState({ name: "", phone: "", email: "", curp: "", relationship: "tutor", pickup_authorized: true });
+  const [editingGroup, setEditingGroup] = useState(false);
+  const [groupChoice, setGroupChoice] = useState("");
   const [loading, setLoading] = useState(false);
   const status = usePremiumStatus(parish);
 
@@ -32,7 +39,10 @@ export default function ChildDetail() {
     const c = await base44.entities.Child.get(id);
     setChild(c);
     if (c.group_id) base44.entities.Group.get(c.group_id).then(setGroup).catch(() => {});
-    if (c.parish_id) base44.entities.Parish.get(c.parish_id).then(setParish).catch(() => {});
+    if (c.parish_id) {
+      base44.entities.Parish.get(c.parish_id).then(setParish).catch(() => {});
+      base44.entities.Group.filter({ parish_id: c.parish_id }).then(setGroups).catch(() => {});
+    }
     const rels = await base44.entities.ChildGuardian.filter({ child_id: id });
     setLinks(rels);
     if (rels.length) {
@@ -49,6 +59,21 @@ export default function ChildDetail() {
     await base44.entities.Child.update(child.id, { active: !child.active });
     load();
   };
+
+  const openGroupEdit = () => { setGroupChoice(child.group_id || ""); setEditingGroup(true); };
+
+  const saveGroup = async () => {
+    if (!groupChoice || groupChoice === child.group_id) { setEditingGroup(false); return; }
+    setLoading(true);
+    try {
+      await base44.entities.Child.update(child.id, { group_id: groupChoice, group_changed_at: new Date().toISOString() });
+      setEditingGroup(false);
+      load();
+    } finally { setLoading(false); }
+  };
+
+  const recentGroupChange = child?.group_changed_at
+    && (Date.now() - new Date(child.group_changed_at).getTime()) < RECENT_GROUP_CHANGE_DAYS * 24 * 60 * 60 * 1000;
 
   const addGuardian = async () => {
     if (!gForm.name) return;
@@ -102,7 +127,32 @@ export default function ChildDetail() {
                   {child.active ? "Activo" : "Inactivo"}
                 </Badge>
               </div>
-              {group && <p className="text-muted-foreground">Grupo: {group.name}{group.level ? ` · ${group.level}` : ""}</p>}
+              {editingGroup ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select
+                    className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                    value={groupChoice}
+                    onChange={(e) => setGroupChoice(e.target.value)}
+                  >
+                    <option value="">Selecciona…</option>
+                    {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
+                  <Button size="sm" onClick={saveGroup} disabled={loading || !groupChoice}>Guardar</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingGroup(false)}>Cancelar</Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-muted-foreground">Grupo: {group ? group.name : "Sin grupo"}{group?.level ? ` · ${group.level}` : ""}</p>
+                  {isParishAdmin(user) && (
+                    <Button size="sm" variant="ghost" onClick={openGroupEdit}><Repeat className="w-3.5 h-3.5 mr-1" />Cambiar</Button>
+                  )}
+                  {recentGroupChange && (
+                    <Badge variant="outline" className="text-[10px] font-normal">
+                      Cambió de grupo {formatDistanceToNow(new Date(child.group_changed_at), { addSuffix: true, locale: es })}
+                    </Badge>
+                  )}
+                </div>
+              )}
               {child.birth_date && <p className="text-muted-foreground text-sm">Nacimiento: {child.birth_date}</p>}
               {child.curp && <p className="text-muted-foreground text-sm flex items-center gap-1"><IdCard className="w-3.5 h-3.5" />CURP: <span className="font-mono">{child.curp}</span></p>}
               {isParishAdmin(user) && (
