@@ -4,7 +4,7 @@ import Logo from "@/components/Logo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { APP_VERSION, RELEASE_DATE, CHANGELOG } from "@/lib/appConfig";
-import { Info, ChevronDown, BookOpen, LifeBuoy } from "lucide-react";
+import { Info, ChevronDown, BookOpen, LifeBuoy, ShieldCheck } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -29,6 +29,30 @@ export default function About() {
               Versión {APP_VERSION} · {format(parseISO(RELEASE_DATE), "d 'de' MMMM yyyy", { locale: es })}
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6 space-y-2">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+            <p className="font-medium text-sm">Seguridad de la infraestructura</p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            CateqHub corre sobre Base44, que declara cumplimiento{" "}
+            <strong className="text-foreground">SOC 2 Tipo II</strong> y ofrece un{" "}
+            <strong className="text-foreground">Acuerdo de Procesamiento de Datos (DPA)</strong> para el manejo
+            de datos personales. Puedes verificar el estado vigente de estas certificaciones directamente en el{" "}
+            <a
+              href="https://base44.com/security"
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline"
+            >
+              Centro de Confianza de Base44
+            </a>
+            .
+          </p>
         </CardContent>
       </Card>
 
