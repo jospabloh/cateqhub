@@ -42,8 +42,10 @@ export default function ChildDetail() {
     const rels = await base44.entities.ChildGuardian.filter({ child_id: id }).catch(() => []);
     setLinks(rels);
     if (rels.length) {
-      const gs = await Promise.all(rels.map((r) => base44.entities.Guardian.get(r.guardian_id))).catch(() => []);
-      setGuardians(gs);
+      const gs = await Promise.all(
+        rels.map((r) => base44.entities.Guardian.get(r.guardian_id).catch(() => null))
+      );
+      setGuardians(gs.filter(Boolean));
     } else {
       setGuardians([]);
     }
