@@ -177,10 +177,10 @@ export default function ChildDetail() {
 
   return (
     <div className="space-y-5">
-      <Button asChild variant="ghost" size="sm"><Link to="/ninos"><ArrowLeft className="w-4 h-4 mr-1" />Volver</Link></Button>
+      <Button asChild variant="ghost" size="sm" className="print:hidden"><Link to="/ninos"><ArrowLeft className="w-4 h-4 mr-1" />Volver</Link></Button>
 
-      <div className="grid md:grid-cols-2 gap-5">
-        <div className="space-y-4">
+      <div className="grid md:grid-cols-2 gap-5 print:block">
+        <div className="space-y-4 print:hidden">
           <Card>
             <CardContent className="pt-6 space-y-2">
               <div className="flex items-center justify-between">
