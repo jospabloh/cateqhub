@@ -1,9 +1,16 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.7.0";
+export const APP_VERSION = "1.7.1";
 export const RELEASE_DATE = "2026-07-27";
 
 export const CHANGELOG = [
+  {
+    version: "1.7.1",
+    date: "2026-07-27",
+    changes: [
+      "Acerca de ahora incluye equipo desarrollador, contacto y soporte directo, derechos reservados (con la licencia registrada a tu correo) y un mensaje de cierre — la misma información institucional que ya tienen las demás aplicaciones del portafolio ACACIA.",
+    ],
+  },
   {
     version: "1.7.0",
     date: "2026-07-27",
