@@ -70,15 +70,19 @@
     "data_processing_accepted_at": {
       "type": "string",
       "format": "date-time",
-      "title": "Aviso de manejo de datos sensibles aceptado"
+      "title": "Aviso de manejo de datos sensibles aceptado",
+      "description": "Se estampa una sola vez, al crear la parroquia, desde create_parish (rol de servicio). Es evidencia de cumplimiento LFPDPPP — sin este candado de escritura, la RLS de update de Parish (más abajo) permite a cualquier admin de esa parroquia reescribir su propio registro de consentimiento a mano.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "data_processing_accepted_by": {
       "type": "string",
-      "title": "Quién aceptó el aviso (correo)"
+      "title": "Quién aceptó el aviso (correo)",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "data_processing_terms_version": {
       "type": "string",
-      "title": "Versión del aviso aceptado"
+      "title": "Versión del aviso aceptado",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
   },
   "required": [

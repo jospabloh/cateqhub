@@ -53,7 +53,9 @@ export default function Premium() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      // Diferido: revocar la URL en el mismo tick que a.click() puede hacer
+      // que algunos navegadores cancelen la descarga que apenas se inició.
+      setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (e) {
       setExportError(e.message || "No se pudo exportar la información.");
     } finally {
@@ -137,9 +139,15 @@ export default function Premium() {
             </div>
           )}
           {status.isPremium && status.isReadOnly && (
-            <div className="flex items-center gap-2 text-sm rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
-              <Clock className="w-4 h-4 shrink-0" />
-              <span>Tu plan Premium está pendiente de pago. Agregar o editar Tutores está pausado hasta que se confirme el pago.</span>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="w-4 h-4 shrink-0" />
+                <span>Tu plan Premium está pendiente de pago. Agregar o editar Tutores está pausado hasta que se confirme el pago.</span>
+              </div>
+              {exportError && <p className="text-sm text-destructive">{exportError}</p>}
+              <Button size="sm" variant="outline" onClick={handleExport} disabled={exporting}>
+                {exporting ? "Descargando…" : "Descargar mis datos (Tutores) por si acaso"}
+              </Button>
             </div>
           )}
 

@@ -111,15 +111,26 @@ Deno.serve(async (req) => {
         // by CateqHub to keep Guardian/ChildGuardian RLS (which can't look up
         // a related Parish directly) in sync with Parish.plan/license_status.
         // Generic: any app/entity can pass `mirror`, harmless if omitted.
-        // Returns the updated row.
+        //
+        // Mirror runs BEFORE the primary patch, and a mirror failure blocks
+        // the primary patch entirely (returns ok:false, patch NOT applied).
+        // Doing it the other way around (patch first, mirror best-effort)
+        // opened a real bug: Parish.license_status could flip to a more
+        // restrictive value while some Users still carried the old, more
+        // permissive mirror — RLS stayed wide open for those users for as
+        // long as the next transition took to arrive (up to 30 days on the
+        // Premium lifecycle). Mission Control is expected to retry a
+        // ok:false response; it never treats it as a completed transition
+        // (see the sibling repo's license-lifecycle cron/license-action).
         const entity = params.entity;
         const id = params.id;
         const patch = params.patch;
         if (!entity || !id || !patch || typeof patch !== 'object') {
           return Response.json({ error: 'params.entity/id/patch required' }, { status: 400 });
         }
-        const updated = await sr.entities[entity].update(id, patch);
+
         let mirrored = 0;
+        const mirrorErrors: Array<{ entity: string; id?: string; message: string }> = [];
         const mirror = params.mirror;
         if (Array.isArray(mirror)) {
           for (const m of mirror) {
@@ -127,11 +138,23 @@ Deno.serve(async (req) => {
             try {
               const rows = await sr.entities[m.entity].filter({ [m.matchField]: id });
               for (const row of rows) {
-                try { await sr.entities[m.entity].update(row.id, m.fields); mirrored++; } catch { /* best-effort per row */ }
+                try {
+                  await sr.entities[m.entity].update(row.id, m.fields);
+                  mirrored++;
+                } catch (e) {
+                  mirrorErrors.push({ entity: m.entity, id: row.id, message: (e as Error).message });
+                }
               }
-            } catch { /* best-effort per mirror spec */ }
+            } catch (e) {
+              mirrorErrors.push({ entity: m.entity, message: (e as Error).message });
+            }
           }
         }
+        if (mirrorErrors.length > 0) {
+          return Response.json({ ok: false, error: 'mirror_failed', mirrored, mirrorErrors }, { status: 502 });
+        }
+
+        const updated = await sr.entities[entity].update(id, patch);
         const log = params.log;
         if (log && log.entity && log.row && typeof log.row === 'object') {
           try { await sr.entities[log.entity].create(log.row); } catch { /* audit best-effort */ }
@@ -307,12 +330,26 @@ Deno.serve(async (req) => {
           // arreglo (mismo principio best-effort que el bucle de mirror en
           // license.set, arriba).
           try {
-            const rows = await sr.entities[spec.entity].filter({ [spec.field]: spec.value });
             let count = 0;
-            for (const row of rows) {
-              try { await sr.entities[spec.entity].delete(row.id); count++; } catch { /* already gone or inaccessible, continue */ }
+            // filter() no trae un cap explícito documentado (a diferencia de
+            // list(..., COUNT_CAP) usado en otras acciones de este archivo) —
+            // en vez de asumir cuántas filas trae de una vez, se repite hasta
+            // que ya no queden filas, así se borra todo sin importar el tope
+            // de página real del SDK. El break por "no se borró nada esta
+            // vuelta" evita un loop infinito si delete() falla siempre sobre
+            // las mismas filas (p.ej. permisos), en vez de reintentar para
+            // siempre — la eliminación de un borrado LFPDPPP nunca debe
+            // reportar "listo" de más, pero tampoco debe colgarse.
+            while (true) {
+              const rows = await sr.entities[spec.entity].filter({ [spec.field]: spec.value });
+              if (rows.length === 0) break;
+              let deletedThisRound = 0;
+              for (const row of rows) {
+                try { await sr.entities[spec.entity].delete(row.id); count++; deletedThisRound++; } catch { /* already gone or inaccessible, continue */ }
+              }
+              if (deletedThisRound === 0) break;
             }
-            deletedCounts[spec.entity] = count;
+            deletedCounts[spec.entity] = (deletedCounts[spec.entity] ?? 0) + count;
           } catch { /* entidad desconocida o filter() falló — seguir con el siguiente spec */ }
         }
         return Response.json({ ok: true, deletedCounts });
