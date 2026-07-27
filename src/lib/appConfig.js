@@ -1,9 +1,19 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.5.0";
+export const APP_VERSION = "1.6.0";
 export const RELEASE_DATE = "2026-07-23";
 
 export const CHANGELOG = [
+  {
+    version: "1.6.0",
+    date: "2026-07-23",
+    changes: [
+      "Ciclo de vida de licencia Premium: si el pago no se confirma, Tutores pasa primero a solo lectura y después a acceso denegado, con exportación autoservicio de tus datos antes de cualquier eliminación.",
+      "La restricción del plan Premium en Tutores ahora se hace cumplir también en el backend, no solo en la pantalla.",
+      "Nuevo aviso de manejo de datos sensibles (CURP y datos de menores) al crear una parroquia, conforme a la LFPDPPP.",
+      "Acerca de ahora indica las certificaciones de seguridad de Base44, el proveedor de infraestructura.",
+    ],
+  },
   {
     version: "1.5.0",
     date: "2026-07-23",
