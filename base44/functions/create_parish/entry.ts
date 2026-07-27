@@ -1,5 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
+// Debe coincidir con DATA_PROCESSING_TERMS_VERSION en src/lib/legal.js —
+// Base44 functions no pueden importar de src/, así que este valor se
+// duplica a propósito. Súbelo en el mismo commit que el de src/lib/legal.js.
+const DATA_PROCESSING_TERMS_VERSION = '2026-07-23';
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -18,9 +23,28 @@ Deno.serve(async (req) => {
     const admin_contact = body.admin_contact || '';
     if (!name) return Response.json({ error: 'Nombre requerido' }, { status: 400 });
 
+    // Datos de menores (CURP incluida) son sensibles bajo la LFPDPPP — no se
+    // crea una parroquia sin que su primer admin acepte el aviso.
+    if (body.data_processing_accepted !== true) {
+      return Response.json({ error: 'Debes aceptar el aviso de manejo de datos sensibles' }, { status: 400 });
+    }
+
     const sr = base44.asServiceRole;
-    const parish = await sr.entities.Parish.create({ name, admin_contact, active: true });
-    await sr.entities.User.update(me.id, { parish_id: parish.id, parish_role: 'admin' });
+    const now = new Date().toISOString();
+    const parish = await sr.entities.Parish.create({
+      name,
+      admin_contact,
+      active: true,
+      data_processing_accepted_at: now,
+      data_processing_accepted_by: me.email,
+      data_processing_terms_version: DATA_PROCESSING_TERMS_VERSION,
+    });
+    await sr.entities.User.update(me.id, {
+      parish_id: parish.id,
+      parish_role: 'admin',
+      parish_plan: 'free',
+      parish_license_status: 'active',
+    });
 
     return Response.json({ parish });
   } catch (error) {
