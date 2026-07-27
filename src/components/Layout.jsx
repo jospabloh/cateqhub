@@ -6,6 +6,7 @@ import { QrCode, Users, ClipboardList, ScanLine, Home, Church, LogOut, UserCog, 
 import { cn } from "@/lib/utils";
 import { isParishAdmin, parishRoleLabel } from "@/lib/roles";
 import Logo from "@/components/Logo";
+import LicenseBanner from "@/components/LicenseBanner";
 
 const navItems = [
   { to: "/", label: "Inicio", icon: Home, end: true },
@@ -24,7 +25,7 @@ const navItems = [
 
 export default function Layout() {
   const { user } = useAuth();
-  const [parishName, setParishName] = useState(null);
+  const [parish, setParish] = useState(null);
 
   const items = navItems.filter((i) => !i.adminOnly || isParishAdmin(user));
 
@@ -33,15 +34,16 @@ export default function Layout() {
     window.location.href = "/login";
   };
 
-  // Cada tenant (parroquia) muestra su propio nombre bajo la marca CateqHub.
+  // Cada tenant (parroquia) muestra su propio nombre bajo la marca CateqHub,
+  // y el estado de licencia alimenta el banner de Premium (LicenseBanner).
   useEffect(() => {
-    if (!user?.parish_id) { setParishName(null); return; }
+    if (!user?.parish_id) { setParish(null); return; }
     base44.entities.Parish.get(user.parish_id)
-      .then((p) => setParishName(p?.name ?? null))
-      .catch(() => setParishName(null));
+      .then(setParish)
+      .catch(() => setParish(null));
   }, [user?.parish_id]);
 
-  const subtitle = parishName ?? parishRoleLabel(user);
+  const subtitle = parish?.name ?? parishRoleLabel(user);
 
   return (
     <div className="min-h-screen">
@@ -102,6 +104,7 @@ export default function Layout() {
 
       {/* Content */}
       <main className="md:pl-60 pb-20 md:pb-0">
+        <LicenseBanner parish={parish} />
         <div className="p-4 md:p-8 max-w-6xl mx-auto">
           <Outlet context={{ user }} />
         </div>
