@@ -93,16 +93,13 @@ export default function Children() {
     if (!form.name || !form.group_id) return;
     setLoading(true);
     try {
-      const qr_token = crypto.randomUUID();
-      await base44.entities.Child.create({
+      const res = await base44.functions.invoke("create_child", {
         name: form.name,
         birth_date: form.birth_date || undefined,
         curp: normalizeCurp(form.curp) || undefined,
         group_id: form.group_id,
-        parish_id: user.parish_id,
-        qr_token,
-        active: true,
       });
+      if (res.data?.error) throw new Error(res.data.error);
       setOpen(false);
       await load();
       toast({ title: "Niño registrado" });

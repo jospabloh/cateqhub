@@ -79,7 +79,8 @@ export default function ChildDetail() {
 
   const toggleActive = async () => {
     try {
-      await base44.entities.Child.update(child.id, { active: !child.active });
+      const res = await base44.functions.invoke("update_child", { child_id: child.id, action: "toggle_active" });
+      if (res.data?.error) throw new Error(res.data.error);
       await load();
       toast({ title: child.active ? "Niño dado de baja" : "Niño reactivado" });
     } catch (e) {
@@ -93,7 +94,8 @@ export default function ChildDetail() {
     if (!groupChoice || groupChoice === child.group_id) { setEditingGroup(false); return; }
     setLoading(true);
     try {
-      await base44.entities.Child.update(child.id, { group_id: groupChoice, group_changed_at: new Date().toISOString() });
+      const res = await base44.functions.invoke("update_child", { child_id: child.id, action: "change_group", group_id: groupChoice });
+      if (res.data?.error) throw new Error(res.data.error);
       setEditingGroup(false);
       await load();
       toast({ title: "Grupo/libro actualizado" });
@@ -109,21 +111,18 @@ export default function ChildDetail() {
     if (!gForm.name) return;
     setLoading(true);
     try {
-      const guardian = await base44.entities.Guardian.create({
-        parish_id: user.parish_id,
-        name: gForm.name,
-        phone: gForm.phone,
-        email: gForm.email,
-        curp: normalizeCurp(gForm.curp) || undefined,
-        whatsapp_opt_in: false,
-      });
-      await base44.entities.ChildGuardian.create({
-        parish_id: user.parish_id,
+      const res = await base44.functions.invoke("add_guardian", {
         child_id: child.id,
-        guardian_id: guardian.id,
+        guardian: {
+          name: gForm.name,
+          phone: gForm.phone,
+          email: gForm.email,
+          curp: normalizeCurp(gForm.curp) || undefined,
+        },
         relationship: gForm.relationship,
         pickup_authorized: gForm.pickup_authorized,
       });
+      if (res.data?.error) throw new Error(res.data.error);
       setOpenG(false);
       setGForm({ name: "", phone: "", email: "", curp: "", relationship: "tutor", pickup_authorized: true });
       await load();

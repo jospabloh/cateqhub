@@ -55,7 +55,15 @@ export default function Permissions() {
       }
       await loadProfile();
       reloadPermissions();
-      toast({ title: "Permisos guardados" });
+      // Estampa perm_* en todos los catequistas de la parroquia para que la
+      // aplicación real (RLS + funciones) quede sincronizada de inmediato,
+      // no solo el PermissionProfile que lee la UI.
+      const sync = await base44.functions.invoke("sync_catequist_permissions", {}).catch(() => null);
+      if (sync?.data?.error) {
+        toast({ title: "Permisos guardados, pero no se pudieron aplicar a los catequistas ya asignados", description: sync.data.error, variant: "destructive" });
+      } else {
+        toast({ title: "Permisos guardados" });
+      }
       return true;
     } catch (e) {
       toast({ title: "No se pudo guardar", description: e.message, variant: "destructive" });
