@@ -16,7 +16,10 @@ export const MARGIN_Y_MM = (PAGE_H_MM - (ROWS * CARD_H_MM + (ROWS - 1) * GAP_MM)
 // render en pantalla/impresión (QRBadge) y la exportación SVG vectorial.
 export const MARK_LEN_MM = 3;
 export const MARK_GAP_MM = 1;
-export const MARK_THICKNESS_MM = 0.15;
+// 0.15mm (~0.43pt) resultaba demasiado delgado — casi invisible en algunos
+// motores de renderizado/impresión — así que se sube a un grosor de línea
+// más estándar para una guía de corte.
+export const MARK_THICKNESS_MM = 0.3;
 // Espacio que las marcas de esquina ocupan fuera del propio rectángulo de la
 // tarjeta — hay que reservarlo como padding al recortar un gafete suelto
 // (ver downloadBadge en ChildDetail) para no cortar las guías de corte.
