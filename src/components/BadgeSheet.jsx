@@ -19,6 +19,12 @@ import {
 const PRINT_CSS = `
 @page { size: ${PAGE_W_MM}mm ${PAGE_H_MM}mm; margin: 0; }
 @media print {
+  /* Todo lo que sigue visible en esta pantalla durante la impresión es la
+     hoja de gafetes — cualquier margen heredado (p.ej. de utilidades
+     "space-y-*", que siguen contando a los hermanos print:hidden porque
+     esos usan display:none por clase, no el atributo html "hidden") empuja
+     la hoja más allá del alto de página y genera una hoja extra en blanco. */
+  body * { margin: 0 !important; }
   .badge-page { position: static !important; left: auto !important; }
   .badge-page { page-break-after: always; break-after: page; }
   .badge-page:last-child { page-break-after: auto; break-after: auto; }
