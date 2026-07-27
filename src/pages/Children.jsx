@@ -14,6 +14,7 @@ import { usePermissions } from "@/lib/PermissionContext";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
+import { FREE_PLAN_CHILD_CAP } from "@/lib/premium";
 
 const empty = { name: "", birth_date: "", group_id: "", curp: "" };
 const RECENT_GROUP_CHANGE_DAYS = 7;
@@ -62,6 +63,17 @@ export default function Children() {
   );
 
   const allFilteredSelected = filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id));
+
+  // El conteo local solo refleja a TODA la parroquia cuando el usuario ve
+  // todos los grupos/libros (admin, o catequista con el permiso ampliado) —
+  // para un catequista restringido a su propio grupo sería un subconteo
+  // engañoso, así que el aviso de tope solo se muestra con visibilidad
+  // completa. El tope real lo sigue aplicando create_child/update_child en
+  // el backend sin importar lo que se muestre aquí.
+  const seesAllGroups = can("ninos", "ver_todos_los_grupos");
+  const activeCount = seesAllGroups ? children.filter((c) => c.active).length : null;
+  const isFreePlan = user?.parish_plan === "free";
+  const atCap = isFreePlan && activeCount != null && activeCount >= FREE_PLAN_CHILD_CAP;
 
   const toggleSelected = (id) => {
     setSelectedIds((prev) => {
@@ -113,9 +125,14 @@ export default function Children() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><ClipboardList className="w-6 h-6 text-gold" />Niños</h1>
-          <p className="text-muted-foreground text-sm">Alta de niños y sus códigos QR.</p>
+          <p className="text-muted-foreground text-sm">
+            Alta de niños y sus códigos QR.
+            {isFreePlan && activeCount != null && ` Plan Gratis: ${activeCount}/${FREE_PLAN_CHILD_CAP} niños activos.`}
+          </p>
         </div>
-        <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
+        <Button onClick={openNew} disabled={atCap} title={atCap ? `Alcanzaste el límite de ${FREE_PLAN_CHILD_CAP} niños activos del plan Gratis — activa Premium para dar de alta más` : undefined}>
+          <Plus className="w-4 h-4 mr-2" />Nuevo
+        </Button>
       </div>
 
       <div className="relative">

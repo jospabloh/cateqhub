@@ -245,6 +245,31 @@ Deno.serve(async (req) => {
         }
       }
 
+      case 'usage.tenantCount': {
+        // Exact count for ONE tenant (optionally filtered by a second field,
+        // e.g. active:true) — usage.byTenant only returns the top 50 tenants
+        // portfolio-wide, so it can't be trusted to find any single tenant's
+        // count (a tenant with a low count simply falls off that list). Used
+        // by CateqHub's free-plan-cap downgrade decision in license-lifecycle
+        // (Mission Control): does this parish have ≤ N active children?
+        const entity = params.entity;
+        const tenantField = params.tenantField;
+        const tenantValue = params.tenantValue;
+        if (!entity || !tenantField || tenantValue === undefined) {
+          return Response.json({ error: 'params.entity/tenantField/tenantValue required' }, { status: 400 });
+        }
+        const filter: Record<string, unknown> = { [tenantField]: tenantValue };
+        if (params.filterField !== undefined && params.filterValue !== undefined) {
+          filter[params.filterField] = params.filterValue;
+        }
+        try {
+          const rows = await sr.entities[entity].filter(filter);
+          return Response.json({ ok: true, count: rows.length });
+        } catch (e) {
+          return Response.json({ error: (e as Error).message }, { status: 500 });
+        }
+      }
+
       case 'tickets.list': {
         // List an app's support tickets (service-role). MC owns the per-app field
         // mapping; this returns the raw records. Read-only.
