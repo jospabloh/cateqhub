@@ -1324,6 +1324,7 @@ Immediately after the `<div>` opening the page (after the header block with the 
                 <input
                   type="checkbox"
                   className="mt-0.5"
+                  checked={status.exportConfirmed}
                   onChange={(e) => { if (e.target.checked) handleConfirmExport(); }}
                   disabled={confirming}
                 />
