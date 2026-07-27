@@ -8,12 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import QRCard from "@/components/QRCard";
 import BadgeSheet from "@/components/BadgeSheet";
 import { exportBadgeSheetPNG } from "@/lib/badgeExport";
 import { usePremiumStatus } from "@/lib/premium";
 import { usePermissions } from "@/lib/PermissionContext";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
+import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Download, Printer, Plus, Trash2, Phone, Mail, Lock, IdCard, Repeat } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -24,8 +35,10 @@ export default function ChildDetail() {
   const { id } = useParams();
   const { user } = useAuth();
   const { can } = usePermissions();
+  const { toast } = useToast();
   const badgePageRefs = useRef([]);
   const [child, setChild] = useState(null);
+  const [notFound, setNotFound] = useState(false);
   const [exportingBadge, setExportingBadge] = useState(false);
   const [group, setGroup] = useState(null);
   const [groups, setGroups] = useState([]);
@@ -37,31 +50,41 @@ export default function ChildDetail() {
   const [editingGroup, setEditingGroup] = useState(false);
   const [groupChoice, setGroupChoice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState(null);
   const status = usePremiumStatus(parish);
 
   const load = async () => {
-    const c = await base44.entities.Child.get(id);
-    setChild(c);
-    if (c.group_id) base44.entities.Group.get(c.group_id).then(setGroup).catch(() => {});
-    if (c.parish_id) {
-      base44.entities.Parish.get(c.parish_id).then(setParish).catch(() => {});
-      base44.entities.Group.filter({ parish_id: c.parish_id }).then(setGroups).catch(() => {});
-    }
-    const rels = await base44.entities.ChildGuardian.filter({ child_id: id });
-    setLinks(rels);
-    if (rels.length) {
-      const gs = await Promise.all(rels.map((r) => base44.entities.Guardian.get(r.guardian_id)));
-      setGuardians(gs);
-    } else {
-      setGuardians([]);
+    try {
+      const c = await base44.entities.Child.get(id);
+      setChild(c);
+      if (c.group_id) base44.entities.Group.get(c.group_id).then(setGroup).catch(() => {});
+      if (c.parish_id) {
+        base44.entities.Parish.get(c.parish_id).then(setParish).catch(() => {});
+        base44.entities.Group.filter({ parish_id: c.parish_id }).then(setGroups).catch(() => {});
+      }
+      const rels = await base44.entities.ChildGuardian.filter({ child_id: id });
+      setLinks(rels);
+      if (rels.length) {
+        const gs = await Promise.all(rels.map((r) => base44.entities.Guardian.get(r.guardian_id)));
+        setGuardians(gs);
+      } else {
+        setGuardians([]);
+      }
+    } catch (e) {
+      setNotFound(true);
     }
   };
 
   useEffect(() => { load(); }, [id]);
 
   const toggleActive = async () => {
-    await base44.entities.Child.update(child.id, { active: !child.active });
-    load();
+    try {
+      await base44.entities.Child.update(child.id, { active: !child.active });
+      await load();
+      toast({ title: child.active ? "Niño dado de baja" : "Niño reactivado" });
+    } catch (e) {
+      toast({ title: "No se pudo actualizar", description: e.message, variant: "destructive" });
+    }
   };
 
   const openGroupEdit = () => { setGroupChoice(child.group_id || ""); setEditingGroup(true); };
@@ -72,7 +95,10 @@ export default function ChildDetail() {
     try {
       await base44.entities.Child.update(child.id, { group_id: groupChoice, group_changed_at: new Date().toISOString() });
       setEditingGroup(false);
-      load();
+      await load();
+      toast({ title: "Grupo/libro actualizado" });
+    } catch (e) {
+      toast({ title: "No se pudo cambiar el grupo/libro", description: e.message, variant: "destructive" });
     } finally { setLoading(false); }
   };
 
@@ -100,14 +126,23 @@ export default function ChildDetail() {
       });
       setOpenG(false);
       setGForm({ name: "", phone: "", email: "", curp: "", relationship: "tutor", pickup_authorized: true });
-      load();
+      await load();
+      toast({ title: "Tutor agregado" });
+    } catch (e) {
+      toast({ title: "No se pudo agregar al tutor", description: e.message, variant: "destructive" });
     } finally { setLoading(false); }
   };
 
-  const removeGuardian = async (linkId) => {
-    if (!confirm("¿Quitar a este tutor del niño?")) return;
-    await base44.entities.ChildGuardian.delete(linkId);
-    load();
+  const removeGuardian = async () => {
+    if (!removeTarget) return;
+    try {
+      await base44.entities.ChildGuardian.delete(removeTarget.id);
+      setRemoveTarget(null);
+      await load();
+      toast({ title: "Tutor eliminado" });
+    } catch (e) {
+      toast({ title: "No se pudo quitar al tutor", description: e.message, variant: "destructive" });
+    }
   };
 
   const downloadBadge = async () => {
@@ -118,6 +153,20 @@ export default function ChildDetail() {
       setExportingBadge(false);
     }
   };
+
+  if (notFound) {
+    return (
+      <div className="max-w-md mx-auto mt-10">
+        <Card>
+          <CardContent className="pt-6 text-center space-y-4">
+            <h2 className="text-xl font-semibold">Niño no encontrado</h2>
+            <p className="text-muted-foreground text-sm">Este niño no existe o ya no está disponible.</p>
+            <Button asChild variant="outline"><Link to="/ninos"><ArrowLeft className="w-4 h-4 mr-1" />Volver a Niños</Link></Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!child) return <div className="grid place-items-center py-20"><div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" /></div>;
 
@@ -155,13 +204,13 @@ export default function ChildDetail() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-muted-foreground">Grupo: {group ? group.name : "Sin grupo"}{group?.level ? ` · ${group.level}` : ""}</p>
+                  <p className="text-muted-foreground">Grupo/Libro: {group ? group.name : "Sin grupo/libro"}{group?.level ? ` · ${group.level}` : ""}</p>
                   {can("ninos", "cambiar_grupo") && (
                     <Button size="sm" variant="ghost" onClick={openGroupEdit}><Repeat className="w-3.5 h-3.5 mr-1" />Cambiar</Button>
                   )}
                   {recentGroupChange && (
                     <Badge variant="outline" className="text-[10px] font-normal">
-                      Cambió de grupo {formatDistanceToNow(new Date(child.group_changed_at), { addSuffix: true, locale: es })}
+                      Cambió de grupo/libro {formatDistanceToNow(new Date(child.group_changed_at), { addSuffix: true, locale: es })}
                     </Badge>
                   )}
                 </div>
@@ -210,7 +259,7 @@ export default function ChildDetail() {
                       {g.email && <p className="text-sm text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{g.email}</p>}
                       {g.curp && <p className="text-sm text-muted-foreground flex items-center gap-1"><IdCard className="w-3 h-3" /><span className="font-mono">{g.curp}</span></p>}
                     </div>
-                    <Button size="icon" variant="ghost" onClick={() => removeGuardian(rel.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    <Button size="icon" variant="ghost" aria-label={`Quitar a ${g.name} como tutor`} onClick={() => setRemoveTarget({ id: rel.id, name: g.name })}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </div>
                 );
               })}
@@ -276,6 +325,21 @@ export default function ChildDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Quitar a este tutor del niño?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {removeTarget?.name ? `"${removeTarget.name}" dejará de estar vinculado a ${child.name}.` : "Esta acción no se puede deshacer."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={removeGuardian}>Quitar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

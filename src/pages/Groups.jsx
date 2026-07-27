@@ -5,35 +5,57 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Users, Plus, Pencil, Trash2 } from "lucide-react";
 import { isParishAdmin } from "@/lib/roles";
+import { useToast } from "@/components/ui/use-toast";
 
-const empty = { name: "", level: "", user_id: "" };
+const empty = { name: "", level: "", catechist_id: "" };
 
 export default function Groups() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [groups, setGroups] = useState([]);
   const [staff, setStaff] = useState([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(empty);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const load = async () => {
     if (!user?.parish_id) return;
-    const [g, s] = await Promise.all([
-      base44.entities.Group.filter({ parish_id: user.parish_id }),
-      base44.functions.invoke("list_parish_users", {}).then((r) => (r.data?.users || []).filter((u) => u.parish_role === "catequist")).catch(() => []),
-    ]);
-    setGroups(g);
-    setStaff(s);
+    setInitialLoading(true);
+    try {
+      const [g, s] = await Promise.all([
+        base44.entities.Group.filter({ parish_id: user.parish_id }),
+        base44.functions.invoke("list_parish_users", {}).then((r) => (r.data?.users || []).filter((u) => u.parish_role === "catequist")).catch(() => []),
+      ]);
+      setGroups(g);
+      setStaff(s);
+    } catch (e) {
+      toast({ title: "No se pudieron cargar los grupos/libros", description: e.message, variant: "destructive" });
+    } finally {
+      setInitialLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [user]);
 
   const openNew = () => { setForm(empty); setEditingId(null); setOpen(true); };
-  const openEdit = (g) => { setForm({ name: g.name, level: g.level || "", user_id: g.user_id || "" }); setEditingId(g.id); setOpen(true); };
+  const openEdit = (g) => { setForm({ name: g.name, level: g.level || "", catechist_id: g.catechist_id || "" }); setEditingId(g.id); setOpen(true); };
 
   const save = async () => {
     if (!form.name) return;
@@ -45,14 +67,23 @@ export default function Groups() {
         await base44.entities.Group.create({ ...form, parish_id: user.parish_id });
       }
       setOpen(false);
-      load();
+      await load();
+      toast({ title: editingId ? "Grupo/libro actualizado" : "Grupo/libro creado" });
+    } catch (e) {
+      toast({ title: "No se pudo guardar", description: e.message, variant: "destructive" });
     } finally { setLoading(false); }
   };
 
-  const remove = async (id) => {
-    if (!confirm("¿Eliminar este grupo?")) return;
-    await base44.entities.Group.delete(id);
-    load();
+  const remove = async () => {
+    if (!deleteTarget) return;
+    try {
+      await base44.entities.Group.delete(deleteTarget.id);
+      setDeleteTarget(null);
+      await load();
+      toast({ title: "Grupo/libro eliminado" });
+    } catch (e) {
+      toast({ title: "No se pudo eliminar", description: e.message, variant: "destructive" });
+    }
   };
 
   const staffName = (id) => staff.find((s) => s.id === id)?.full_name || "—";
@@ -61,14 +92,20 @@ export default function Groups() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><Users className="w-6 h-6 text-gold" />Grupos</h1>
+          <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><Users className="w-6 h-6 text-gold" />Grupos/Libros</h1>
           <p className="text-muted-foreground text-sm">Clases de catecismo de tu parroquia.</p>
         </div>
         {isParishAdmin(user) && <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Nuevo</Button>}
       </div>
 
-      {groups.length === 0 ? (
-        <Card><CardContent className="pt-6 text-center text-muted-foreground">Aún no hay grupos. Crea el primero.</CardContent></Card>
+      {initialLoading ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}><CardContent className="pt-5 space-y-2"><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-1/3" /></CardContent></Card>
+          ))}
+        </div>
+      ) : groups.length === 0 ? (
+        <Card><CardContent className="pt-6 text-center text-muted-foreground">Aún no hay grupos/libros. Crea el primero.</CardContent></Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {groups.map((g) => (
@@ -78,12 +115,12 @@ export default function Groups() {
                   <div>
                     <p className="font-semibold">{g.name}</p>
                     {g.level && <p className="text-sm text-muted-foreground">Nivel: {g.level}</p>}
-                    <p className="text-sm text-muted-foreground mt-1">Catequista: {staffName(g.user_id)}</p>
+                    <p className="text-sm text-muted-foreground mt-1">Catequista: {staffName(g.catechist_id)}</p>
                   </div>
                   {isParishAdmin(user) && (
                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(g)}><Pencil className="w-4 h-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => remove(g.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                      <Button size="icon" variant="ghost" aria-label={`Editar ${g.name}`} onClick={() => openEdit(g)}><Pencil className="w-4 h-4" /></Button>
+                      <Button size="icon" variant="ghost" aria-label={`Eliminar ${g.name}`} onClick={() => setDeleteTarget(g)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                     </div>
                   )}
                 </div>
@@ -95,7 +132,7 @@ export default function Groups() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{editingId ? "Editar grupo" : "Nuevo grupo"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? "Editar grupo/libro" : "Nuevo grupo/libro"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label>Nombre</Label>
@@ -107,7 +144,7 @@ export default function Groups() {
             </div>
             <div className="space-y-1.5">
               <Label>Catequista</Label>
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })}>
+              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.catechist_id} onChange={(e) => setForm({ ...form, catechist_id: e.target.value })}>
                 <option value="">Sin asignar</option>
                 {staff.map((s) => <option key={s.id} value={s.id}>{s.full_name || s.email}</option>)}
               </select>
@@ -119,6 +156,21 @@ export default function Groups() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este grupo/libro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.name ? `"${deleteTarget.name}" se eliminará. Esta acción no se puede deshacer.` : "Esta acción no se puede deshacer."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={remove}>Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

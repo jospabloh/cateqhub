@@ -4,62 +4,48 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { usePremiumStatus } from "@/lib/premium";
 import PremiumLockedPanel from "@/components/PremiumLockedPanel";
+import ProgressRing from "@/components/ProgressRing";
 import { ScanLine, Users, ClipboardList, Church, AlertCircle, Clock, MessageCircle, ListChecks, Tag } from "lucide-react";
 import { isParishAdmin } from "@/lib/roles";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-
-function AttendanceRing({ value, total }) {
-  const pct = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0;
-  const radius = 52;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - pct / 100);
-  return (
-    <div className="relative w-28 h-28 shrink-0">
-      <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-        <circle cx="60" cy="60" r={radius} strokeWidth="10" fill="none" className="stroke-muted" />
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          strokeWidth="10"
-          fill="none"
-          stroke="hsl(var(--chart-2))"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{ transition: "stroke-dashoffset 700ms cubic-bezier(0.2, 0.8, 0.3, 1)" }}
-        />
-      </svg>
-      <div className="absolute inset-0 grid place-items-center">
-        <p className="text-2xl font-heading font-semibold leading-none">{pct}%</p>
-      </div>
-    </div>
-  );
-}
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const parishId = user?.parish_id;
   const [counts, setCounts] = useState({ groups: 0, children: 0, today: 0 });
   const [parish, setParish] = useState(null);
+  const [loading, setLoading] = useState(true);
   const status = usePremiumStatus(parish);
 
   useEffect(() => {
     if (!parishId) return;
+    let cancelled = false;
     (async () => {
-      const today = new Date().toISOString().slice(0, 10);
-      const [groups, children, todayAtt, p] = await Promise.all([
-        base44.entities.Group.filter({ parish_id: parishId }),
-        base44.entities.Child.filter({ parish_id: parishId, active: true }),
-        base44.entities.Attendance.filter({ parish_id: parishId, date: today }),
-        base44.entities.Parish.get(parishId).catch(() => null),
-      ]);
-      setCounts({ groups: groups.length, children: children.length, today: todayAtt.length });
-      setParish(p);
+      setLoading(true);
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const [groups, children, todayAtt, p] = await Promise.all([
+          base44.entities.Group.filter({ parish_id: parishId }),
+          base44.entities.Child.filter({ parish_id: parishId, active: true }),
+          base44.entities.Attendance.filter({ parish_id: parishId, date: today }),
+          base44.entities.Parish.get(parishId).catch(() => null),
+        ]);
+        if (cancelled) return;
+        setCounts({ groups: groups.length, children: children.length, today: todayAtt.length });
+        setParish(p);
+      } catch (e) {
+        if (!cancelled) toast({ title: "No se pudo cargar el panel", description: e.message, variant: "destructive" });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
+    return () => { cancelled = true; };
   }, [parishId]);
 
   if (!parishId) {
@@ -103,14 +89,26 @@ export default function Dashboard() {
 
       <Card className="overflow-hidden">
         <CardContent className="pt-6 flex items-center gap-6 flex-wrap">
-          <AttendanceRing value={counts.today} total={counts.children} />
-          <div className="min-w-0">
-            <p className="text-sm text-muted-foreground capitalize">{format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</p>
-            <p className="text-3xl font-heading font-semibold mt-0.5">
-              {counts.today} <span className="text-base font-normal text-muted-foreground">de {counts.children} niños activos hoy</span>
-            </p>
-            <Link to="/reportes" className="text-sm text-primary font-medium hover:underline mt-1 inline-block">Ver reportes →</Link>
-          </div>
+          {loading ? (
+            <>
+              <Skeleton className="w-28 h-28 rounded-full shrink-0" />
+              <div className="min-w-0 space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-8 w-56" />
+              </div>
+            </>
+          ) : (
+            <>
+              <ProgressRing value={counts.today} total={counts.children} size={112} />
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground capitalize">{format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</p>
+                <p className="text-3xl font-heading font-semibold mt-0.5">
+                  {counts.today} <span className="text-base font-normal text-muted-foreground">de {counts.children} niños activos hoy</span>
+                </p>
+                <Link to="/reportes" className="text-sm text-primary font-medium hover:underline mt-1 inline-block">Ver reportes →</Link>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -118,10 +116,10 @@ export default function Dashboard() {
         <Card>
           <CardContent className="pt-5 flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Grupos</p>
-              <p className="text-2xl font-heading font-semibold mt-0.5">{counts.groups}</p>
+              <p className="text-sm text-muted-foreground">Grupos/Libros</p>
+              {loading ? <Skeleton className="h-7 w-10 mt-0.5" /> : <p className="text-2xl font-heading font-semibold mt-0.5">{counts.groups}</p>}
             </div>
-            <Link to="/grupos" className="w-9 h-9 rounded-md bg-muted grid place-items-center text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/grupos" className="w-9 h-9 rounded-md bg-muted grid place-items-center text-muted-foreground hover:text-foreground transition-colors" aria-label="Ir a Grupos/Libros">
               <Users className="w-4 h-4" />
             </Link>
           </CardContent>
@@ -130,9 +128,9 @@ export default function Dashboard() {
           <CardContent className="pt-5 flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Niños activos</p>
-              <p className="text-2xl font-heading font-semibold mt-0.5">{counts.children}</p>
+              {loading ? <Skeleton className="h-7 w-10 mt-0.5" /> : <p className="text-2xl font-heading font-semibold mt-0.5">{counts.children}</p>}
             </div>
-            <Link to="/ninos" className="w-9 h-9 rounded-md bg-muted grid place-items-center text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/ninos" className="w-9 h-9 rounded-md bg-muted grid place-items-center text-muted-foreground hover:text-foreground transition-colors" aria-label="Ir a Niños">
               <ClipboardList className="w-4 h-4" />
             </Link>
           </CardContent>
@@ -146,7 +144,7 @@ export default function Dashboard() {
             <Button asChild size="lg"><Link to="/escanear"><ScanLine className="w-4 h-4 mr-2" />Escanear asistencia</Link></Button>
             <Button asChild size="lg" variant="outline"><Link to="/ninos"><ClipboardList className="w-4 h-4 mr-2" />Ver niños</Link></Button>
             {isParishAdmin(user) && (
-              <Button asChild size="lg" variant="outline"><Link to="/grupos"><Church className="w-4 h-4 mr-2" />Gestionar grupos</Link></Button>
+              <Button asChild size="lg" variant="outline"><Link to="/grupos"><Church className="w-4 h-4 mr-2" />Gestionar grupos/libros</Link></Button>
             )}
           </div>
         </CardContent>
@@ -158,7 +156,7 @@ export default function Dashboard() {
           <div className="grid gap-3 sm:grid-cols-3">
             <PremiumLockedPanel icon={MessageCircle} title="Mensajería a tutores" description="Recordatorios por WhatsApp o correo. Próximamente en Premium." />
             <PremiumLockedPanel icon={ListChecks} title="Tareas de catecismo" description="Asigna tareas y da seguimiento a las entregas. Próximamente en Premium." />
-            <PremiumLockedPanel icon={Tag} title="Pulseras y etiquetas" description="Identificación física para grupos grandes. Próximamente en Premium." />
+            <PremiumLockedPanel icon={Tag} title="Pulseras y etiquetas" description="Identificación física para grupos/libros grandes. Próximamente en Premium." />
           </div>
         </div>
       )}

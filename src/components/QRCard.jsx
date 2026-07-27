@@ -23,7 +23,7 @@ export default function QRCard({ child, parish, group }) {
 
       <div className="text-center">
         <p className="text-xl font-heading font-semibold leading-tight">{child.name}</p>
-        {group && <p className="text-sm text-[#101820]/55 mt-1">Grupo: {group.name}</p>}
+        {group && <p className="text-sm text-[#101820]/55 mt-1">Grupo/Libro: {group.name}</p>}
       </div>
 
       <div className="mt-4 pt-3 border-t border-[#E4E7EB]">

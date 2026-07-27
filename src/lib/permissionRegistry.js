@@ -12,14 +12,14 @@ export const PERMISSION_REGISTRY = {
     actions: [
       {
         id: "ver_todos_los_grupos",
-        label: "Ver niños de todos los grupos",
-        description: "Si está desactivado, el catequista solo ve y registra niños de su propio grupo.",
+        label: "Ver niños de todos los grupos/libros",
+        description: "Si está desactivado, el catequista solo ve y registra niños de su propio grupo/libro.",
         default: false,
       },
       {
         id: "cambiar_grupo",
-        label: "Cambiar el grupo de un niño",
-        description: "Permite reasignar a qué grupo pertenece un niño desde su ficha.",
+        label: "Cambiar el grupo/libro de un niño",
+        description: "Permite reasignar a qué grupo/libro pertenece un niño desde su ficha.",
         default: false,
       },
       {
@@ -35,8 +35,8 @@ export const PERMISSION_REGISTRY = {
     actions: [
       {
         id: "cualquier_grupo",
-        label: "Escanear niños de cualquier grupo",
-        description: "Si está desactivado, el catequista solo puede registrar asistencia de niños de su propio grupo.",
+        label: "Escanear niños de cualquier grupo/libro",
+        description: "Si está desactivado, el catequista solo puede registrar asistencia de niños de su propio grupo/libro.",
         default: true,
       },
     ],
@@ -46,8 +46,8 @@ export const PERMISSION_REGISTRY = {
     actions: [
       {
         id: "ver_todos_los_grupos",
-        label: "Ver y filtrar reportes de todos los grupos",
-        description: "Si está desactivado, el catequista solo ve los reportes de su propio grupo.",
+        label: "Ver y filtrar reportes de todos los grupos/libros",
+        description: "Si está desactivado, el catequista solo ve los reportes de su propio grupo/libro.",
         default: false,
       },
     ],

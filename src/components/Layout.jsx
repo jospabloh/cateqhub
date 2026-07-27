@@ -10,7 +10,7 @@ import Logo from "@/components/Logo";
 const navItems = [
   { to: "/", label: "Inicio", icon: Home, end: true },
   { to: "/escanear", label: "Escanear", icon: ScanLine },
-  { to: "/grupos", label: "Grupos", icon: Users },
+  { to: "/grupos", label: "Grupos/Libros", icon: Users },
   { to: "/ninos", label: "Niños", icon: ClipboardList },
   { to: "/reportes", label: "Reportes", icon: QrCode },
   { to: "/parroquia", label: "Parroquia", icon: Church, adminOnly: true },

@@ -1,12 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { usePermissions } from "@/lib/PermissionContext";
 import { isParishAdmin } from "@/lib/roles";
+import { getRegistryDefaults } from "@/lib/permissionRegistry";
 import RestrictedNotice from "@/components/RestrictedNotice";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ProgressRing from "@/components/ProgressRing";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import PermissionMatrix from "@/components/permissions/PermissionMatrix";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, UserCog, Lock } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function Permissions() {
@@ -27,6 +30,14 @@ export default function Permissions() {
   }, [user?.parish_id]);
 
   useEffect(() => { loadProfile(); }, [loadProfile]);
+
+  const summary = useMemo(() => {
+    const defaults = getRegistryDefaults();
+    const effective = { ...defaults, ...profile?.permissions };
+    const total = Object.keys(defaults).length;
+    const granted = Object.values(effective).filter((v) => v === true).length;
+    return { granted, total };
+  }, [profile]);
 
   if (!isParishAdmin(user)) return <RestrictedNotice />;
 
@@ -61,20 +72,51 @@ export default function Permissions() {
         <p className="text-muted-foreground text-sm">Qué puede hacer cada rol dentro de tu parroquia. Visible solo para administradores.</p>
       </div>
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Roles</CardTitle></CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <p><strong className="text-foreground">Administrador de parroquia</strong> — gestiona grupos, usuarios y la configuración de la parroquia, y siempre tiene acceso total a los niños de toda la parroquia. Puede haber más de uno por parroquia. No es configurable.</p>
-          <p><strong className="text-foreground">Catequista</strong> — trabaja con su propio grupo por defecto: escanea asistencia, ve sus niños y sus reportes. No gestiona usuarios ni la parroquia. Lo que sí puede hacer fuera de su grupo se configura abajo.</p>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardContent className="pt-5 flex items-start gap-4">
+            <div className="w-11 h-11 rounded-full bg-gold/15 grid place-items-center shrink-0">
+              <ShieldCheck className="w-5 h-5 text-gold" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold">Administrador de parroquia</p>
+                <Badge className="bg-moss text-moss-foreground hover:bg-moss/90 border-0">Acceso total</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Gestiona grupos/libros, usuarios, la parroquia y a todos los niños. Puede haber más de uno. No es configurable.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-5 flex items-center gap-4">
+            <ProgressRing
+              size={68}
+              value={summary.granted}
+              total={summary.total}
+              stroke="hsl(var(--chart-1))"
+              label={`${summary.granted}/${summary.total}`}
+            />
+            <div className="min-w-0">
+              <p className="font-semibold flex items-center gap-1.5"><UserCog className="w-4 h-4 text-muted-foreground shrink-0" />Catequista</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Trabaja con su propio grupo/libro por defecto. {summary.granted} de {summary.total} permisos adicionales activos — ajústalos abajo.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <PermissionMatrix permissions={profile?.permissions} onSave={handleSave} saving={saving} />
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Cómo se protege esto</CardTitle></CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>Estos permisos controlan comportamiento real de la app (qué grupos ve o edita un catequista), no solo lo que se muestra en pantalla. Usuarios, Parroquia, Premium y la administración de Grupos siguen reservados al administrador de parroquia y no son configurables aquí: esas acciones están protegidas también a nivel de base de datos, así que ningún ajuste de esta pantalla puede abrirlas. Los datos en sí están aislados por parroquia a nivel de base de datos — ninguna parroquia puede ver ni modificar los datos de otra.</p>
+        <CardContent className="pt-5 flex items-start gap-3 text-sm text-muted-foreground">
+          <Lock className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+          <p>
+            Estos permisos controlan comportamiento real de la app, no solo lo que se muestra en pantalla. Usuarios, Parroquia, Premium y la administración de Grupos/Libros siguen reservados al administrador de parroquia y no son configurables aquí: esas acciones están protegidas también a nivel de base de datos, así que ningún ajuste de esta pantalla puede abrirlas. Los datos en sí están aislados por parroquia a nivel de base de datos — ninguna parroquia puede ver ni modificar los datos de otra.
+          </p>
         </CardContent>
       </Card>
     </div>

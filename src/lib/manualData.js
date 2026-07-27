@@ -12,7 +12,7 @@ export const manualArticles = [
     keywords: ["parroquia", "crear", "empezar", "inicio", "nueva cuenta"],
     content: `Cuando entras por primera vez sin una parroquia asignada, ve a "Parroquia" en el menú y crea la tuya con su nombre y contacto del administrador.
 
-Al crearla, quedas automáticamente como administrador de esa parroquia. Desde ahí puedes invitar catequistas, crear grupos y empezar a dar de alta niños.`,
+Al crearla, quedas automáticamente como administrador de esa parroquia. Desde ahí puedes invitar catequistas, crear grupos/libros y empezar a dar de alta niños.`,
   },
   {
     id: "invitar-usuarios",
@@ -21,26 +21,26 @@ Al crearla, quedas automáticamente como administrador de esa parroquia. Desde a
     keywords: ["invitar", "usuarios", "catequista", "administrador", "equipo"],
     content: `Ve a "Usuarios" → "Invitar". Escribe el correo de la persona y elige su rol dentro de la parroquia: administrador o catequista.
 
-La persona recibe un correo para crear su cuenta. Una vez que acepte, aparecerá en la lista y podrás asignarle un grupo si es catequista.
+La persona recibe un correo para crear su cuenta. Una vez que acepte, aparecerá en la lista y podrás asignarle un grupo/libro si es catequista.
 
-- Un administrador de parroquia puede gestionar grupos, niños, usuarios y ver todos los reportes.
-- Un catequista solo ve y registra asistencia de su propio grupo.`,
+- Un administrador de parroquia puede gestionar grupos/libros, niños, usuarios y ver todos los reportes.
+- Un catequista solo ve y registra asistencia de su propio grupo/libro.`,
   },
   {
     id: "crear-grupos",
-    category: "Niños y grupos",
-    title: "Crear un grupo de catecismo",
-    keywords: ["grupo", "clase", "nivel", "catequista asignado"],
-    content: `Ve a "Grupos" → "Nuevo". Dale un nombre (por ejemplo "Primera Comunión A"), un nivel opcional, y asigna un catequista si ya lo invitaste.
+    category: "Niños y grupos/libros",
+    title: "Crear un grupo/libro de catecismo",
+    keywords: ["grupo", "libro", "clase", "nivel", "catequista asignado"],
+    content: `Ve a "Grupos/Libros" → "Nuevo". Dale un nombre (por ejemplo "Primera Comunión A"), un nivel opcional, y asigna un catequista si ya lo invitaste.
 
-Solo el administrador de la parroquia puede crear, editar o eliminar grupos.`,
+Solo el administrador de la parroquia puede crear, editar o eliminar grupos/libros.`,
   },
   {
     id: "alta-ninos",
-    category: "Niños y grupos",
+    category: "Niños y grupos/libros",
     title: "Dar de alta a un niño y su código QR",
     keywords: ["niño", "alta", "registrar", "qr", "código", "curp"],
-    content: `Ve a "Niños" → "Nuevo". Captura el nombre completo, fecha de nacimiento opcional, CURP opcional (si es mexicano o residente) y el grupo al que pertenece.
+    content: `Ve a "Niños" → "Nuevo". Captura el nombre completo, fecha de nacimiento opcional, CURP opcional (si es mexicano o residente) y el grupo/libro al que pertenece.
 
 Al guardar, se genera automáticamente un código QR único e infalsificable para ese niño — nadie puede adivinarlo ni duplicarlo.
 
@@ -48,7 +48,7 @@ Para imprimir o descargar la tarjeta con el QR, entra al niño desde la lista y 
   },
   {
     id: "dar-de-baja",
-    category: "Niños y grupos",
+    category: "Niños y grupos/libros",
     title: "Dar de baja o reactivar a un niño",
     keywords: ["baja", "inactivo", "reactivar", "eliminar niño"],
     content: `Un niño no se elimina — se marca como inactivo desde su ficha ("Dar de baja"). Un niño inactivo no puede registrar asistencia al escanear su QR, pero su historial se conserva.
@@ -60,7 +60,7 @@ Puedes reactivarlo en cualquier momento desde el mismo botón.`,
     category: "Asistencia",
     title: "Escanear asistencia",
     keywords: ["escanear", "qr", "cámara", "registrar asistencia", "presente"],
-    content: `Ve a "Escanear", activa la cámara y apunta al código QR del niño. Si eres administrador, primero elige el grupo; si eres catequista, se usa tu grupo asignado automáticamente.
+    content: `Ve a "Escanear", activa la cámara y apunta al código QR del niño. Si eres administrador, primero elige el grupo/libro; si eres catequista, se usa tu grupo/libro asignado automáticamente.
 
 Escanear el mismo código dos veces el mismo día no genera un registro duplicado — verás el aviso "Ya registrado hoy".
 
@@ -71,9 +71,9 @@ El código QR de un niño inactivo no registra asistencia.`,
     category: "Asistencia",
     title: "Ver reportes de asistencia y faltas",
     keywords: ["reporte", "asistencia", "faltas", "gráfica", "por fecha"],
-    content: `Ve a "Reportes". Puedes filtrar por grupo y por rango de fechas.
+    content: `Ve a "Reportes". Puedes filtrar por grupo/libro y por rango de fechas.
 
-La gráfica de barras muestra cuántos niños asistieron en cada fecha. Abajo, "Faltas acumuladas por niño" muestra, para cada niño activo, cuántas sesiones tuvo su grupo, a cuántas asistió y cuántas faltó — ordenado con las más faltas primero.`,
+La gráfica de barras muestra cuántos niños asistieron en cada fecha. Abajo, "Faltas acumuladas por niño" muestra, para cada niño activo, cuántas sesiones tuvo su grupo/libro, a cuántas asistió y cuántas faltó — ordenado con las más faltas primero.`,
   },
   {
     id: "tutores",
@@ -89,7 +89,7 @@ Agregar tutores es una función Premium. Tu parroquia empieza en el plan gratuit
     category: "Tutores y Premium",
     title: "Plan Premium y licencia",
     keywords: ["premium", "licencia", "plan", "precio", "pago", "gratis", "free"],
-    content: `CateqHub es gratis por default: la asistencia por QR, los reportes básicos y el alta de niños/grupos no tienen costo ni vencimiento. El plan Premium suma tutores, mensajería a tutores, tareas de catecismo y pulseras/etiquetas físicas.
+    content: `CateqHub es gratis por default: la asistencia por QR, los reportes básicos y el alta de niños/grupos/libros no tienen costo ni vencimiento. El plan Premium suma tutores, mensajería a tutores, tareas de catecismo y pulseras/etiquetas físicas.
 
 Ve a "Premium" para ver el estado de tu parroquia (gratuito o activo) y el precio de referencia. Ahí mismo se explica cómo activar el plan.`,
   },

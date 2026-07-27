@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
 import { UserCog, Plus, Send, UserCheck } from "lucide-react";
 
 export default function Users() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [staff, setStaff] = useState([]);
   const [groups, setGroups] = useState([]);
   const [open, setOpen] = useState(false);
@@ -24,9 +27,11 @@ export default function Users() {
   const [editing, setEditing] = useState(null);
   const [editForm, setEditForm] = useState({ group_id: "", parish_role: "catequist" });
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const load = async () => {
     if (!user?.parish_id) return;
+    setInitialLoading(true);
     try {
       const [res, g] = await Promise.all([
         base44.functions.invoke("list_parish_users", {}),
@@ -36,6 +41,9 @@ export default function Users() {
       setGroups(g);
     } catch (e) {
       setStaff([]);
+      toast({ title: "No se pudieron cargar los usuarios", description: e.message, variant: "destructive" });
+    } finally {
+      setInitialLoading(false);
     }
   };
   useEffect(() => { load(); }, [user]);
@@ -59,18 +67,18 @@ export default function Users() {
       await base44.users.inviteUser(inviteEmail, "user");
       const data = await assignToParish(inviteEmail, inviteGroupId, inviteRole).catch(() => null);
       if (data?.assigned) {
-        alert(`Invitación enviada a ${inviteEmail}. ${inviteRole === "catequist" ? "Catequista vinculado a tu parroquia." : "Administrador de parroquia vinculado."}`);
+        toast({ title: "Invitación enviada", description: `${inviteEmail} — ${inviteRole === "catequist" ? "catequista vinculado a tu parroquia." : "administrador de parroquia vinculado."}` });
       } else if (data?.found === false) {
-        alert(`Invitación enviada a ${inviteEmail}.\n\nCuando registre su cuenta, presiona "Asignar" e ingresa su correo para vincularlo a tu parroquia.`);
+        toast({ title: "Invitación enviada", description: `Cuando ${inviteEmail} registre su cuenta, presiona "Asignar" e ingresa su correo para vincularlo a tu parroquia.` });
       } else {
-        alert(`Invitación enviada a ${inviteEmail}.`);
+        toast({ title: "Invitación enviada", description: inviteEmail });
       }
       setInviteEmail("");
       setInviteGroupId("");
       setOpen(false);
       load();
     } catch (e) {
-      alert("No se pudo invitar: " + (e.message || "error"));
+      toast({ title: "No se pudo invitar", description: e.message || "error", variant: "destructive" });
     } finally { setLoading(false); }
   };
 
@@ -80,16 +88,16 @@ export default function Users() {
     try {
       const data = await assignToParish(assignEmail, assignGroupId, "catequist");
       if (data?.assigned) {
-        alert(`Catequista vinculado a tu parroquia (${data.user?.email || assignEmail}).`);
+        toast({ title: "Catequista vinculado", description: data.user?.email || assignEmail });
         setAssignOpen(false);
         setAssignEmail("");
         setAssignGroupId("");
         load();
       } else {
-        alert(data?.message || "El usuario aún no ha registrado su cuenta.");
+        toast({ title: "No se pudo vincular", description: data?.message || "El usuario aún no ha registrado su cuenta.", variant: "destructive" });
       }
     } catch (e) {
-      alert("No se pudo asignar: " + (e.message || "error"));
+      toast({ title: "No se pudo asignar", description: e.message || "error", variant: "destructive" });
     } finally { setLoading(false); }
   };
 
@@ -105,11 +113,12 @@ export default function Users() {
       if (data?.assigned) {
         setEditing(null);
         load();
+        toast({ title: "Usuario actualizado" });
       } else {
-        alert(data?.message || "No se pudo actualizar.");
+        toast({ title: "No se pudo actualizar", description: data?.message, variant: "destructive" });
       }
     } catch (e) {
-      alert("No se pudo guardar: " + (e.message || "error"));
+      toast({ title: "No se pudo guardar", description: e.message || "error", variant: "destructive" });
     } finally { setLoading(false); }
   };
 
@@ -131,7 +140,13 @@ export default function Users() {
         </div>
       </div>
 
-      {staff.length === 0 ? (
+      {initialLoading ? (
+        <div className="grid gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}><CardContent className="pt-5 space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-5 w-1/4" /></CardContent></Card>
+          ))}
+        </div>
+      ) : staff.length === 0 ? (
         <Card><CardContent className="pt-6 text-center text-muted-foreground">No hay usuarios asignados a esta parroquia.</CardContent></Card>
       ) : (
         <div className="grid gap-3">
@@ -142,7 +157,7 @@ export default function Users() {
                   <p className="font-medium">{u.full_name || u.email}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant={u.parish_role === "admin" ? "default" : "secondary"}>{u.parish_role === "admin" ? "Administrador" : "Catequista"}</Badge>
-                    {u.parish_role === "catequist" && <span className="text-sm text-muted-foreground">Grupo: {groupName(u.group_id)}</span>}
+                    {u.parish_role === "catequist" && <span className="text-sm text-muted-foreground">Grupo/Libro: {groupName(u.group_id)}</span>}
                   </div>
                 </div>
                 {isMe(u) ? (
@@ -173,14 +188,14 @@ export default function Users() {
             </div>
             {inviteRole === "catequist" && (
               <div className="space-y-1.5">
-                <Label>Grupo</Label>
+                <Label>Grupo/Libro</Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={inviteGroupId} onChange={(e) => setInviteGroupId(e.target.value)}>
-                  <option value="">Sin grupo (asignar después)</option>
+                  <option value="">Sin grupo/libro (asignar después)</option>
                   {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
               </div>
             )}
-            <p className="text-xs text-muted-foreground">El invitado recibirá un correo con acceso a la app. Su rol y grupo quedan limitados a tu parroquia.</p>
+            <p className="text-xs text-muted-foreground">El invitado recibirá un correo con acceso a la app. Su rol y grupo/libro quedan limitados a tu parroquia.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -202,9 +217,9 @@ export default function Users() {
             </div>
             {editForm.parish_role === "catequist" && (
               <div className="space-y-1.5">
-                <Label>Grupo asignado</Label>
+                <Label>Grupo/Libro asignado</Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={editForm.group_id} onChange={(e) => setEditForm({ ...editForm, group_id: e.target.value })}>
-                  <option value="">Sin grupo</option>
+                  <option value="">Sin grupo/libro</option>
                   {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
               </div>
@@ -226,9 +241,9 @@ export default function Users() {
               <input type="email" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={assignEmail} onChange={(e) => setAssignEmail(e.target.value)} placeholder="correo@ejemplo.com" />
             </div>
             <div className="space-y-1.5">
-              <Label>Grupo</Label>
+              <Label>Grupo/Libro</Label>
               <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={assignGroupId} onChange={(e) => setAssignGroupId(e.target.value)}>
-                <option value="">Sin grupo</option>
+                <option value="">Sin grupo/libro</option>
                 {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>
             </div>
