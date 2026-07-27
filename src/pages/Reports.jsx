@@ -101,14 +101,14 @@ export default function Reports() {
       <Card>
         <CardContent className="pt-5 grid gap-3 sm:grid-cols-3">
           <div className="space-y-1.5">
-            <Label>Grupo</Label>
+            <Label>Grupo/Libro</Label>
             {!can("reportes", "ver_todos_los_grupos") ? (
               <Input disabled value={groups.find((g) => g.id === groupId)?.name || ""} />
             ) : (
               <Select value={groupId} onValueChange={setGroupId}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los grupos</SelectItem>
+                  <SelectItem value="all">Todos los grupos/libros</SelectItem>
                   {groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
                 </SelectContent>
               </Select>
