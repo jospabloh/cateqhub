@@ -6,9 +6,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 // aplicar de verdad los permisos ninos:cambiar_grupo y ninos:dar_de_baja que
 // antes solo ocultaban el botón en la interfaz.
 //
-// Ya no hay núcleo gratuito permanente: si el período Premium (prueba o
-// pago) de la parroquia venció sin renovarse, esta función también bloquea
-// editar niños, igual que add_guardian ya hacía con Tutores.
+// Duplicado de src/lib/premium.js FREE_PLAN_CHILD_CAP — los functions de
+// Base44 no pueden importar de src/. Si cambia, cambia también ahí.
+const FREE_PLAN_CHILD_CAP = 50;
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -28,10 +28,7 @@ Deno.serve(async (req) => {
 
     const parish = await sr.entities.Parish.get(me.parish_id).catch(() => null);
     if (!parish) return Response.json({ error: 'No se pudo verificar tu parroquia, intenta de nuevo' }, { status: 500 });
-    if (parish.plan !== 'premium') {
-      return Response.json({ error: 'Editar niños requiere el plan Premium activo', code: 'premium_required' }, { status: 403 });
-    }
-    if (parish.license_status && parish.license_status !== 'active') {
+    if (parish.plan === 'premium' && parish.license_status && parish.license_status !== 'active') {
       return Response.json({ error: 'Tu período de prueba o pago está pendiente', code: 'license_not_active' }, { status: 403 });
     }
 
@@ -41,6 +38,18 @@ Deno.serve(async (req) => {
     if (action === 'toggle_active') {
       if (!isAdmin && !me.perm_ninos_dar_de_baja) {
         return Response.json({ error: 'No tienes permiso para dar de baja o reactivar niños' }, { status: 403 });
+      }
+      // Reactivar en plan Gratis también cuenta contra el tope de niños
+      // activos — si no, dar de baja y reactivar sería una forma de
+      // rodear el límite del alta.
+      if (!child.active && parish.plan !== 'premium') {
+        const activeChildren = await sr.entities.Child.filter({ parish_id: me.parish_id, active: true });
+        if (activeChildren.length >= FREE_PLAN_CHILD_CAP) {
+          return Response.json({
+            error: `Tu parroquia alcanzó el límite de ${FREE_PLAN_CHILD_CAP} niños activos del plan Gratis — activa Premium para reactivar más`,
+            code: 'free_plan_cap_reached',
+          }, { status: 403 });
+        }
       }
       patch = { active: !child.active };
     } else if (action === 'change_group') {

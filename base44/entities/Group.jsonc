@@ -47,10 +47,10 @@
           ]
         },
         {
-          "user_condition": { "data.parish_plan": "premium" }
-        },
-        {
-          "user_condition": { "data.parish_license_status": "active" }
+          "$or": [
+            { "user_condition": { "data.parish_plan": "free" } },
+            { "user_condition": { "data.parish_license_status": "active" } }
+          ]
         }
       ]
     },
@@ -87,10 +87,10 @@
           ]
         },
         {
-          "user_condition": { "data.parish_plan": "premium" }
-        },
-        {
-          "user_condition": { "data.parish_license_status": "active" }
+          "$or": [
+            { "user_condition": { "data.parish_plan": "free" } },
+            { "user_condition": { "data.parish_license_status": "active" } }
+          ]
         }
       ]
     },

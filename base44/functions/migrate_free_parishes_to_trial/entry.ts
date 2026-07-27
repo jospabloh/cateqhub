@@ -1,15 +1,18 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
-// Ejecutar UNA VEZ, manualmente, inmediatamente después de desplegar el
-// esquema que quita el plan gratuito permanente (Parish.jsonc default
-// plan=premium). Migra toda parroquia que sigue en plan="free" a una prueba
-// Premium de 30 días desde hoy — mismo tratamiento que create_parish le da a
-// una parroquia nueva — y espeja plan/license_status en sus User, igual que
-// backfill_parish_license_mirror. No toca parroquias ya en plan="premium"
-// (en prueba, pagando, o en el ciclo read_only/access_denied/
-// deletion_eligible) ni las que llegaron a plan="free" como estado terminal
-// del borrado automático de datos Premium (esas ya pasaron por su prueba;
-// no se les regala una segunda).
+// Opcional, promocional, ejecutar manualmente cuando se decida: plan="free"
+// sigue siendo un plan permanente y normal (núcleo completo hasta 50 niños
+// activos), así que esto YA NO es una migración obligatoria — es un regalo
+// de bienvenida de una sola vez, para darle a cada parroquia que ya estaba
+// en plan="free" antes del lanzamiento del trial una probada de 30 días de
+// Premium completo (mismo tratamiento que create_parish le da a una
+// parroquia nueva), por si tiene más de 50 niños o quiere probar
+// Tutores/mensajería/tareas/pulseras. Espeja plan/license_status en sus
+// User, igual que backfill_parish_license_mirror. No toca parroquias ya en
+// plan="premium" (en prueba, pagando, o en el ciclo read_only/
+// access_denied/deletion_eligible) ni las que llegaron a plan="free" como
+// estado terminal del borrado automático de datos Premium (esas ya pasaron
+// por su prueba; no se les regala una segunda).
 const COUNT_CAP = 5000; // mismo límite documentado que backfill_parish_license_mirror.
 
 Deno.serve(async (req) => {

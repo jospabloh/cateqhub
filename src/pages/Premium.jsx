@@ -1,23 +1,41 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { useLicenseStatus } from "@/lib/premium";
+import { useLicenseStatus, FREE_PLAN_CHILD_CAP } from "@/lib/premium";
 import { isParishAdmin } from "@/lib/roles";
 import RestrictedNotice from "@/components/RestrictedNotice";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, Clock, ShieldAlert } from "lucide-react";
 
-const ALL_FEATURES = [
-  "Registro de asistencia por QR, sin límite de niños",
+const FREE_FEATURES = [
+  "Registro de asistencia por código QR",
   "Alta de parroquia, grupos/libros y niños",
-  "Reporte de asistencia por fecha y grupo/libro",
+  "Reportes de asistencia por fecha y grupo/libro",
   "Faltas acumuladas por niño",
-  "Tutores y autorización de recogida",
-  "Mensajería a tutores por WhatsApp o correo",
-  "Tareas de catecismo y seguimiento de entregas",
-  "Impresión de pulseras y etiquetas físicas",
 ];
+
+const PREMIUM_FEATURES = [
+  "Tutores y autorización de recogida",
+  "Mensajería a tutores por correo",
+  "Tareas de catequesis y seguimiento de entregas",
+  "Impresión de pulseras y gafetes físicos",
+];
+
+// Precio mensual Premium por nivel de niños activos — mismos tramos que la
+// tabla pública en acaciaco-site (apps/cateqhub.html). Si cambian los
+// tramos o precios, cambia también ahí.
+const PREMIUM_TIERS = [
+  { min: 51, max: 150, price: 500 },
+  { min: 151, max: 250, price: 650 },
+  { min: 251, max: 350, price: 800 },
+  { min: 351, max: 450, price: 950 },
+  { min: 451, max: Infinity, price: null },
+];
+
+function tierFor(activeChildren) {
+  return PREMIUM_TIERS.find((t) => activeChildren >= t.min && activeChildren <= t.max) || PREMIUM_TIERS[0];
+}
 
 function formatDate(iso) {
   if (!iso) return null;
@@ -36,10 +54,14 @@ function daysLeft(iso) {
 export default function Premium() {
   const { user } = useAuth();
   const [parish, setParish] = useState(null);
+  const [activeChildren, setActiveChildren] = useState(null);
 
   useEffect(() => {
     if (!user?.parish_id) return;
     base44.entities.Parish.get(user.parish_id).then(setParish).catch(() => {});
+    base44.entities.Child.filter({ parish_id: user.parish_id, active: true })
+      .then((rows) => setActiveChildren(rows.length))
+      .catch(() => {});
   }, [user]);
 
   const status = useLicenseStatus(parish);
@@ -92,16 +114,17 @@ export default function Premium() {
 
   const trialEndLabel = formatDate(status.trialEndsAt);
   const trialDaysLeft = daysLeft(status.trialEndsAt);
+  const tier = activeChildren != null ? tierFor(activeChildren) : null;
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-heading font-semibold flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-primary" />
-          Plan Premium
+          Planes y precios
         </h1>
         <p className="text-muted-foreground text-sm">
-          Toda parroquia nueva arranca con 30 días de acceso completo, sin costo. Ya no hay un plan gratuito permanente.
+          El plan Gratis es permanente, hasta {FREE_PLAN_CHILD_CAP} niños activos. Al dar de alta tu parroquia obtienes 30 días de Premium completo sin costo.
         </p>
       </div>
 
@@ -113,7 +136,7 @@ export default function Premium() {
               <p className="font-medium">Acceso denegado por falta de pago</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              Tu período de prueba o pago venció y no se renovó. Toda la app quedó pausada: escanear, niños, grupos/libros, reportes y Tutores. Puedes descargar los datos de Tutores que registraste antes de que se eliminen — el resto de la información (niños, grupos, asistencia) no se borra, solo queda inaccesible hasta reactivar el plan.
+              Tu parroquia supera los {FREE_PLAN_CHILD_CAP} niños del plan Gratis y tu período de prueba o pago Premium venció sin renovarse. Toda la app quedó pausada: escanear, niños, grupos/libros, reportes y Tutores. Puedes descargar los datos de Tutores que registraste antes de que se eliminen — el resto de la información (niños, grupos, asistencia) no se borra, solo queda inaccesible hasta reactivar el plan.
             </p>
             {exportError && <p className="text-sm text-destructive">{exportError}</p>}
             <Button onClick={handleExport} disabled={exporting}>
@@ -143,7 +166,9 @@ export default function Premium() {
           {status.tier === "free" && (
             <div className="flex items-center gap-2 text-sm rounded-lg border border-border bg-muted px-4 py-3">
               <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span>Tus datos de Tutores se eliminaron tras un período sin pago. El resto (niños, grupos, asistencia) sigue visible en modo de solo lectura; para volver a editar todo y agregar tutores, activa el plan Premium.</span>
+              <span>
+                Tu parroquia está en el plan Gratis{activeChildren != null ? ` (${activeChildren}/${FREE_PLAN_CHILD_CAP} niños activos)` : ""}. Asistencia, niños, grupos/libros y reportes siguen funcionando sin vencimiento; para Tutores, mensajería, tareas y pulseras activa Premium.
+              </span>
             </div>
           )}
           {status.tier === "premium" && status.status === "active" && (
@@ -168,23 +193,61 @@ export default function Premium() {
             </div>
           )}
 
-          <Card className="border-primary/30">
-            <CardContent className="pt-6 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="font-medium">Todo incluido</p>
-                <span className="text-sm text-muted-foreground">desde $500 MXN/mes</span>
-              </div>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                {ALL_FEATURES.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <p className="text-xs text-muted-foreground">Los primeros 30 días son gratis. El precio final se confirma con tu ejecutivo ACACIA.</p>
-            </CardContent>
-          </Card>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="pt-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">Gratis</p>
+                  <span className="text-sm text-muted-foreground">hasta {FREE_PLAN_CHILD_CAP} niños activos</span>
+                </div>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  {FREE_FEATURES.map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-moss shrink-0 mt-0.5" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-muted-foreground">$0, sin vencimiento.</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/30">
+              <CardContent className="pt-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">Premium</p>
+                  <span className="text-sm text-muted-foreground">30 días gratis, luego desde $500 MXN/mes</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Incluye todo lo del plan Gratis, más:</p>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  {PREMIUM_FEATURES.map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-muted-foreground">
+                    <thead>
+                      <tr className="text-left border-b border-border">
+                        <th className="py-1 pr-2 font-medium">Niños activos</th>
+                        <th className="py-1 font-medium">Precio mensual</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {PREMIUM_TIERS.map((t) => (
+                        <tr key={t.min} className={tier === t ? "text-foreground font-medium" : ""}>
+                          <td className="py-1 pr-2">{t.max === Infinity ? `${t.min}+` : `${t.min}-${t.max}`}</td>
+                          <td className="py-1">{t.price ? `$${t.price} MXN` : "Contáctanos"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground">Pago anual disponible con 2 meses gratis. ¿Diócesis con varias parroquias? Precio preferencial — contáctanos.</p>
+              </CardContent>
+            </Card>
+          </div>
 
           {isParishAdmin(user) && (
             <p className="text-sm text-muted-foreground">

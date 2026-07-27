@@ -18,7 +18,7 @@
     "plan": {
       "type": "string",
       "title": "Plan",
-      "description": "Nivel de suscripción. Ya no existe un plan gratuito permanente: toda parroquia nueva arranca en \"premium\" con una prueba gratuita de 30 días (ver premium_period_end_at), con acceso completo a toda la app (núcleo + Tutores/mensajería/tareas/pulseras). \"free\" ya no se asigna a parroquias nuevas — solo lo escribe, como estado terminal, el borrado automático de datos Premium (license-delete-premium-data en Mission Control) tras deletion_eligible: en \"free\" el núcleo (asistencia, niños, grupos, reportes) vuelve a ser de solo lectura hasta reactivarlo, y Tutores/mensajería/tareas/pulseras ya no aplican. Se activa/reactiva desde Mission Control (rol de servicio) o el panel de Base44 — un admin de parroquia puede verlo pero no cambiarlo por sí mismo.",
+      "description": "Nivel de suscripción. \"free\" es un plan permanente y normal (no una penalización): núcleo completo (asistencia QR, alta de parroquia/grupos/niños, reportes) sin vencimiento, con tope de 50 niños activos (FREE_PLAN_CHILD_CAP en src/lib/premium.js) y sin Tutores/mensajería/tareas/pulseras. Toda parroquia nueva arranca en \"premium\" con una prueba gratuita de 30 días (ver premium_period_end_at), con acceso completo y sin el tope de niños. Si ese período (prueba o pago) vence sin renovarse: con ≤50 niños activos, Mission Control baja la parroquia directo a \"free\" (sin fricción); con más de 50, entra al ciclo de license_status (ver abajo) hasta que se pague el nivel Premium que le toque. Se activa/reactiva desde Mission Control (rol de servicio) o el panel de Base44 — un admin de parroquia puede verlo pero no cambiarlo por sí mismo.",
       "enum": ["free", "premium"],
       "default": "premium",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
@@ -26,7 +26,7 @@
     "license_status": {
       "type": "string",
       "title": "Estado de licencia",
-      "description": "Solo aplica mientras plan=premium (prueba de 30 días o pago confirmado). Ciclo: active → read_only → access_denied → deletion_eligible si el período (premium_period_end_at) vence sin renovarse — aplica a TODA la app (núcleo incluido), no solo a Tutores. Escrito exclusivamente por Mission Control (rol de servicio) vía el puente acaciaControl — nunca a mano desde el panel de Base44, porque el espejo en User (parish_license_status) quedaría desincronizado.",
+      "description": "Solo aplica mientras plan=premium Y la parroquia tiene más de 50 niños activos al vencer su período (si tiene 50 o menos, Mission Control la baja directo a plan=\"free\" sin pasar por este ciclo). Ciclo: active → read_only → access_denied → deletion_eligible si el período (premium_period_end_at) vence sin renovarse — aplica a TODA la app (núcleo incluido), no solo a Tutores, mientras dura. Escrito exclusivamente por Mission Control (rol de servicio) vía el puente acaciaControl — nunca a mano desde el panel de Base44, porque el espejo en User (parish_license_status) quedaría desincronizado.",
       "enum": ["active", "read_only", "access_denied", "deletion_eligible"],
       "default": "active",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
@@ -35,7 +35,7 @@
       "type": "string",
       "format": "date-time",
       "title": "Fin del periodo vigente (prueba o pago)",
-      "description": "Al crear la parroquia se estampa a 30 días (prueba gratuita). Al confirmarse un pago, Mission Control lo recorre. El cron license-lifecycle usa esta fecha para iniciar el ciclo active → read_only → access_denied → deletion_eligible si no se renueva.",
+      "description": "Al crear la parroquia se estampa a 30 días (prueba gratuita). Al confirmarse un pago, Mission Control lo recorre. El cron license-lifecycle usa esta fecha para decidir, al vencer: baja directa a plan=\"free\" (≤50 niños activos) o el ciclo active → read_only → access_denied → deletion_eligible (>50).",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "read_only_since": {

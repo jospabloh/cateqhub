@@ -19,8 +19,8 @@ export default function LicenseBanner({ parish }) {
       {isDenied ? <ShieldAlert className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
       <span>
         {isDenied
-          ? "Tu período de prueba o pago venció: escanear, niños, grupos/libros, reportes y Tutores están pausados. Exporta tus datos de Tutores antes de que se eliminen."
-          : "Tu período de prueba o pago venció y no se ha renovado. Agregar o editar está pausado en toda la app."}
+          ? "Tu parroquia supera el tope del plan Gratis y tu período de prueba o pago venció: escanear, niños, grupos/libros, reportes y Tutores están pausados. Exporta tus datos de Tutores antes de que se eliminen."
+          : "Tu parroquia supera el tope del plan Gratis y tu período de prueba o pago venció. Agregar o editar está pausado en toda la app hasta renovar."}
       </span>
       <Link to="/premium" className="underline font-medium shrink-0">Ver detalles</Link>
     </div>

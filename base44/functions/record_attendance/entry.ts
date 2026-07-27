@@ -9,9 +9,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 // de duplicado del día aquí, con rol de servicio, para no depender de un
 // Attendance.read sin restricción de grupo/libro en el cliente.
 //
-// Ya no hay núcleo gratuito permanente: si el período Premium (prueba o
-// pago) de la parroquia venció sin renovarse, esta función también bloquea
-// registrar asistencia, igual que add_guardian ya hacía con Tutores.
+// Plan Gratis registra asistencia sin vencimiento. Si la parroquia está en
+// plan="premium" (prueba o pago) y ese período vence sin renovarse, esta
+// función bloquea registrar asistencia igual que add_guardian ya hacía con
+// Tutores.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -26,10 +27,7 @@ Deno.serve(async (req) => {
 
     const parish = await sr.entities.Parish.get(me.parish_id).catch(() => null);
     if (!parish) return Response.json({ error: 'No se pudo verificar tu parroquia, intenta de nuevo' }, { status: 500 });
-    if (parish.plan !== 'premium') {
-      return Response.json({ error: 'Registrar asistencia requiere el plan Premium activo', code: 'premium_required' }, { status: 403 });
-    }
-    if (parish.license_status && parish.license_status !== 'active') {
+    if (parish.plan === 'premium' && parish.license_status && parish.license_status !== 'active') {
       return Response.json({ error: 'Tu período de prueba o pago está pendiente', code: 'license_not_active' }, { status: 403 });
     }
 
