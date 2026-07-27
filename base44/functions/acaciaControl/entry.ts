@@ -111,27 +111,59 @@ Deno.serve(async (req) => {
         // by CateqHub to keep Guardian/ChildGuardian RLS (which can't look up
         // a related Parish directly) in sync with Parish.plan/license_status.
         // Generic: any app/entity can pass `mirror`, harmless if omitted.
-        // Returns the updated row.
+        //
+        // Mirror runs BEFORE the primary patch. Any mirror problem — a row
+        // update failing, or a malformed mirror spec that would otherwise
+        // silently no-op — blocks the primary patch entirely (returns
+        // ok:false, patch NOT applied). Doing it the other way around (patch
+        // first, mirror best-effort) opened a real bug: Parish.license_status
+        // could flip to a more restrictive value while some Users still
+        // carried the old, more permissive mirror — RLS stayed wide open for
+        // those users for as long as the next transition took to arrive (up
+        // to 30 days on the Premium lifecycle). Mission Control is expected
+        // to retry a ok:false response; it never treats it as a completed
+        // transition (see the sibling repo's license-lifecycle cron/
+        // license-action). Note this is NOT atomic: mirror rows already
+        // updated when a later row/spec fails are not rolled back — that's
+        // fine because every mirror write is idempotent (same `id`/`fields`
+        // every retry), so a retry after a partial failure just re-applies
+        // the same values to the rows that already got them.
         const entity = params.entity;
         const id = params.id;
         const patch = params.patch;
         if (!entity || !id || !patch || typeof patch !== 'object') {
           return Response.json({ error: 'params.entity/id/patch required' }, { status: 400 });
         }
-        const updated = await sr.entities[entity].update(id, patch);
+
         let mirrored = 0;
+        const mirrorErrors: Array<{ entity: string; id?: string; message: string }> = [];
         const mirror = params.mirror;
         if (Array.isArray(mirror)) {
           for (const m of mirror) {
-            if (!m || !m.entity || !m.matchField || !m.fields || typeof m.fields !== 'object') continue;
+            if (!m || !m.entity || !m.matchField || !m.fields || typeof m.fields !== 'object') {
+              mirrorErrors.push({ entity: m?.entity ?? 'unknown', message: 'malformed mirror spec (missing entity/matchField/fields)' });
+              continue;
+            }
             try {
               const rows = await sr.entities[m.entity].filter({ [m.matchField]: id });
               for (const row of rows) {
-                try { await sr.entities[m.entity].update(row.id, m.fields); mirrored++; } catch { /* best-effort per row */ }
+                try {
+                  await sr.entities[m.entity].update(row.id, m.fields);
+                  mirrored++;
+                } catch (e) {
+                  mirrorErrors.push({ entity: m.entity, id: row.id, message: (e as Error).message });
+                }
               }
-            } catch { /* best-effort per mirror spec */ }
+            } catch (e) {
+              mirrorErrors.push({ entity: m.entity, message: (e as Error).message });
+            }
           }
         }
+        if (mirrorErrors.length > 0) {
+          return Response.json({ ok: false, error: 'mirror_failed', mirrored, mirrorErrors }, { status: 502 });
+        }
+
+        const updated = await sr.entities[entity].update(id, patch);
         const log = params.log;
         if (log && log.entity && log.row && typeof log.row === 'object') {
           try { await sr.entities[log.entity].create(log.row); } catch { /* audit best-effort */ }
@@ -299,23 +331,49 @@ Deno.serve(async (req) => {
         if (!Array.isArray(deleteEntities) || deleteEntities.length === 0) {
           return Response.json({ error: 'params.deleteEntities required' }, { status: 400 });
         }
+        const MAX_DELETE_ROUNDS = 1000; // salvaguarda contra un loop sin fin (p.ej. borrado lógico donde la fila sigue matcheando el filter)
         const deletedCounts: Record<string, number> = {};
+        const incomplete: string[] = [];
         for (const spec of deleteEntities) {
           if (!spec || !spec.entity || !spec.field || spec.value === undefined) continue;
           // Todo el cuerpo del spec va en un try/catch: un nombre de entidad
           // desconocida/no desplegada no debe abortar los specs restantes del
           // arreglo (mismo principio best-effort que el bucle de mirror en
-          // license.set, arriba).
+          // license.set, arriba). Si el spec falla a mitad de camino, lo que
+          // ya se acumuló en deletedCounts para esa entidad se conserva —
+          // ver el porqué de acumular DENTRO del loop, no solo al final.
           try {
-            const rows = await sr.entities[spec.entity].filter({ [spec.field]: spec.value });
-            let count = 0;
-            for (const row of rows) {
-              try { await sr.entities[spec.entity].delete(row.id); count++; } catch { /* already gone or inaccessible, continue */ }
+            // filter() no trae un cap explícito documentado (a diferencia de
+            // list(..., COUNT_CAP) usado en otras acciones de este archivo) —
+            // en vez de asumir cuántas filas trae de una vez, se repite hasta
+            // que ya no queden filas, así se borra todo sin importar el tope
+            // de página real del SDK.
+            for (let round = 0; round < MAX_DELETE_ROUNDS; round++) {
+              const rows = await sr.entities[spec.entity].filter({ [spec.field]: spec.value });
+              if (rows.length === 0) break;
+              let deletedThisRound = 0;
+              for (const row of rows) {
+                try { await sr.entities[spec.entity].delete(row.id); deletedThisRound++; } catch { /* already gone or inaccessible, continue */ }
+              }
+              // Se acumula cada vuelta (no solo al final): si filter() lanza
+              // en la vuelta siguiente, lo ya borrado en esta no se pierde
+              // del reporte.
+              deletedCounts[spec.entity] = (deletedCounts[spec.entity] ?? 0) + deletedThisRound;
+              if (deletedThisRound === 0) {
+                // delete() falló para todas las filas de esta vuelta (p.ej.
+                // permisos) — reintentar para siempre no ayuda. Se marca
+                // incompleto en vez de fingir que terminó: un borrado LFPDPPP
+                // nunca debe reportar "listo" de más.
+                incomplete.push(spec.entity);
+                break;
+              }
+              if (round === MAX_DELETE_ROUNDS - 1) incomplete.push(spec.entity);
             }
-            deletedCounts[spec.entity] = count;
-          } catch { /* entidad desconocida o filter() falló — seguir con el siguiente spec */ }
+          } catch (e) {
+            incomplete.push(spec.entity);
+          }
         }
-        return Response.json({ ok: true, deletedCounts });
+        return Response.json({ ok: incomplete.length === 0, deletedCounts, incomplete });
       }
 
       default:
