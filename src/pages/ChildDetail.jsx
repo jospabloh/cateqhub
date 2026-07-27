@@ -19,8 +19,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import QRCard from "@/components/QRCard";
+import QRBadge from "@/components/QRBadge";
 import BadgeSheet from "@/components/BadgeSheet";
 import { exportBadgeSheetPNG } from "@/lib/badgeExport";
+import { BADGE_BLEED_MM } from "@/lib/badgeLayout";
 import { usePremiumStatus } from "@/lib/premium";
 import { usePermissions } from "@/lib/PermissionContext";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
@@ -37,6 +39,7 @@ export default function ChildDetail() {
   const { can } = usePermissions();
   const { toast } = useToast();
   const badgePageRefs = useRef([]);
+  const badgeCardRef = useRef(null);
   const [child, setChild] = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [exportingBadge, setExportingBadge] = useState(false);
@@ -147,7 +150,7 @@ export default function ChildDetail() {
   const downloadBadge = async () => {
     setExportingBadge(true);
     try {
-      await exportBadgeSheetPNG(badgePageRefs.current[0], `qr-${child.name.replace(/\s+/g, "_")}.png`);
+      await exportBadgeSheetPNG(badgeCardRef.current, `qr-${child.name.replace(/\s+/g, "_")}.png`);
     } finally {
       setExportingBadge(false);
     }
@@ -277,8 +280,16 @@ export default function ChildDetail() {
             <Button variant="outline" disabled={exportingBadge} onClick={downloadBadge}><Download className="w-4 h-4 mr-2" />Descargar PNG</Button>
             <Button variant="outline" onClick={() => window.print()}><Printer className="w-4 h-4 mr-2" />Imprimir</Button>
           </div>
-          {/* Gafete real (solo QR + guías de corte): oculto en pantalla, usado para exportar/imprimir. */}
+          {/* Gafete real (solo QR + guías de corte): oculto en pantalla, usado para imprimir la hoja completa. */}
           <BadgeSheet pages={[[child]]} activePage={-1} pageRefs={badgePageRefs} />
+          {/* Recorte ajustado a la tarjeta (con el margen justo para las marcas de esquina) — lo que descarga "Descargar PNG", sin el resto de la hoja carta en blanco. */}
+          <div
+            ref={badgeCardRef}
+            className="bg-white inline-block"
+            style={{ position: "absolute", left: "-9999px", top: 0, padding: `${BADGE_BLEED_MM}mm` }}
+          >
+            <QRBadge token={child.qr_token} />
+          </div>
         </div>
       </div>
 
