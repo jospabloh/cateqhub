@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import QRCard, { downloadQRCard } from "@/components/QRCard";
-import { usePremiumStatus } from "@/lib/premium";
+import { useLicenseStatus } from "@/lib/premium";
 import { isParishAdmin } from "@/lib/roles";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
 import { ArrowLeft, Download, Printer, Plus, Trash2, Phone, Mail, Lock, IdCard } from "lucide-react";
@@ -26,24 +26,30 @@ export default function ChildDetail() {
   const [openG, setOpenG] = useState(false);
   const [gForm, setGForm] = useState({ name: "", phone: "", email: "", curp: "", relationship: "tutor", pickup_authorized: true });
   const [loading, setLoading] = useState(false);
-  const status = usePremiumStatus(parish);
+  const status = useLicenseStatus(parish);
 
   const load = async () => {
     const c = await base44.entities.Child.get(id);
     setChild(c);
     if (c.group_id) base44.entities.Group.get(c.group_id).then(setGroup).catch(() => {});
     if (c.parish_id) base44.entities.Parish.get(c.parish_id).then(setParish).catch(() => {});
-    const rels = await base44.entities.ChildGuardian.filter({ child_id: id });
+  };
+
+  useEffect(() => { load(); }, [id]);
+
+  const loadGuardians = async () => {
+    if (status.isAccessDenied) { setLinks([]); setGuardians([]); return; }
+    const rels = await base44.entities.ChildGuardian.filter({ child_id: id }).catch(() => []);
     setLinks(rels);
     if (rels.length) {
-      const gs = await Promise.all(rels.map((r) => base44.entities.Guardian.get(r.guardian_id)));
+      const gs = await Promise.all(rels.map((r) => base44.entities.Guardian.get(r.guardian_id))).catch(() => []);
       setGuardians(gs);
     } else {
       setGuardians([]);
     }
   };
 
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => { if (child) loadGuardians(); }, [child?.id, status.isAccessDenied]);
 
   const toggleActive = async () => {
     await base44.entities.Child.update(child.id, { active: !child.active });
@@ -71,14 +77,14 @@ export default function ChildDetail() {
       });
       setOpenG(false);
       setGForm({ name: "", phone: "", email: "", curp: "", relationship: "tutor", pickup_authorized: true });
-      load();
+      loadGuardians();
     } finally { setLoading(false); }
   };
 
   const removeGuardian = async (linkId) => {
     if (!confirm("¿Quitar a este tutor del niño?")) return;
     await base44.entities.ChildGuardian.delete(linkId);
-    load();
+    loadGuardians();
   };
 
   if (!child) return <div className="grid place-items-center py-20"><div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" /></div>;
@@ -119,22 +125,36 @@ export default function ChildDetail() {
                 Tutores
                 {!status.isPremium && <Badge variant="outline" className="font-normal text-[10px]">Premium</Badge>}
               </CardTitle>
-              {status.isPremium ? (
+              {status.isPremium && !status.isReadOnly ? (
                 <Button size="sm" variant="ghost" onClick={() => setOpenG(true)}><Plus className="w-4 h-4 mr-1" />Agregar</Button>
               ) : (
-                <Button size="sm" variant="ghost" disabled title="Disponible con el plan Premium">
+                <Button size="sm" variant="ghost" disabled title={status.isPremium ? "Pausado por falta de pago" : "Disponible con el plan Premium"}>
                   <Lock className="w-3.5 h-3.5 mr-1" />Agregar
                 </Button>
               )}
             </CardHeader>
             <CardContent className="space-y-3">
-              {!status.isPremium && (
-                <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
-                  Agregar tutores es una función premium. Lo que ya registraste sigue aquí — puedes eliminarlo cuando quieras.{" "}
-                  <Link to="/premium" className="text-primary hover:underline">Ver plan Premium</Link>
+              {status.isAccessDenied ? (
+                <p className="text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">
+                  El acceso a Tutores está bloqueado por falta de pago del plan Premium.{" "}
+                  <Link to="/premium" className="underline">Ver plan Premium</Link>
                 </p>
+              ) : (
+                <>
+                  {!status.isPremium && (
+                    <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
+                      Agregar tutores es una función premium. Lo que ya registraste sigue aquí — puedes eliminarlo cuando quieras.{" "}
+                      <Link to="/premium" className="text-primary hover:underline">Ver plan Premium</Link>
+                    </p>
+                  )}
+                  {status.isReadOnly && !status.isAccessDenied && (
+                    <p className="text-xs text-amber-800 bg-amber-50 rounded-md px-3 py-2">
+                      Tu plan Premium está pendiente de pago — puedes ver los tutores registrados, pero no agregar ni editar.
+                    </p>
+                  )}
+                  {guardians.length === 0 && <p className="text-sm text-muted-foreground">Sin tutores registrados.</p>}
+                </>
               )}
-              {guardians.length === 0 && <p className="text-sm text-muted-foreground">Sin tutores registrados.</p>}
               {guardians.map((g) => {
                 const rel = relMap(g.id);
                 return (
