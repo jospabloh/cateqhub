@@ -3,10 +3,13 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { isParishAdmin } from "@/lib/roles";
 import RestrictedNotice from "@/components/RestrictedNotice";
+import ConsentDialog from "@/components/ConsentDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DATA_PROCESSING_ACCEPTANCE_TEXT } from "@/lib/legal";
 import { Church, Check } from "lucide-react";
 
 export default function Parishes() {
@@ -16,6 +19,8 @@ export default function Parishes() {
   const [contact, setContact] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [accepted, setAccepted] = useState(false);
+  const [showNotice, setShowNotice] = useState(false);
 
   const load = async () => {
     if (!user?.parish_id) return;
@@ -39,7 +44,7 @@ export default function Parishes() {
         // parish_id/parish_role solo se pueden escribir con rol de servicio (ver
         // User.jsonc) — create_parish es el único camino para reclamar una
         // primera parroquia como administrador.
-        const res = await base44.functions.invoke("create_parish", { name, admin_contact: contact });
+        const res = await base44.functions.invoke("create_parish", { name, admin_contact: contact, data_processing_accepted: accepted });
         if (res?.data?.error) throw new Error(res.data.error);
         await checkUserAuth();
       }
@@ -70,10 +75,23 @@ export default function Parishes() {
         <CardContent className="space-y-3">
           <div className="space-y-1.5"><Label>Nombre</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Parroquia San Juan" /></div>
           <div className="space-y-1.5"><Label>Contacto del administrador</Label><Input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Nombre o email" /></div>
+          {!user?.parish_id && (
+            <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2.5">
+              <Checkbox id="consent" checked={accepted} onCheckedChange={(v) => setAccepted(v === true)} className="mt-0.5" />
+              <label htmlFor="consent" className="text-sm text-muted-foreground">
+                {DATA_PROCESSING_ACCEPTANCE_TEXT}{" "}
+                <button type="button" onClick={() => setShowNotice(true)} className="text-primary hover:underline">
+                  Leer aviso completo
+                </button>
+              </label>
+            </div>
+          )}
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button onClick={save} disabled={loading || !name}>{loading ? "Guardando…" : user?.parish_id ? "Guardar cambios" : "Crear y asignar"}</Button>
+          <Button onClick={save} disabled={loading || !name || (!user?.parish_id && !accepted)}>{loading ? "Guardando…" : user?.parish_id ? "Guardar cambios" : "Crear y asignar"}</Button>
         </CardContent>
       </Card>
+
+      <ConsentDialog open={showNotice} onOpenChange={setShowNotice} />
     </div>
   );
 }

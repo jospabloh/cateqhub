@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAuth } from "@/lib/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +22,7 @@ import QRBadge from "@/components/QRBadge";
 import BadgeSheet from "@/components/BadgeSheet";
 import { exportBadgeSheetPNG } from "@/lib/badgeExport";
 import { BADGE_BLEED_MM } from "@/lib/badgeLayout";
-import { usePremiumStatus } from "@/lib/premium";
+import { useLicenseStatus } from "@/lib/premium";
 import { usePermissions } from "@/lib/PermissionContext";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
 import { useToast } from "@/components/ui/use-toast";
@@ -35,7 +34,6 @@ const RECENT_GROUP_CHANGE_DAYS = 7;
 
 export default function ChildDetail() {
   const { id } = useParams();
-  const { user } = useAuth();
   const { can } = usePermissions();
   const { toast } = useToast();
   const badgePageRefs = useRef([]);
@@ -54,8 +52,12 @@ export default function ChildDetail() {
   const [groupChoice, setGroupChoice] = useState("");
   const [loading, setLoading] = useState(false);
   const [removeTarget, setRemoveTarget] = useState(null);
-  const status = usePremiumStatus(parish);
+  const status = useLicenseStatus(parish);
 
+  // Solo el fetch de Child va en el try/catch de notFound — el de Tutores
+  // (Guardian/ChildGuardian) va aparte en loadGuardians(), porque ahora puede
+  // fallar legítimamente por RLS cuando el acceso está denegado, y eso no
+  // significa que el niño no exista.
   const load = async () => {
     try {
       const c = await base44.entities.Child.get(id);
@@ -65,20 +67,28 @@ export default function ChildDetail() {
         base44.entities.Parish.get(c.parish_id).then(setParish).catch(() => {});
         base44.entities.Group.filter({ parish_id: c.parish_id }).then(setGroups).catch(() => {});
       }
-      const rels = await base44.entities.ChildGuardian.filter({ child_id: id });
-      setLinks(rels);
-      if (rels.length) {
-        const gs = await Promise.all(rels.map((r) => base44.entities.Guardian.get(r.guardian_id)));
-        setGuardians(gs);
-      } else {
-        setGuardians([]);
-      }
     } catch (e) {
       setNotFound(true);
     }
   };
 
   useEffect(() => { load(); }, [id]);
+
+  const loadGuardians = async () => {
+    if (status.isAccessDenied) { setLinks([]); setGuardians([]); return; }
+    const rels = await base44.entities.ChildGuardian.filter({ child_id: id }).catch(() => []);
+    setLinks(rels);
+    if (rels.length) {
+      const gs = await Promise.all(
+        rels.map((r) => base44.entities.Guardian.get(r.guardian_id).catch(() => null))
+      );
+      setGuardians(gs.filter(Boolean));
+    } else {
+      setGuardians([]);
+    }
+  };
+
+  useEffect(() => { if (child) loadGuardians(); }, [child?.id, status.isAccessDenied]);
 
   const toggleActive = async () => {
     try {
@@ -128,7 +138,7 @@ export default function ChildDetail() {
       if (res.data?.error) throw new Error(res.data.error);
       setOpenG(false);
       setGForm({ name: "", phone: "", email: "", curp: "", relationship: "tutor", pickup_authorized: true });
-      await load();
+      await loadGuardians();
       toast({ title: "Tutor agregado" });
     } catch (e) {
       toast({ title: "No se pudo agregar al tutor", description: e.message, variant: "destructive" });
@@ -140,7 +150,7 @@ export default function ChildDetail() {
     try {
       await base44.entities.ChildGuardian.delete(removeTarget.id);
       setRemoveTarget(null);
-      await load();
+      await loadGuardians();
       toast({ title: "Tutor eliminado" });
     } catch (e) {
       toast({ title: "No se pudo quitar al tutor", description: e.message, variant: "destructive" });
@@ -233,22 +243,47 @@ export default function ChildDetail() {
                 Tutores
                 {!status.isPremium && <Badge variant="outline" className="font-normal text-[10px]">Premium</Badge>}
               </CardTitle>
-              {status.isPremium && can("tutores", "agregar") ? (
+              {status.isPremium && !status.isReadOnly && can("tutores", "agregar") ? (
                 <Button size="sm" variant="ghost" onClick={() => setOpenG(true)}><Plus className="w-4 h-4 mr-1" />Agregar</Button>
               ) : (
-                <Button size="sm" variant="ghost" disabled title={status.isPremium ? "Tu parroquia desactivó este permiso para catequistas" : "Disponible con el plan Premium"}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled
+                  title={
+                    !status.isPremium
+                      ? "Disponible con el plan Premium"
+                      : status.isReadOnly
+                      ? "Pausado por falta de pago"
+                      : "Tu parroquia desactivó este permiso para catequistas"
+                  }
+                >
                   <Lock className="w-3.5 h-3.5 mr-1" />Agregar
                 </Button>
               )}
             </CardHeader>
             <CardContent className="space-y-3">
-              {!status.isPremium && (
-                <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
-                  Agregar tutores es una función premium. Lo que ya registraste sigue aquí — puedes eliminarlo cuando quieras.{" "}
-                  <Link to="/premium" className="text-primary hover:underline">Ver plan Premium</Link>
+              {status.isAccessDenied ? (
+                <p className="text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">
+                  El acceso a Tutores está bloqueado por falta de pago del plan Premium.{" "}
+                  <Link to="/premium" className="underline">Ver plan Premium</Link>
                 </p>
+              ) : (
+                <>
+                  {!status.isPremium && (
+                    <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
+                      Agregar tutores es una función premium. Lo que ya registraste sigue aquí — puedes eliminarlo cuando quieras.{" "}
+                      <Link to="/premium" className="text-primary hover:underline">Ver plan Premium</Link>
+                    </p>
+                  )}
+                  {status.isReadOnly && !status.isAccessDenied && (
+                    <p className="text-xs text-amber-800 bg-amber-50 rounded-md px-3 py-2">
+                      Tu plan Premium está pendiente de pago — puedes ver los tutores registrados, pero no agregar ni editar.
+                    </p>
+                  )}
+                  {guardians.length === 0 && <p className="text-sm text-muted-foreground">Sin tutores registrados.</p>}
+                </>
               )}
-              {guardians.length === 0 && <p className="text-sm text-muted-foreground">Sin tutores registrados.</p>}
               {guardians.map((g) => {
                 const rel = relMap(g.id);
                 return (

@@ -45,26 +45,25 @@
     },
     "read": {
       "$or": [
-        {
-          "data.parish_id": "{{user.data.parish_id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
+        { "user_condition": { "role": "admin" } },
+        { "$and": [
+            { "data.parish_id": "{{user.data.parish_id}}" },
+            { "$or": [
+                { "user_condition": { "data.parish_plan": "free" } },
+                { "user_condition": { "data.parish_license_status": "active" } },
+                { "user_condition": { "data.parish_license_status": "read_only" } }
+            ] }
+        ] }
       ]
     },
     "update": {
       "$or": [
-        {
-          "data.parish_id": "{{user.data.parish_id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
+        { "user_condition": { "role": "admin" } },
+        { "$and": [
+            { "data.parish_id": "{{user.data.parish_id}}" },
+            { "user_condition": { "data.parish_plan": "premium" } },
+            { "user_condition": { "data.parish_license_status": "active" } }
+        ] }
       ]
     },
     "delete": {

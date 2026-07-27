@@ -32,6 +32,13 @@ Deno.serve(async (req) => {
     if (!parish || parish.plan !== 'premium') {
       return Response.json({ error: 'Agregar tutores requiere el plan Premium', code: 'premium_required' }, { status: 403 });
     }
+    // Lee license_status en vivo (no un espejo) — esta función siempre tiene
+    // el estado real de Parish, así que el ciclo de vida de licencia se hace
+    // cumplir aquí sin depender del espejo en User (que solo existe para
+    // Guardian/ChildGuardian.read, donde no hay función intermedia).
+    if (parish.license_status && parish.license_status !== 'active') {
+      return Response.json({ error: 'Tu plan Premium está pendiente de pago', code: 'license_not_active' }, { status: 403 });
+    }
 
     const isAdmin = me.role === 'admin' || me.parish_role === 'admin';
     if (!isAdmin && me.perm_tutores_restringido) {

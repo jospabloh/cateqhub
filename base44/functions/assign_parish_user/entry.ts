@@ -74,6 +74,23 @@ Deno.serve(async (req) => {
     }
 
     const sr = base44.asServiceRole;
+
+    // Espejar plan/license_status vigentes de la parroquia en el usuario
+    // recién asignado — Guardian/ChildGuardian RLS los lee de aquí (Base44
+    // RLS no puede hacer lookup a Parish directamente). Sin esto, un
+    // catequista invitado después de que la parroquia ya tenía Premium
+    // arrancaría con el espejo vacío y quedaría bloqueado de más.
+    //
+    // Falla cerrado a propósito: si Parish.get falla, NO asumimos 'free'/
+    // 'active' (los valores más permisivos) — eso dejaría entrar a un
+    // catequista con acceso a Tutores en una parroquia que en realidad está
+    // access_denied, por un simple error transitorio de red. Se aborta la
+    // asignación completa y se le pide reintentar.
+    const targetParish = await sr.entities.Parish.get(parish_id).catch(() => null);
+    if (!targetParish) {
+      return Response.json({ error: 'No se pudo leer la parroquia para asignar el usuario, intenta de nuevo' }, { status: 500 });
+    }
+
     let permFlags = {};
     if (parish_role === 'catequist') {
       const profiles = await sr.entities.PermissionProfile.filter({ parish_id, role_key: 'catequist' });
@@ -85,6 +102,8 @@ Deno.serve(async (req) => {
       parish_id,
       group_id,
       parish_role,
+      parish_plan: targetParish.plan ?? 'free',
+      parish_license_status: targetParish.license_status ?? 'active',
       ...permFlags,
     });
 

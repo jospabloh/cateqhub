@@ -32,6 +32,18 @@
       "description": "Si es catequista, el grupo que dirige",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
+    "parish_plan": {
+      "type": "string",
+      "title": "Plan de la parroquia (espejo)",
+      "description": "Espejo de Parish.plan. Base44 RLS no puede hacer lookups entre entidades, así que Guardian/ChildGuardian leen este campo en vez de consultar Parish directamente. Mantenido por create_parish, assign_parish_user, backfill_parish_license_mirror, y el puente acaciaControl (acción license.set con params.mirror). Fuente de verdad = Parish.plan. Un registro SIN este campo (todo usuario ya existente antes de este despliegue) no matchea ninguna condición de igualdad en RLS — ver backfill_parish_license_mirror (Task 17), que debe correr inmediatamente después de desplegar este esquema.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "parish_license_status": {
+      "type": "string",
+      "title": "Estado de licencia de la parroquia (espejo)",
+      "description": "Espejo de Parish.license_status. Mismo mecanismo de sincronización y misma advertencia de backfill que parish_plan.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
     "perm_ninos_ver_todos": {
       "type": "boolean",
       "title": "Permiso: ver niños de todos los grupos/libros",
