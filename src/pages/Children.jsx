@@ -1,14 +1,15 @@
 import { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardList, Plus, Search, QrCode } from "lucide-react";
+import { ClipboardList, Plus, Search, QrCode, Printer, X } from "lucide-react";
 import { usePermissions } from "@/lib/PermissionContext";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,6 +22,7 @@ const isRecentGroupChange = (c) => c.group_changed_at
 
 export default function Children() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { can, loading: permsLoading } = usePermissions();
   const { toast } = useToast();
   const [children, setChildren] = useState([]);
@@ -29,6 +31,7 @@ export default function Children() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(empty);
   const [loading, setLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [initialLoading, setInitialLoading] = useState(true);
 
   const load = async () => {
@@ -57,6 +60,32 @@ export default function Children() {
   const filtered = children.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id));
+
+  const toggleSelected = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      filtered.forEach((c) => (allFilteredSelected ? next.delete(c.id) : next.add(c.id)));
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const printSelected = () => {
+    const selected = children.filter((c) => selectedIds.has(c.id));
+    if (!selected.length) return;
+    navigate(`/ninos/gafetes?ids=${selected.map((c) => c.id).join(",")}`, { state: { children: selected } });
+  };
 
   const openNew = () => { setForm({ ...empty, group_id: !can("ninos", "ver_todos_los_grupos") ? user.group_id : "" }); setOpen(true); };
 
@@ -114,27 +143,49 @@ export default function Children() {
       ) : filtered.length === 0 ? (
         <Card><CardContent className="pt-6 text-center text-muted-foreground">No hay niños registrados.</CardContent></Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {filtered.map((c) => (
-            <Card key={c.id}>
-              <CardContent className="pt-5 flex items-center gap-4">
-                <div className="w-11 h-11 rounded-full bg-primary text-primary-foreground grid place-items-center font-heading font-semibold uppercase ring-2 ring-gold/25">
-                  {c.name.charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{c.name}</p>
-                  <p className="text-sm text-muted-foreground truncate">{groupMap[c.group_id] || "Sin grupo/libro"}</p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {!c.active && <Badge variant="secondary">Inactivo</Badge>}
-                    {isRecentGroupChange(c) && <Badge variant="outline" className="text-[10px] font-normal">Cambió de grupo/libro</Badge>}
+        <>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground select-none w-fit">
+            <Checkbox checked={allFilteredSelected} onCheckedChange={toggleSelectAll} />
+            Seleccionar todos ({filtered.length})
+          </label>
+
+          <div className="grid gap-3 sm:grid-cols-2 pb-16">
+            {filtered.map((c) => (
+              <Card key={c.id}>
+                <CardContent className="pt-5 flex items-center gap-4">
+                  <Checkbox checked={selectedIds.has(c.id)} onCheckedChange={() => toggleSelected(c.id)} />
+                  <div className="w-11 h-11 rounded-full bg-primary text-primary-foreground grid place-items-center font-heading font-semibold uppercase ring-2 ring-gold/25">
+                    {c.name.charAt(0)}
                   </div>
-                </div>
-                <Button asChild size="icon" variant="ghost" aria-label={`Ver código QR de ${c.name}`}>
-                  <Link to={`/ninos/${c.id}`}><QrCode className="w-5 h-5 text-gold" /></Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{c.name}</p>
+                    <p className="text-sm text-muted-foreground truncate">{groupMap[c.group_id] || "Sin grupo/libro"}</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {!c.active && <Badge variant="secondary">Inactivo</Badge>}
+                      {isRecentGroupChange(c) && <Badge variant="outline" className="text-[10px] font-normal">Cambió de grupo/libro</Badge>}
+                    </div>
+                  </div>
+                  <Button asChild size="icon" variant="ghost" aria-label={`Ver código QR de ${c.name}`}>
+                    <Link to={`/ninos/${c.id}`}><QrCode className="w-5 h-5 text-gold" /></Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-16 md:bottom-4 inset-x-4 md:inset-x-auto md:right-8 md:left-64 lg:left-72 z-20 flex items-center justify-between gap-3 bg-primary text-primary-foreground rounded-xl shadow-lg px-4 py-3">
+          <span className="text-sm font-medium">{selectedIds.size} {selectedIds.size === 1 ? "seleccionado" : "seleccionados"}</span>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10" onClick={clearSelection}>
+              <X className="w-4 h-4 mr-1" />Cancelar
+            </Button>
+            <Button size="sm" variant="secondary" onClick={printSelected}>
+              <Printer className="w-4 h-4 mr-2" />Imprimir gafetes
+            </Button>
+          </div>
         </div>
       )}
 

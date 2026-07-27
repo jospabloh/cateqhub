@@ -1,13 +1,12 @@
 import { QRCodeCanvas } from "qrcode.react";
-import { forwardRef } from "react";
 import Logo from "@/components/Logo";
 
-const QRCard = forwardRef(function QRCard({ child, parish, group }, ref) {
+// Vista previa en pantalla para que el administrador identifique a quién
+// pertenece el QR mientras lo gestiona — nunca se imprime ni se exporta tal
+// cual (ver BadgeSheet/QRBadge para el gafete real, que es solo el QR).
+export default function QRCard({ child, parish, group }) {
   return (
-    <div
-      ref={ref}
-      className="bg-white text-[#101820] rounded-xl p-6 w-full max-w-[320px] mx-auto border border-[#E4E7EB] shadow-sm print:shadow-none"
-    >
+    <div className="bg-white text-[#101820] rounded-xl p-6 w-full max-w-[320px] mx-auto border border-[#E4E7EB] shadow-sm">
       <div className="flex items-center justify-center gap-1.5 mb-1">
         <Logo className="w-4 h-4" />
         <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A94A3] font-medium">CateqHub</p>
@@ -32,15 +31,4 @@ const QRCard = forwardRef(function QRCard({ child, parish, group }, ref) {
       </div>
     </div>
   );
-});
-
-export default QRCard;
-
-export function downloadQRCard(child, cardRef) {
-  const canvas = cardRef?.current?.querySelector("canvas") || document.querySelector("canvas");
-  if (!canvas) return;
-  const link = document.createElement("a");
-  link.download = `qr-${child.name.replace(/\s+/g, "_")}.png`;
-  link.href = canvas.toDataURL("image/png");
-  link.click();
 }

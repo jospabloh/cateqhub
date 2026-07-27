@@ -14,6 +14,7 @@ import Scan from '@/pages/Scan';
 import Groups from '@/pages/Groups';
 import Children from '@/pages/Children';
 import ChildDetail from '@/pages/ChildDetail';
+import BadgePrint from '@/pages/BadgePrint';
 import Reports from '@/pages/Reports';
 import Parishes from '@/pages/Parishes';
 import Users from '@/pages/Users';
@@ -65,6 +66,7 @@ const AuthenticatedApp = () => {
           <Route path="/escanear" element={<Scan />} />
           <Route path="/grupos" element={<Groups />} />
           <Route path="/ninos" element={<Children />} />
+          <Route path="/ninos/gafetes" element={<BadgePrint />} />
           <Route path="/ninos/:id" element={<ChildDetail />} />
           <Route path="/reportes" element={<Reports />} />
           <Route path="/parroquia" element={<Parishes />} />
