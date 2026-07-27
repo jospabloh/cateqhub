@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
+import { useAuth } from "@/lib/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { APP_VERSION, RELEASE_DATE, CHANGELOG } from "@/lib/appConfig";
-import { Info, ChevronDown, BookOpen, LifeBuoy, ShieldCheck } from "lucide-react";
+import { Info, ChevronDown, BookOpen, LifeBuoy, ShieldCheck, Users, Mail, MessageCircle, Copyright, Heart } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
 export default function About() {
+  const { user } = useAuth();
   const [showAll, setShowAll] = useState(false);
   const [latest, ...older] = CHANGELOG;
   const visibleOlder = showAll ? older : [];
@@ -80,6 +82,65 @@ export default function About() {
           </Card>
         </Link>
       </div>
+
+      <Card>
+        <CardContent className="pt-6 flex items-start gap-3">
+          <div className="w-9 h-9 rounded-md bg-primary/10 grid place-items-center shrink-0"><Users className="w-4 h-4 text-primary" /></div>
+          <div>
+            <p className="font-medium text-sm">Equipo desarrollador</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Desarrollado por <span className="text-foreground font-medium">ACACIA Consultoría en Informática y Cómputo</span>, y forma parte de su portafolio de aplicaciones.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6 space-y-3">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="w-4 h-4 text-primary shrink-0" />
+            <p className="font-medium text-sm">Contacto y soporte</p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Para dudas o soporte técnico directo con ACACIA, además del{" "}
+            <Link to="/soporte" className="text-primary hover:underline">sistema de tickets</Link> dentro de la app:
+          </p>
+          <div className="space-y-1.5 text-sm">
+            <p className="flex items-center gap-2">
+              <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <a href="mailto:soporte@acaciaco.com.mx" className="text-primary hover:underline font-medium">soporte@acaciaco.com.mx</a>
+            </p>
+            <p className="flex items-center gap-2">
+              <MessageCircle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <a href="https://wa.me/524498958291" target="_blank" rel="noreferrer" className="text-primary hover:underline font-medium">+52 449 895 8291</a>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6 space-y-2">
+          <div className="flex items-center gap-2">
+            <Copyright className="w-4 h-4 text-primary shrink-0" />
+            <p className="font-medium text-sm">Derechos reservados</p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} <span className="text-foreground font-medium">ACACIA Consultoría en Informática y Cómputo</span>. Todos los derechos reservados.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Licencia registrada a: <span className="text-foreground font-medium">{user?.email || "—"}</span>
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-gold/5 border-gold/20">
+        <CardContent className="pt-6 flex items-start gap-3">
+          <Heart className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+          <p className="text-sm text-muted-foreground">
+            Hecho con cuidado para acompañar el trabajo de catequistas y parroquias en su día a día.
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="pt-6">

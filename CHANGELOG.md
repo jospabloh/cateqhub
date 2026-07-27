@@ -2,6 +2,10 @@
 
 Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appConfig.js` (consumida por la página "Acerca de" dentro de la app); este archivo es la versión en prosa.
 
+## 1.7.1 — 2026-07-27
+
+- **Acerca de**: se agregó la información institucional que ya tienen las demás aplicaciones del portafolio ACACIA — Equipo desarrollador, Contacto y soporte directo (correo y WhatsApp), Derechos reservados (con la licencia registrada al correo de la persona que inició sesión) y un mensaje de cierre. Antes la página solo mostraba versión, historial de cambios y certificaciones de seguridad de Base44.
+
 ## 1.7.0 — 2026-07-27
 
 - **Escanear**: se eliminó el selector de grupo/libro antes de escanear. Cada código QR trae consigo el grupo del niño, así que una sola estación de escaneo puede recibir a todos los grupos al mismo tiempo, sin riesgo de registrar a un niño bajo el grupo equivocado. Sigue bloqueando el registro si el niño está inactivo o no tiene grupo/libro asignado.
