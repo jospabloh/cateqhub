@@ -1,9 +1,18 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.7.2";
+export const APP_VERSION = "1.8.0";
 export const RELEASE_DATE = "2026-07-27";
 
 export const CHANGELOG = [
+  {
+    version: "1.8.0",
+    date: "2026-07-27",
+    changes: [
+      "Nuevos planes: el plan Gratis (hasta 50 niños activos, sin vencimiento) se mantiene, y toda parroquia nueva arranca además con 30 días de prueba Premium completa (Tutores, mensajería, tareas y pulseras incluidos) sin costo y sin tarjeta.",
+      "Precio de Premium por niños activos de la parroquia, con descuento en pago anual — antes era un precio único de referencia.",
+      "Si el período de prueba o de pago Premium vence sin renovarse: con 50 niños activos o menos, la parroquia baja directo al plan Gratis sin ningún bloqueo; con más de 50, aplica el mismo ciclo de solo lectura → acceso denegado → exportación que antes solo restringía Tutores, ahora sobre toda la app, hasta reactivar el nivel Premium que corresponda. Ningún dato de niños/grupos/asistencia se elimina automáticamente; solo Tutores, y solo tras poder exportarlo.",
+    ],
+  },
   {
     version: "1.7.2",
     date: "2026-07-27",

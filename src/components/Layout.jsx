@@ -1,12 +1,44 @@
 import { useEffect, useState } from "react";
-import { Outlet, NavLink } from "react-router-dom";
+import { Outlet, NavLink, useLocation, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { QrCode, Users, ClipboardList, ScanLine, Home, Church, LogOut, UserCog, Sparkles, ShieldCheck, BookOpen, LifeBuoy, Info } from "lucide-react";
+import { QrCode, Users, ClipboardList, ScanLine, Home, Church, LogOut, UserCog, Sparkles, ShieldCheck, BookOpen, LifeBuoy, Info, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isParishAdmin, parishRoleLabel } from "@/lib/roles";
+import { useLicenseStatus } from "@/lib/premium";
 import Logo from "@/components/Logo";
 import LicenseBanner from "@/components/LicenseBanner";
+import { Card, CardContent } from "@/components/ui/card";
+
+// Rutas que siguen operando toda la app (asistencia, niños, grupos, reportes)
+// — se bloquean solo cuando status.isAccessDenied (parish.plan=premium con
+// license_status access_denied/deletion_eligible): una parroquia con MÁS de
+// FREE_PLAN_CHILD_CAP niños activos cuya prueba o pago vence sin renovarse.
+// Con FREE_PLAN_CHILD_CAP niños o menos, Mission Control la baja directo a
+// plan="free" (permanente, sin bloqueo) y nunca llega a este estado — ver
+// src/lib/premium.js. Premium/Soporte/Manual/Acerca de/Parroquia/Usuarios/
+// Permisos siguen accesibles siempre, para que el administrador pueda ver
+// por qué, exportar datos de Tutores, o pedir ayuda.
+const BLOCKED_ON_ACCESS_DENIED = ["/", "/escanear", "/grupos", "/ninos", "/reportes"];
+const isBlockedRoute = (pathname) =>
+  BLOCKED_ON_ACCESS_DENIED.some((p) => (p === "/" ? pathname === "/" : pathname === p || pathname.startsWith(p + "/")));
+
+function AccessDeniedGate() {
+  return (
+    <div className="max-w-md mx-auto mt-10">
+      <Card className="border-destructive/30">
+        <CardContent className="pt-6 text-center space-y-3">
+          <ShieldAlert className="w-8 h-8 mx-auto text-destructive" />
+          <p className="font-medium">Acceso restringido por falta de pago</p>
+          <p className="text-sm text-muted-foreground">
+            Tu parroquia supera el tope de niños del plan Gratis y el período de prueba o pago Premium venció sin renovarse. Escanear, niños, grupos/libros y reportes están pausados hasta reactivar el plan Premium.
+          </p>
+          <Link to="/premium" className="text-primary font-medium hover:underline text-sm inline-block">Ver plan Premium →</Link>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 const navItems = [
   { to: "/", label: "Inicio", icon: Home, end: true },
@@ -25,7 +57,9 @@ const navItems = [
 
 export default function Layout() {
   const { user } = useAuth();
+  const location = useLocation();
   const [parish, setParish] = useState(null);
+  const status = useLicenseStatus(parish);
 
   const items = navItems.filter((i) => !i.adminOnly || isParishAdmin(user));
 
@@ -106,7 +140,11 @@ export default function Layout() {
       <main className="md:pl-60 pb-20 md:pb-0 print:pl-0 print:pb-0">
         <LicenseBanner parish={parish} />
         <div className="p-4 md:p-8 max-w-6xl mx-auto print:p-0 print:max-w-none">
-          <Outlet context={{ user }} />
+          {status.isAccessDenied && isBlockedRoute(location.pathname) ? (
+            <AccessDeniedGate />
+          ) : (
+            <Outlet context={{ user }} />
+          )}
         </div>
       </main>
 

@@ -7,7 +7,7 @@
 // src/, así que create_parish (base44/functions/create_parish/entry.ts)
 // declara su propia copia de este valor. Si cambias esta constante, cambia
 // también la de create_parish/entry.ts en el mismo commit.
-export const DATA_PROCESSING_TERMS_VERSION = "2026-07-23";
+export const DATA_PROCESSING_TERMS_VERSION = "2026-07-27";
 
 export const DATA_PROCESSING_NOTICE = [
   {
@@ -32,9 +32,9 @@ export const DATA_PROCESSING_NOTICE = [
   },
   {
     heading: "Retención y eliminación",
-    body: "Los datos del núcleo gratuito (niños, grupos, asistencia) permanecen mientras tu parroquia use la plataforma. Los datos de Tutores (función Premium) siguen las reglas del ciclo de vida de la licencia: si el pago de Premium no se confirma, primero se restringe la edición, después el acceso completo, y solo se eliminan tras haber tenido oportunidad de exportarlos — nunca de forma automática sin ese paso.",
+    body: "Los datos del plan Gratis (niños, grupos, asistencia) permanecen sin vencimiento mientras tu parroquia use la plataforma, hasta el tope de niños activos del plan. Toda parroquia nueva arranca con 30 días de acceso Premium completo, sin costo; si tu parroquia supera ese tope y el período de prueba o de pago no se renueva, primero se restringe la edición en toda la app (niños, grupos, asistencia y Tutores) y después el acceso completo. Solo los datos de Tutores (función Premium) llegan a eliminarse, y únicamente tras haber tenido oportunidad de exportarlos — nunca de forma automática sin ese paso. Los datos de niños, grupos y asistencia nunca se eliminan por falta de pago.",
   },
 ];
 
 export const DATA_PROCESSING_ACCEPTANCE_TEXT =
-  "Acepto que mi parroquia es responsable del manejo de estos datos conforme a la LFPDPPP, que cuento con el consentimiento de los padres/tutores para registrar los datos de cada niño o niña, y entiendo el ciclo de solo lectura → acceso denegado → exportación → eliminación aplicable a la función Premium.";
+  "Acepto que mi parroquia es responsable del manejo de estos datos conforme a la LFPDPPP, que cuento con el consentimiento de los padres/tutores para registrar los datos de cada niño o niña, y entiendo que mi parroquia tiene 30 días de prueba Premium y que, si mi parroquia supera el tope de niños del plan Gratis y el período de prueba o pago no se renueva, aplica el ciclo de solo lectura → acceso denegado → exportación → eliminación (este último paso, solo para los datos de Tutores).";

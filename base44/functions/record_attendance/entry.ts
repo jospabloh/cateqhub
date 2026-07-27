@@ -8,6 +8,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 // group_id de cualquier niño de su parroquia). También hace la validación
 // de duplicado del día aquí, con rol de servicio, para no depender de un
 // Attendance.read sin restricción de grupo/libro en el cliente.
+//
+// Plan Gratis registra asistencia sin vencimiento. Si la parroquia está en
+// plan="premium" (prueba o pago) y ese período vence sin renovarse, esta
+// función bloquea registrar asistencia igual que add_guardian ya hacía con
+// Tutores.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -19,6 +24,13 @@ Deno.serve(async (req) => {
     if (!child_id) return Response.json({ error: 'child_id requerido' }, { status: 400 });
 
     const sr = base44.asServiceRole;
+
+    const parish = await sr.entities.Parish.get(me.parish_id).catch(() => null);
+    if (!parish) return Response.json({ error: 'No se pudo verificar tu parroquia, intenta de nuevo' }, { status: 500 });
+    if (parish.plan === 'premium' && parish.license_status && parish.license_status !== 'active') {
+      return Response.json({ error: 'Tu período de prueba o pago está pendiente', code: 'license_not_active' }, { status: 403 });
+    }
+
     const child = await sr.entities.Child.get(child_id).catch(() => null);
     if (!child || child.parish_id !== me.parish_id) {
       return Response.json({ error: 'QR no reconocido en esta parroquia', code: 'not_found' }, { status: 404 });
