@@ -60,7 +60,7 @@ export const CHANGELOG = [
     version: "1.0.0",
     date: "2026-07-20",
     changes: [
-      "Primera versión: alta de parroquia, grupos y niños, generación de QR, escaneo de asistencia y reportes básicos.",
+      "Primera versión: alta de parroquia, grupos/libros y niños, generación de QR, escaneo de asistencia y reportes básicos.",
     ],
   },
 ];

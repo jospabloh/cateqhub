@@ -1,5 +1,28 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
+// DEFAULTS/computeFlags deben reflejar exactamente
+// sync_catequist_permissions/entry.ts (que a su vez refleja
+// src/lib/permissionRegistry.js) — se duplica aquí porque las funciones de
+// Base44 no comparten módulos entre sí.
+const DEFAULTS: Record<string, boolean> = {
+  'ninos:ver_todos_los_grupos': false,
+  'ninos:cambiar_grupo': false,
+  'ninos:dar_de_baja': false,
+  'escanear:cualquier_grupo': true,
+  'reportes:ver_todos_los_grupos': false,
+  'tutores:agregar': true,
+};
+
+function computeFlags(effective: Record<string, boolean>) {
+  return {
+    perm_ninos_ver_todos: !!effective['ninos:ver_todos_los_grupos'],
+    perm_ninos_cambiar_grupo: !!effective['ninos:cambiar_grupo'],
+    perm_ninos_dar_de_baja: !!effective['ninos:dar_de_baja'],
+    perm_escanear_restringido: !effective['escanear:cualquier_grupo'],
+    perm_tutores_restringido: !effective['tutores:agregar'],
+  };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -50,19 +73,38 @@ Deno.serve(async (req) => {
       }, { status: 403 });
     }
 
+    const sr = base44.asServiceRole;
+
     // Espejar plan/license_status vigentes de la parroquia en el usuario
     // recién asignado — Guardian/ChildGuardian RLS los lee de aquí (Base44
     // RLS no puede hacer lookup a Parish directamente). Sin esto, un
     // catequista invitado después de que la parroquia ya tenía Premium
     // arrancaría con el espejo vacío y quedaría bloqueado de más.
-    const targetParish = await base44.asServiceRole.entities.Parish.get(parish_id).catch(() => null);
+    //
+    // Falla cerrado a propósito: si Parish.get falla, NO asumimos 'free'/
+    // 'active' (los valores más permisivos) — eso dejaría entrar a un
+    // catequista con acceso a Tutores en una parroquia que en realidad está
+    // access_denied, por un simple error transitorio de red. Se aborta la
+    // asignación completa y se le pide reintentar.
+    const targetParish = await sr.entities.Parish.get(parish_id).catch(() => null);
+    if (!targetParish) {
+      return Response.json({ error: 'No se pudo leer la parroquia para asignar el usuario, intenta de nuevo' }, { status: 500 });
+    }
 
-    await base44.asServiceRole.entities.User.update(target.id, {
+    let permFlags = {};
+    if (parish_role === 'catequist') {
+      const profiles = await sr.entities.PermissionProfile.filter({ parish_id, role_key: 'catequist' });
+      const effective = { ...DEFAULTS, ...(profiles?.[0]?.permissions || {}) };
+      permFlags = computeFlags(effective);
+    }
+
+    await sr.entities.User.update(target.id, {
       parish_id,
       group_id,
       parish_role,
-      parish_plan: targetParish?.plan ?? 'free',
-      parish_license_status: targetParish?.license_status ?? 'active',
+      parish_plan: targetParish.plan ?? 'free',
+      parish_license_status: targetParish.license_status ?? 'active',
+      ...permFlags,
     });
 
     return Response.json({

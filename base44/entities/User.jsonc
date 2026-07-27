@@ -35,13 +35,48 @@
     "parish_plan": {
       "type": "string",
       "title": "Plan de la parroquia (espejo)",
-      "description": "Espejo de Parish.plan. Base44 RLS no puede hacer lookups entre entidades, así que Guardian/ChildGuardian leen este campo en vez de consultar Parish directamente. Mantenido por create_parish, assign_parish_user, y el puente acaciaControl (acción license.set con params.mirror). Fuente de verdad = Parish.plan.",
+      "description": "Espejo de Parish.plan. Base44 RLS no puede hacer lookups entre entidades, así que Guardian/ChildGuardian leen este campo en vez de consultar Parish directamente. Mantenido por create_parish, assign_parish_user, backfill_parish_license_mirror, y el puente acaciaControl (acción license.set con params.mirror). Fuente de verdad = Parish.plan. Un registro SIN este campo (todo usuario ya existente antes de este despliegue) no matchea ninguna condición de igualdad en RLS — ver backfill_parish_license_mirror (Task 17), que debe correr inmediatamente después de desplegar este esquema.",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "parish_license_status": {
       "type": "string",
       "title": "Estado de licencia de la parroquia (espejo)",
-      "description": "Espejo de Parish.license_status. Mismo mecanismo de sincronización que parish_plan.",
+      "description": "Espejo de Parish.license_status. Mismo mecanismo de sincronización y misma advertencia de backfill que parish_plan.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "perm_ninos_ver_todos": {
+      "type": "boolean",
+      "title": "Permiso: ver niños de todos los grupos/libros",
+      "default": false,
+      "description": "Espejo de PermissionProfile (ninos:ver_todos_los_grupos), sincronizado por sync_catequist_permissions/assign_parish_user. Un registro sin este campo se trata como false — mismo comportamiento que el valor por defecto del registro de permisos.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "perm_ninos_cambiar_grupo": {
+      "type": "boolean",
+      "title": "Permiso: cambiar el grupo/libro de un niño",
+      "default": false,
+      "description": "Espejo de PermissionProfile (ninos:cambiar_grupo). Ausente = false, igual que el valor por defecto.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "perm_ninos_dar_de_baja": {
+      "type": "boolean",
+      "title": "Permiso: dar de baja / reactivar niños",
+      "default": false,
+      "description": "Espejo de PermissionProfile (ninos:dar_de_baja). Ausente = false, igual que el valor por defecto.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "perm_escanear_restringido": {
+      "type": "boolean",
+      "title": "Restringido a escanear solo su propio grupo/libro",
+      "default": false,
+      "description": "Invertido a propósito: PermissionProfile guarda escanear:cualquier_grupo (default true); este campo guarda lo contrario para que un registro SIN este campo (todo usuario existente antes de esta migración) se comporte igual que el default real (sin restricción) sin necesitar un backfill.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "perm_tutores_restringido": {
+      "type": "boolean",
+      "title": "Restringido para agregar tutores",
+      "default": false,
+      "description": "Invertido a propósito, igual que perm_escanear_restringido: PermissionProfile guarda tutores:agregar (default true); ausente = sin restricción, igual que el default real.",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
   },

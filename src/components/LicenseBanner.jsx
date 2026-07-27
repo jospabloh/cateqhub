@@ -12,8 +12,8 @@ export default function LicenseBanner({ parish }) {
     <div
       className={
         isDenied
-          ? "flex items-center gap-2 text-sm px-4 py-2 bg-destructive/10 text-destructive border-b border-destructive/20"
-          : "flex items-center gap-2 text-sm px-4 py-2 bg-amber-50 text-amber-800 border-b border-amber-200"
+          ? "flex items-center gap-2 text-sm px-4 py-2 bg-destructive/10 text-destructive border-b border-destructive/20 print:hidden"
+          : "flex items-center gap-2 text-sm px-4 py-2 bg-amber-50 text-amber-800 border-b border-amber-200 print:hidden"
       }
     >
       {isDenied ? <ShieldAlert className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}

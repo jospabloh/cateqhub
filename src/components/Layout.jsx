@@ -11,7 +11,7 @@ import LicenseBanner from "@/components/LicenseBanner";
 const navItems = [
   { to: "/", label: "Inicio", icon: Home, end: true },
   { to: "/escanear", label: "Escanear", icon: ScanLine },
-  { to: "/grupos", label: "Grupos", icon: Users },
+  { to: "/grupos", label: "Grupos/Libros", icon: Users },
   { to: "/ninos", label: "Niños", icon: ClipboardList },
   { to: "/reportes", label: "Reportes", icon: QrCode },
   { to: "/parroquia", label: "Parroquia", icon: Church, adminOnly: true },
@@ -48,7 +48,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen">
       {/* Sidebar (desktop) */}
-      <aside className="hidden md:flex fixed inset-y-0 left-0 w-60 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
+      <aside className="hidden md:flex print:hidden fixed inset-y-0 left-0 w-60 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
         <div className="h-16 flex items-center gap-3 px-6 border-b border-sidebar-border">
           <Logo className="w-8 h-8" />
           <div>
@@ -94,7 +94,7 @@ export default function Layout() {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 z-30 h-14 flex items-center justify-between px-4 bg-sidebar text-sidebar-foreground border-b border-sidebar-border">
+      <header className="md:hidden print:hidden sticky top-0 z-30 h-14 flex items-center justify-between px-4 bg-sidebar text-sidebar-foreground border-b border-sidebar-border">
         <div className="flex items-center gap-2.5">
           <Logo className="w-7 h-7" />
           <span className="font-heading font-semibold text-sm tracking-tight">CateqHub</span>
@@ -103,15 +103,15 @@ export default function Layout() {
       </header>
 
       {/* Content */}
-      <main className="md:pl-60 pb-20 md:pb-0">
+      <main className="md:pl-60 pb-20 md:pb-0 print:pl-0 print:pb-0">
         <LicenseBanner parish={parish} />
-        <div className="p-4 md:p-8 max-w-6xl mx-auto">
+        <div className="p-4 md:p-8 max-w-6xl mx-auto print:p-0 print:max-w-none">
           <Outlet context={{ user }} />
         </div>
       </main>
 
       {/* Bottom tab bar (mobile) */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 h-16 flex items-center justify-around bg-sidebar text-sidebar-foreground border-t border-sidebar-border overflow-x-auto">
+      <nav className="md:hidden print:hidden fixed bottom-0 inset-x-0 z-30 h-16 flex items-center justify-around bg-sidebar text-sidebar-foreground border-t border-sidebar-border overflow-x-auto">
         {items.map((item) => (
           <NavLink
             key={item.to}

@@ -12,6 +12,12 @@
       "title": "Grupo",
       "x-ref": "Group"
     },
+    "group_changed_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Último cambio de grupo",
+      "description": "Se actualiza cuando group_id cambia — para avisar a catequistas que el QR físico puede estar desactualizado."
+    },
     "name": {
       "type": "string",
       "title": "Nombre del ni\u00f1o"
@@ -44,16 +50,7 @@
   ],
   "rls": {
     "create": {
-      "$or": [
-        {
-          "data.parish_id": "{{user.data.parish_id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "read": {
       "$or": [
@@ -68,16 +65,7 @@
       ]
     },
     "update": {
-      "$or": [
-        {
-          "data.parish_id": "{{user.data.parish_id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "delete": {
       "$and": [

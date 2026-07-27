@@ -1,0 +1,69 @@
+{
+  "name": "PermissionProfile",
+  "type": "object",
+  "properties": {
+    "parish_id": {
+      "type": "string",
+      "title": "Parroquia",
+      "x-ref": "Parish"
+    },
+    "role_key": {
+      "type": "string",
+      "title": "Rol",
+      "description": "Rol al que aplica este perfil. Por ahora solo 'catequist' es configurable — el admin de parroquia siempre tiene acceso total.",
+      "enum": ["catequist"],
+      "default": "catequist"
+    },
+    "permissions": {
+      "type": "object",
+      "title": "Permisos",
+      "description": "Mapa 'modulo:accion' -> true/false. Las claves ausentes usan el valor por defecto del registro de permisos del frontend.",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "parish_id",
+    "role_key"
+  ],
+  "rls": {
+    "create": {
+      "$and": [
+        { "data.parish_id": "{{user.data.parish_id}}" },
+        {
+          "$or": [
+            { "user_condition": { "role": "admin" } },
+            { "user_condition": { "data.parish_role": "admin" } }
+          ]
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        { "data.parish_id": "{{user.data.parish_id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "update": {
+      "$and": [
+        { "data.parish_id": "{{user.data.parish_id}}" },
+        {
+          "$or": [
+            { "user_condition": { "role": "admin" } },
+            { "user_condition": { "data.parish_role": "admin" } }
+          ]
+        }
+      ]
+    },
+    "delete": {
+      "$and": [
+        { "data.parish_id": "{{user.data.parish_id}}" },
+        {
+          "$or": [
+            { "user_condition": { "role": "admin" } },
+            { "user_condition": { "data.parish_role": "admin" } }
+          ]
+        }
+      ]
+    }
+  }
+}

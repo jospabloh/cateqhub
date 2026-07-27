@@ -1,38 +1,75 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAuth } from "@/lib/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import QRCard, { downloadQRCard } from "@/components/QRCard";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import QRCard from "@/components/QRCard";
+import QRBadge from "@/components/QRBadge";
+import BadgeSheet from "@/components/BadgeSheet";
+import { exportBadgeSheetPNG } from "@/lib/badgeExport";
+import { BADGE_BLEED_MM } from "@/lib/badgeLayout";
 import { useLicenseStatus } from "@/lib/premium";
-import { isParishAdmin } from "@/lib/roles";
+import { usePermissions } from "@/lib/PermissionContext";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
-import { ArrowLeft, Download, Printer, Plus, Trash2, Phone, Mail, Lock, IdCard } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { ArrowLeft, Download, Printer, Plus, Trash2, Phone, Mail, Lock, IdCard, Repeat } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
+
+const RECENT_GROUP_CHANGE_DAYS = 7;
 
 export default function ChildDetail() {
   const { id } = useParams();
-  const { user } = useAuth();
-  const cardRef = useRef(null);
+  const { can } = usePermissions();
+  const { toast } = useToast();
+  const badgePageRefs = useRef([]);
+  const badgeCardRef = useRef(null);
   const [child, setChild] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+  const [exportingBadge, setExportingBadge] = useState(false);
   const [group, setGroup] = useState(null);
+  const [groups, setGroups] = useState([]);
   const [parish, setParish] = useState(null);
   const [links, setLinks] = useState([]);
   const [guardians, setGuardians] = useState([]);
   const [openG, setOpenG] = useState(false);
   const [gForm, setGForm] = useState({ name: "", phone: "", email: "", curp: "", relationship: "tutor", pickup_authorized: true });
+  const [editingGroup, setEditingGroup] = useState(false);
+  const [groupChoice, setGroupChoice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState(null);
   const status = useLicenseStatus(parish);
 
+  // Solo el fetch de Child va en el try/catch de notFound — el de Tutores
+  // (Guardian/ChildGuardian) va aparte en loadGuardians(), porque ahora puede
+  // fallar legítimamente por RLS cuando el acceso está denegado, y eso no
+  // significa que el niño no exista.
   const load = async () => {
-    const c = await base44.entities.Child.get(id);
-    setChild(c);
-    if (c.group_id) base44.entities.Group.get(c.group_id).then(setGroup).catch(() => {});
-    if (c.parish_id) base44.entities.Parish.get(c.parish_id).then(setParish).catch(() => {});
+    try {
+      const c = await base44.entities.Child.get(id);
+      setChild(c);
+      if (c.group_id) base44.entities.Group.get(c.group_id).then(setGroup).catch(() => {});
+      if (c.parish_id) {
+        base44.entities.Parish.get(c.parish_id).then(setParish).catch(() => {});
+        base44.entities.Group.filter({ parish_id: c.parish_id }).then(setGroups).catch(() => {});
+      }
+    } catch (e) {
+      setNotFound(true);
+    }
   };
 
   useEffect(() => { load(); }, [id]);
@@ -54,40 +91,94 @@ export default function ChildDetail() {
   useEffect(() => { if (child) loadGuardians(); }, [child?.id, status.isAccessDenied]);
 
   const toggleActive = async () => {
-    await base44.entities.Child.update(child.id, { active: !child.active });
-    load();
+    try {
+      const res = await base44.functions.invoke("update_child", { child_id: child.id, action: "toggle_active" });
+      if (res.data?.error) throw new Error(res.data.error);
+      await load();
+      toast({ title: child.active ? "Niño dado de baja" : "Niño reactivado" });
+    } catch (e) {
+      toast({ title: "No se pudo actualizar", description: e.message, variant: "destructive" });
+    }
   };
+
+  const openGroupEdit = () => { setGroupChoice(child.group_id || ""); setEditingGroup(true); };
+
+  const saveGroup = async () => {
+    if (!groupChoice || groupChoice === child.group_id) { setEditingGroup(false); return; }
+    setLoading(true);
+    try {
+      const res = await base44.functions.invoke("update_child", { child_id: child.id, action: "change_group", group_id: groupChoice });
+      if (res.data?.error) throw new Error(res.data.error);
+      setEditingGroup(false);
+      await load();
+      toast({ title: "Grupo/libro actualizado" });
+    } catch (e) {
+      toast({ title: "No se pudo cambiar el grupo/libro", description: e.message, variant: "destructive" });
+    } finally { setLoading(false); }
+  };
+
+  const recentGroupChange = child?.group_changed_at
+    && (Date.now() - new Date(child.group_changed_at).getTime()) < RECENT_GROUP_CHANGE_DAYS * 24 * 60 * 60 * 1000;
 
   const addGuardian = async () => {
     if (!gForm.name) return;
     setLoading(true);
     try {
-      const guardian = await base44.entities.Guardian.create({
-        parish_id: user.parish_id,
-        name: gForm.name,
-        phone: gForm.phone,
-        email: gForm.email,
-        curp: normalizeCurp(gForm.curp) || undefined,
-        whatsapp_opt_in: false,
-      });
-      await base44.entities.ChildGuardian.create({
-        parish_id: user.parish_id,
+      const res = await base44.functions.invoke("add_guardian", {
         child_id: child.id,
-        guardian_id: guardian.id,
+        guardian: {
+          name: gForm.name,
+          phone: gForm.phone,
+          email: gForm.email,
+          curp: normalizeCurp(gForm.curp) || undefined,
+        },
         relationship: gForm.relationship,
         pickup_authorized: gForm.pickup_authorized,
       });
+      if (res.data?.error) throw new Error(res.data.error);
       setOpenG(false);
       setGForm({ name: "", phone: "", email: "", curp: "", relationship: "tutor", pickup_authorized: true });
-      loadGuardians();
+      await loadGuardians();
+      toast({ title: "Tutor agregado" });
+    } catch (e) {
+      toast({ title: "No se pudo agregar al tutor", description: e.message, variant: "destructive" });
     } finally { setLoading(false); }
   };
 
-  const removeGuardian = async (linkId) => {
-    if (!confirm("¿Quitar a este tutor del niño?")) return;
-    await base44.entities.ChildGuardian.delete(linkId);
-    loadGuardians();
+  const removeGuardian = async () => {
+    if (!removeTarget) return;
+    try {
+      await base44.entities.ChildGuardian.delete(removeTarget.id);
+      setRemoveTarget(null);
+      await loadGuardians();
+      toast({ title: "Tutor eliminado" });
+    } catch (e) {
+      toast({ title: "No se pudo quitar al tutor", description: e.message, variant: "destructive" });
+    }
   };
+
+  const downloadBadge = async () => {
+    setExportingBadge(true);
+    try {
+      await exportBadgeSheetPNG(badgeCardRef.current, `qr-${child.name.replace(/\s+/g, "_")}.png`);
+    } finally {
+      setExportingBadge(false);
+    }
+  };
+
+  if (notFound) {
+    return (
+      <div className="max-w-md mx-auto mt-10">
+        <Card>
+          <CardContent className="pt-6 text-center space-y-4">
+            <h2 className="text-xl font-semibold">Niño no encontrado</h2>
+            <p className="text-muted-foreground text-sm">Este niño no existe o ya no está disponible.</p>
+            <Button asChild variant="outline"><Link to="/ninos"><ArrowLeft className="w-4 h-4 mr-1" />Volver a Niños</Link></Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!child) return <div className="grid place-items-center py-20"><div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" /></div>;
 
@@ -110,10 +201,35 @@ export default function ChildDetail() {
                   {child.active ? "Activo" : "Inactivo"}
                 </Badge>
               </div>
-              {group && <p className="text-muted-foreground">Grupo: {group.name}{group.level ? ` · ${group.level}` : ""}</p>}
+              {editingGroup ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select
+                    className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                    value={groupChoice}
+                    onChange={(e) => setGroupChoice(e.target.value)}
+                  >
+                    <option value="">Selecciona…</option>
+                    {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
+                  <Button size="sm" onClick={saveGroup} disabled={loading || !groupChoice}>Guardar</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingGroup(false)}>Cancelar</Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-muted-foreground">Grupo/Libro: {group ? group.name : "Sin grupo/libro"}{group?.level ? ` · ${group.level}` : ""}</p>
+                  {can("ninos", "cambiar_grupo") && (
+                    <Button size="sm" variant="ghost" onClick={openGroupEdit}><Repeat className="w-3.5 h-3.5 mr-1" />Cambiar</Button>
+                  )}
+                  {recentGroupChange && (
+                    <Badge variant="outline" className="text-[10px] font-normal">
+                      Cambió de grupo/libro {formatDistanceToNow(new Date(child.group_changed_at), { addSuffix: true, locale: es })}
+                    </Badge>
+                  )}
+                </div>
+              )}
               {child.birth_date && <p className="text-muted-foreground text-sm">Nacimiento: {child.birth_date}</p>}
               {child.curp && <p className="text-muted-foreground text-sm flex items-center gap-1"><IdCard className="w-3.5 h-3.5" />CURP: <span className="font-mono">{child.curp}</span></p>}
-              {isParishAdmin(user) && (
+              {can("ninos", "dar_de_baja") && (
                 <Button variant="outline" size="sm" onClick={toggleActive} className="mt-2">
                   {child.active ? "Dar de baja" : "Reactivar"}
                 </Button>
@@ -127,10 +243,21 @@ export default function ChildDetail() {
                 Tutores
                 {!status.isPremium && <Badge variant="outline" className="font-normal text-[10px]">Premium</Badge>}
               </CardTitle>
-              {status.isPremium && !status.isReadOnly ? (
+              {status.isPremium && !status.isReadOnly && can("tutores", "agregar") ? (
                 <Button size="sm" variant="ghost" onClick={() => setOpenG(true)}><Plus className="w-4 h-4 mr-1" />Agregar</Button>
               ) : (
-                <Button size="sm" variant="ghost" disabled title={status.isPremium ? "Pausado por falta de pago" : "Disponible con el plan Premium"}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled
+                  title={
+                    !status.isPremium
+                      ? "Disponible con el plan Premium"
+                      : status.isReadOnly
+                      ? "Pausado por falta de pago"
+                      : "Tu parroquia desactivó este permiso para catequistas"
+                  }
+                >
                   <Lock className="w-3.5 h-3.5 mr-1" />Agregar
                 </Button>
               )}
@@ -169,7 +296,7 @@ export default function ChildDetail() {
                       {g.email && <p className="text-sm text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{g.email}</p>}
                       {g.curp && <p className="text-sm text-muted-foreground flex items-center gap-1"><IdCard className="w-3 h-3" /><span className="font-mono">{g.curp}</span></p>}
                     </div>
-                    <Button size="icon" variant="ghost" onClick={() => removeGuardian(rel.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    <Button size="icon" variant="ghost" aria-label={`Quitar a ${g.name} como tutor`} onClick={() => setRemoveTarget({ id: rel.id, name: g.name })}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </div>
                 );
               })}
@@ -178,10 +305,25 @@ export default function ChildDetail() {
         </div>
 
         <div className="space-y-3">
-          <QRCard ref={cardRef} child={child} parish={parish} group={group} />
+          <div className="print:hidden">
+            <QRCard child={child} parish={parish} group={group} />
+          </div>
+          <p className="text-xs text-muted-foreground text-center print:hidden">
+            Lo que se descarga o imprime lleva únicamente el código QR con guías de corte — sin nombre ni datos del niño.
+          </p>
           <div className="flex gap-3 justify-center print:hidden">
-            <Button variant="outline" onClick={() => downloadQRCard(child)}><Download className="w-4 h-4 mr-2" />Descargar PNG</Button>
+            <Button variant="outline" disabled={exportingBadge} onClick={downloadBadge}><Download className="w-4 h-4 mr-2" />Descargar PNG</Button>
             <Button variant="outline" onClick={() => window.print()}><Printer className="w-4 h-4 mr-2" />Imprimir</Button>
+          </div>
+          {/* Gafete real (solo QR + guías de corte): oculto en pantalla, usado para imprimir la hoja completa. */}
+          <BadgeSheet pages={[[child]]} activePage={-1} pageRefs={badgePageRefs} />
+          {/* Recorte ajustado a la tarjeta (con el margen justo para las marcas de esquina) — lo que descarga "Descargar PNG", sin el resto de la hoja carta en blanco. */}
+          <div
+            ref={badgeCardRef}
+            className="bg-white inline-block"
+            style={{ position: "absolute", left: "-9999px", top: 0, padding: `${BADGE_BLEED_MM}mm` }}
+          >
+            <QRBadge token={child.qr_token} />
           </div>
         </div>
       </div>
@@ -228,6 +370,21 @@ export default function ChildDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Quitar a este tutor del niño?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {removeTarget?.name ? `"${removeTarget.name}" dejará de estar vinculado a ${child.name}.` : "Esta acción no se puede deshacer."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={removeGuardian}>Quitar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
