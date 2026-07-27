@@ -50,7 +50,16 @@ export default function QRBadge({ token, size = 1 }) {
       <CornerMark corner="bl" />
       <CornerMark corner="br" />
       <div className="w-full h-full flex items-center justify-center">
-        <QRCodeSVG value={token} size={QR_SIZE_MM * size} level="M" marginSize={2} fgColor="#101820" />
+        {/* width/height (no "size", que qrcode.react renderiza como píxeles crudos) —
+            así el QR se dimensiona con las mismas unidades mm que la tarjeta. */}
+        <QRCodeSVG
+          value={token}
+          level="M"
+          marginSize={2}
+          fgColor="#101820"
+          width={`${QR_SIZE_MM * size}mm`}
+          height={`${QR_SIZE_MM * size}mm`}
+        />
       </div>
     </div>
   );

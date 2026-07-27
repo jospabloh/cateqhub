@@ -17,6 +17,10 @@ export const MARGIN_Y_MM = (PAGE_H_MM - (ROWS * CARD_H_MM + (ROWS - 1) * GAP_MM)
 export const MARK_LEN_MM = 3;
 export const MARK_GAP_MM = 1;
 export const MARK_THICKNESS_MM = 0.15;
+// Espacio que las marcas de esquina ocupan fuera del propio rectángulo de la
+// tarjeta — hay que reservarlo como padding al recortar un gafete suelto
+// (ver downloadBadge en ChildDetail) para no cortar las guías de corte.
+export const BADGE_BLEED_MM = MARK_GAP_MM + MARK_LEN_MM;
 
 export const QR_SIZE_MM = CARD_H_MM * 0.72;
 
