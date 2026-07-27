@@ -1352,7 +1352,7 @@ Inside the same `<>` fragment (non-denied path), add a `read_only`-specific noti
       )}
 ```
 
-- [ ] **Step 5: Add the `ShieldAlert` icon import**
+- [ ] **Step 5: Add the `ShieldAlert` icon import and the missing `Button` import**
 
 Change:
 
@@ -1364,6 +1364,12 @@ to:
 
 ```jsx
 import { Check, Sparkles, Clock, ShieldAlert } from "lucide-react";
+```
+
+The current file has no `Button` import (it only uses plain elements today), but Step 3's JSX uses `<Button>`. Add it alongside the other UI imports:
+
+```jsx
+import { Button } from "@/components/ui/button";
 ```
 
 - [ ] **Step 6: Verify build and lint**
