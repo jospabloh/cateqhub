@@ -309,7 +309,7 @@ export default function ChildDetail() {
             <QRCard child={child} parish={parish} group={group} />
           </div>
           <p className="text-xs text-muted-foreground text-center print:hidden">
-            Lo que se descarga o imprime lleva únicamente el código QR con guías de corte — sin nombre ni datos del niño.
+            Lo que se descarga o imprime lleva únicamente el nombre y el código QR con guías de corte — sin ningún otro dato del niño.
           </p>
           <div className="flex gap-3 justify-center print:hidden">
             <Button variant="outline" disabled={exportingBadge} onClick={downloadBadge}><Download className="w-4 h-4 mr-2" />Descargar PNG</Button>
@@ -323,7 +323,7 @@ export default function ChildDetail() {
             className="bg-white inline-block"
             style={{ position: "absolute", left: "-9999px", top: 0, padding: `${BADGE_BLEED_MM}mm` }}
           >
-            <QRBadge token={child.qr_token} />
+            <QRBadge token={child.qr_token} name={child.name} />
           </div>
         </div>
       </div>

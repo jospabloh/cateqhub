@@ -22,7 +22,50 @@ export const MARK_THICKNESS_MM = 0.15;
 // (ver downloadBadge en ChildDetail) para no cortar las guías de corte.
 export const BADGE_BLEED_MM = MARK_GAP_MM + MARK_LEN_MM;
 
-export const QR_SIZE_MM = CARD_H_MM * 0.72;
+// Franja reservada arriba del QR para el nombre del niño — a pedido del
+// cliente, el gafete impreso/descargado sí debe mostrarlo (a diferencia del
+// resto de la tarjeta, que sigue sin datos adicionales).
+export const NAME_BAND_MM = 9;
+export const NAME_FONT_MM = 3.4;
+export const NAME_FONT_MIN_MM = 2.2;
+export const NAME_PADDING_MM = 2;
+// Fuente "segura" (no la web font "Inter" de la app) para medir/dibujar el
+// nombre en contextos donde no se puede depender de que esté cargada: el
+// SVG exportado (portátil, sin fuentes embebidas) y la medición con canvas
+// que usa QRBadge para ajustar el tamaño antes incluso de montar el DOM.
+export const NAME_FONT_FAMILY = "Arial, Helvetica, sans-serif";
+
+export const QR_SIZE_MM = (CARD_H_MM - NAME_BAND_MM) * 0.86;
+
+let measureCanvas;
+function measureTextWidthMm(text, fontMm) {
+  if (typeof document === "undefined" || !text) return 0;
+  const canvas = measureCanvas || (measureCanvas = document.createElement("canvas"));
+  const ctx = canvas.getContext("2d");
+  const probePx = 200; // medir a un tamaño grande y escalar, más preciso que medir directo en mm
+  ctx.font = `700 ${probePx}px ${NAME_FONT_FAMILY}`;
+  return (fontMm / probePx) * ctx.measureText(text).width;
+}
+
+// Encoge el nombre del niño hasta NAME_FONT_MIN_MM y, si aun así no cabe,
+// lo trunca con "…" — así nunca se sale de la tarjeta ni invade la de al
+// lado (SVG <text> no trunca ni ajusta tamaño solo, y html2canvas no
+// soporta de forma confiable "text-overflow: ellipsis").
+export function fitBadgeName(name, { maxWidthMm = CARD_W_MM - NAME_PADDING_MM * 2, baseFontMm = NAME_FONT_MM } = {}) {
+  if (!name) return { text: "", fontSize: baseFontMm };
+  let fontSize = baseFontMm;
+  const baseWidth = measureTextWidthMm(name, fontSize);
+  if (baseWidth === 0 || baseWidth <= maxWidthMm) return { text: name, fontSize };
+
+  fontSize = Math.max(NAME_FONT_MIN_MM, fontSize * (maxWidthMm / baseWidth));
+  if (measureTextWidthMm(name, fontSize) <= maxWidthMm) return { text: name, fontSize };
+
+  let text = name;
+  while (text.length > 1 && measureTextWidthMm(`${text}…`, fontSize) > maxWidthMm) {
+    text = text.slice(0, -1);
+  }
+  return { text: text.length < name.length ? `${text}…` : text, fontSize };
+}
 
 export function paginateChildren(children, perPage = PER_PAGE) {
   const pages = [];

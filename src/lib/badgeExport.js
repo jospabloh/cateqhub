@@ -16,6 +16,10 @@ import {
   MARK_GAP_MM,
   MARK_THICKNESS_MM,
   QR_SIZE_MM,
+  NAME_BAND_MM,
+  NAME_PADDING_MM,
+  NAME_FONT_FAMILY,
+  fitBadgeName,
 } from "@/lib/badgeLayout";
 
 // Resolución de captura para PNG/PDF — suficiente para imprimir a tamaño real sin verse pixelado.
@@ -72,11 +76,16 @@ function cornerMarksSVG(w, h) {
     .join("");
 }
 
+function escapeXml(str) {
+  return String(str).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
 // Arma la hoja como un único SVG vectorial (sin depender del DOM montado) —
-// cada gafete es solo el QR + sus marcas de corte, nada de texto ni logo.
+// cada gafete es el nombre del niño + el QR + sus marcas de corte, nada más.
 export function buildBadgeSheetSVG(pageChildren) {
-  const qrOffset = (CARD_W_MM - QR_SIZE_MM) / 2;
-  const qrOffsetY = (CARD_H_MM - QR_SIZE_MM) / 2;
+  const qrAreaH = CARD_H_MM - NAME_BAND_MM;
+  const qrOffsetX = (CARD_W_MM - QR_SIZE_MM) / 2;
+  const qrOffsetY = NAME_BAND_MM + (qrAreaH - QR_SIZE_MM) / 2;
   const cards = pageChildren
     .map((child, i) => {
       const col = i % COLS;
@@ -86,10 +95,19 @@ export function buildBadgeSheetSVG(pageChildren) {
       const qrMarkup = renderToStaticMarkup(
         createElement(QRCodeSVG, { value: child.qr_token, size: QR_SIZE_MM, level: "M", marginSize: 2, fgColor: "#101820" })
       );
+      let nameText = "";
+      if (child.name) {
+        const { text, fontSize } = fitBadgeName(child.name, { maxWidthMm: CARD_W_MM - NAME_PADDING_MM * 2 });
+        nameText =
+          `<text x="${CARD_W_MM / 2}" y="${NAME_BAND_MM / 2}" text-anchor="middle" dominant-baseline="central" ` +
+          `font-family="${NAME_FONT_FAMILY}" font-weight="700" font-size="${fontSize}" fill="#101820">` +
+          `${escapeXml(text)}</text>`;
+      }
       return (
         `<g transform="translate(${x},${y})">` +
         cornerMarksSVG(CARD_W_MM, CARD_H_MM) +
-        `<g transform="translate(${qrOffset},${qrOffsetY})">${qrMarkup}</g>` +
+        nameText +
+        `<g transform="translate(${qrOffsetX},${qrOffsetY})">${qrMarkup}</g>` +
         `</g>`
       );
     })

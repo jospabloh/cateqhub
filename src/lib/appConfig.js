@@ -1,9 +1,16 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.7.1";
+export const APP_VERSION = "1.7.2";
 export const RELEASE_DATE = "2026-07-27";
 
 export const CHANGELOG = [
+  {
+    version: "1.7.2",
+    date: "2026-07-27",
+    changes: [
+      "Gafetes QR: la tarjeta impresa o descargada ahora muestra el nombre del niño arriba del código QR, para identificarlo a simple vista antes de escanearlo o entregarlo — sigue sin llevar ningún otro dato (grupo/libro, CURP, etc.).",
+    ],
+  },
   {
     version: "1.7.1",
     date: "2026-07-27",
