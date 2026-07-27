@@ -541,12 +541,18 @@ Replace with:
         const deletedCounts: Record<string, number> = {};
         for (const spec of deleteEntities) {
           if (!spec || !spec.entity || !spec.field || spec.value === undefined) continue;
-          const rows = await sr.entities[spec.entity].filter({ [spec.field]: spec.value });
-          let count = 0;
-          for (const row of rows) {
-            try { await sr.entities[spec.entity].delete(row.id); count++; } catch { /* already gone or inaccessible, continue */ }
-          }
-          deletedCounts[spec.entity] = count;
+          // Todo el cuerpo del spec va en un try/catch: un nombre de entidad
+          // desconocido/no desplegada no debe abortar los specs restantes del
+          // arreglo (mismo principio best-effort que el bucle de mirror en
+          // license.set, arriba).
+          try {
+            const rows = await sr.entities[spec.entity].filter({ [spec.field]: spec.value });
+            let count = 0;
+            for (const row of rows) {
+              try { await sr.entities[spec.entity].delete(row.id); count++; } catch { /* already gone or inaccessible, continue */ }
+            }
+            deletedCounts[spec.entity] = count;
+          } catch { /* entidad desconocida o filter() falló — seguir con el siguiente spec */ }
         }
         return Response.json({ ok: true, deletedCounts });
       }
