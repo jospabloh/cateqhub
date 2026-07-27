@@ -22,6 +22,63 @@
       "enum": ["free", "premium"],
       "default": "free",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "license_status": {
+      "type": "string",
+      "title": "Estado de licencia Premium",
+      "description": "Solo aplica mientras plan=premium. Escrito exclusivamente por Mission Control (rol de servicio) vía el puente acaciaControl — nunca a mano desde el panel de Base44, porque el espejo en User (parish_license_status) quedaría desincronizado.",
+      "enum": ["active", "read_only", "access_denied", "deletion_eligible"],
+      "default": "active",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "premium_period_end_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Fin del periodo Premium pagado",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "read_only_since": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Desde cuándo está en solo lectura",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "access_denied_since": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Desde cuándo se denegó el acceso",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "deletion_eligible_since": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Desde cuándo es candidata a borrado",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "export_confirmed_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Exportación de datos Premium confirmada",
+      "description": "Se escribe únicamente desde la función confirm_premium_export (rol de servicio) — nunca editable directo, para que no se pueda falsificar la confirmación.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "export_confirmed_by": {
+      "type": "string",
+      "title": "Quién confirmó la exportación (correo)",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "data_processing_accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Aviso de manejo de datos sensibles aceptado"
+    },
+    "data_processing_accepted_by": {
+      "type": "string",
+      "title": "Quién aceptó el aviso (correo)"
+    },
+    "data_processing_terms_version": {
+      "type": "string",
+      "title": "Versión del aviso aceptado"
     }
   },
   "required": [
