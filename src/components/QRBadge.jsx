@@ -1,5 +1,18 @@
+import { useMemo } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { CARD_W_MM, CARD_H_MM, QR_SIZE_MM, MARK_LEN_MM, MARK_GAP_MM, MARK_THICKNESS_MM } from "@/lib/badgeLayout";
+import {
+  CARD_W_MM,
+  CARD_H_MM,
+  QR_SIZE_MM,
+  NAME_BAND_MM,
+  NAME_FONT_MM,
+  NAME_PADDING_MM,
+  NAME_FONT_FAMILY,
+  MARK_LEN_MM,
+  MARK_GAP_MM,
+  MARK_THICKNESS_MM,
+  fitBadgeName,
+} from "@/lib/badgeLayout";
 
 const OUTER_MM = -(MARK_GAP_MM + MARK_LEN_MM);
 
@@ -36,20 +49,42 @@ function CornerMark({ corner }) {
   );
 }
 
-// Gafete de impresión: SOLO el código QR, sin nombre, logo ni texto — la
-// hoja/archivo exportado no debe llevar ningún dato del niño más allá de lo
-// que ya va codificado dentro del propio QR.
-export default function QRBadge({ token, size = 1 }) {
+// Gafete de impresión: el QR + el nombre del niño arriba, sin logo ni
+// ningún otro dato — el resto de la información del niño no viaja en la
+// tarjeta impresa/exportada, solo lo necesario para identificarla a simple
+// vista y lo que ya va codificado dentro del propio QR.
+export default function QRBadge({ token, name, size = 1 }) {
+  // html2canvas (usado para exportar PNG) no soporta de forma confiable
+  // "text-overflow: ellipsis", así que el nombre se ajusta de antemano
+  // (mismo cálculo que el export SVG) en vez de depender de CSS truncate.
+  const fitted = useMemo(
+    () => (name ? fitBadgeName(name, { maxWidthMm: (CARD_W_MM - NAME_PADDING_MM * 2) * size, baseFontMm: NAME_FONT_MM * size }) : null),
+    [name, size]
+  );
+
   return (
     <div
-      className="relative bg-white"
+      className="relative bg-white flex flex-col items-center"
       style={{ width: `${CARD_W_MM * size}mm`, height: `${CARD_H_MM * size}mm` }}
     >
       <CornerMark corner="tl" />
       <CornerMark corner="tr" />
       <CornerMark corner="bl" />
       <CornerMark corner="br" />
-      <div className="w-full h-full flex items-center justify-center">
+      {fitted && (
+        <div
+          className="w-full flex items-center justify-center px-1 shrink-0"
+          style={{ height: `${NAME_BAND_MM * size}mm` }}
+        >
+          <p
+            className="font-semibold text-center whitespace-nowrap"
+            style={{ fontSize: `${fitted.fontSize}mm`, color: "#101820", fontFamily: NAME_FONT_FAMILY }}
+          >
+            {fitted.text}
+          </p>
+        </div>
+      )}
+      <div className="w-full flex-1 flex items-center justify-center">
         {/* width/height (no "size", que qrcode.react renderiza como píxeles crudos) —
             así el QR se dimensiona con las mismas unidades mm que la tarjeta. */}
         <QRCodeSVG

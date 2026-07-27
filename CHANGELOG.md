@@ -2,6 +2,10 @@
 
 Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appConfig.js` (consumida por la página "Acerca de" dentro de la app); este archivo es la versión en prosa.
 
+## 1.7.2 — 2026-07-27
+
+- **Gafetes QR**: la tarjeta impresa o descargada ahora muestra el nombre del niño arriba del código QR, para poder identificarlo a simple vista antes de escanearlo o entregarlo. Sigue sin llevar ningún otro dato (grupo/libro, CURP, logo, etc.) — aplica tanto al gafete individual (ficha del niño) como a la hoja de gafetes por lote.
+
 ## 1.7.1 — 2026-07-27
 
 - **Acerca de**: se agregó la información institucional que ya tienen las demás aplicaciones del portafolio ACACIA — Equipo desarrollador, Contacto y soporte directo (correo y WhatsApp), Derechos reservados (con la licencia registrada al correo de la persona que inició sesión) y un mensaje de cierre. Antes la página solo mostraba versión, historial de cambios y certificaciones de seguridad de Base44.

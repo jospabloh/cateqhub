@@ -60,7 +60,7 @@ export default function BadgeSheet({ pages, activePage = 0, pageRefs }) {
             }}
           >
             {pageChildren.map((child) => (
-              <QRBadge key={child.id} token={child.qr_token} />
+              <QRBadge key={child.id} token={child.qr_token} name={child.name} />
             ))}
           </div>
         </div>

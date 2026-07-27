@@ -88,8 +88,8 @@ export default function BadgePrint() {
           {totalPages === 1 ? "hoja tamaño carta" : "hojas tamaño carta"}.
         </p>
         <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
-          El gafete impreso o descargado lleva <strong>únicamente el código QR</strong> con sus guías de corte de esquina —
-          sin nombre, logo ni ningún otro dato del niño.
+          El gafete impreso o descargado lleva <strong>únicamente el nombre del niño y el código QR</strong> con sus
+          guías de corte de esquina — sin logo ni ningún otro dato.
         </p>
       </div>
 

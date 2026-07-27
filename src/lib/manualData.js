@@ -44,7 +44,7 @@ Solo el administrador de la parroquia puede crear, editar o eliminar grupos/libr
 
 Al guardar, se genera automáticamente un código QR único e infalsificable para ese niño — nadie puede adivinarlo ni duplicarlo.
 
-Para imprimir o descargar la tarjeta con el QR, entra al niño desde la lista y usa los botones "Descargar PNG" o "Imprimir". La tarjeta lleva únicamente el código QR con guías de corte — nunca el nombre ni otros datos del niño, para que pueda circular físicamente sin exponer información.`,
+Para imprimir o descargar la tarjeta con el QR, entra al niño desde la lista y usa los botones "Descargar PNG" o "Imprimir". La tarjeta lleva el nombre del niño arriba del código QR, con guías de corte — sin ningún otro dato.`,
   },
   {
     id: "gafetes-lote",
@@ -53,7 +53,7 @@ Para imprimir o descargar la tarjeta con el QR, entra al niño desde la lista y 
     keywords: ["gafete", "gafetes", "imprimir", "qr", "lote", "hoja", "pdf", "pulsera"],
     content: `Ve a "Niños", selecciona a los niños que necesitas (casilla junto a cada nombre) y usa "Imprimir gafetes". Se arma una hoja carta con hasta 9 tarjetas QR, con navegación entre páginas si seleccionaste más.
 
-Desde ahí puedes imprimir directamente o descargar la hoja como PNG, SVG o PDF — el PDF incluye todas las páginas si seleccionaste más de 9 niños. Igual que el gafete individual, cada tarjeta lleva solo el código QR y guías de corte, sin nombre del niño.`,
+Desde ahí puedes imprimir directamente o descargar la hoja como PNG, SVG o PDF — el PDF incluye todas las páginas si seleccionaste más de 9 niños. Igual que el gafete individual, cada tarjeta lleva el nombre del niño y el código QR con guías de corte.`,
   },
   {
     id: "cambiar-grupo-nino",

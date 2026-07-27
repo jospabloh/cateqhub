@@ -3,7 +3,7 @@ import Logo from "@/components/Logo";
 
 // Vista previa en pantalla para que el administrador identifique a quién
 // pertenece el QR mientras lo gestiona — nunca se imprime ni se exporta tal
-// cual (ver BadgeSheet/QRBadge para el gafete real, que es solo el QR).
+// cual (ver BadgeSheet/QRBadge para el gafete real, con solo el nombre y el QR).
 export default function QRCard({ child, parish, group }) {
   return (
     <div className="bg-white text-[#101820] rounded-xl p-6 w-full max-w-[320px] mx-auto border border-[#E4E7EB] shadow-sm">
