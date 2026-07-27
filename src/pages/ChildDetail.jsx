@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import QRCard, { downloadQRCard } from "@/components/QRCard";
+import QRCard from "@/components/QRCard";
+import BadgeSheet from "@/components/BadgeSheet";
+import { exportBadgeSheetPNG } from "@/lib/badgeExport";
 import { usePremiumStatus } from "@/lib/premium";
 import { usePermissions } from "@/lib/PermissionContext";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
@@ -22,8 +24,9 @@ export default function ChildDetail() {
   const { id } = useParams();
   const { user } = useAuth();
   const { can } = usePermissions();
-  const cardRef = useRef(null);
+  const badgePageRefs = useRef([]);
   const [child, setChild] = useState(null);
+  const [exportingBadge, setExportingBadge] = useState(false);
   const [group, setGroup] = useState(null);
   const [groups, setGroups] = useState([]);
   const [parish, setParish] = useState(null);
@@ -105,6 +108,15 @@ export default function ChildDetail() {
     if (!confirm("¿Quitar a este tutor del niño?")) return;
     await base44.entities.ChildGuardian.delete(linkId);
     load();
+  };
+
+  const downloadBadge = async () => {
+    setExportingBadge(true);
+    try {
+      await exportBadgeSheetPNG(badgePageRefs.current[0], `qr-${child.name.replace(/\s+/g, "_")}.png`);
+    } finally {
+      setExportingBadge(false);
+    }
   };
 
   if (!child) return <div className="grid place-items-center py-20"><div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" /></div>;
@@ -207,11 +219,18 @@ export default function ChildDetail() {
         </div>
 
         <div className="space-y-3">
-          <QRCard ref={cardRef} child={child} parish={parish} group={group} />
+          <div className="print:hidden">
+            <QRCard child={child} parish={parish} group={group} />
+          </div>
+          <p className="text-xs text-muted-foreground text-center print:hidden">
+            Lo que se descarga o imprime lleva únicamente el código QR con guías de corte — sin nombre ni datos del niño.
+          </p>
           <div className="flex gap-3 justify-center print:hidden">
-            <Button variant="outline" onClick={() => downloadQRCard(child)}><Download className="w-4 h-4 mr-2" />Descargar PNG</Button>
+            <Button variant="outline" disabled={exportingBadge} onClick={downloadBadge}><Download className="w-4 h-4 mr-2" />Descargar PNG</Button>
             <Button variant="outline" onClick={() => window.print()}><Printer className="w-4 h-4 mr-2" />Imprimir</Button>
           </div>
+          {/* Gafete real (solo QR + guías de corte): oculto en pantalla, usado para exportar/imprimir. */}
+          <BadgeSheet pages={[[child]]} activePage={-1} pageRefs={badgePageRefs} />
         </div>
       </div>
 
