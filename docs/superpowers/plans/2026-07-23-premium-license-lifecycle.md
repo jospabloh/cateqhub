@@ -195,25 +195,34 @@ The current `rls` block (all four operations identical: `parish_id` match OR pla
       ]
     },
     "delete": {
-      "$or": [
+      "$and": [
         {
           "data.parish_id": "{{user.data.parish_id}}"
         },
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "data.parish_role": "admin"
+              }
+            }
+          ]
         }
       ]
     }
   }
 ```
 
-`delete` is intentionally unchanged (matches the pre-existing behavior: Tutores can always be deleted, at any license state — same promise already made for the free-tier downgrade).
+**Correction:** an earlier draft of this plan claimed `Guardian.jsonc`'s original `delete` block was the simple `parish_id match OR platform admin` form — that was a transcription error. Guardian's actual original `delete` requires parish match AND (platform admin OR parish-level admin), shown above; leave it exactly as it already is (do not touch it) — only `create`/`read`/`update` change in this task. `ChildGuardian.jsonc`'s `delete` genuinely is the simpler `$or` form already (see Step 2) — the two entities were never identical on `delete`, and that's correct/intentional, not something to reconcile.
 
-- [ ] **Step 2: Apply the identical `rls` block to `ChildGuardian.jsonc`**
+- [ ] **Step 2: Apply the identical `create`/`read`/`update` blocks to `ChildGuardian.jsonc` (its `delete` stays as-is, the simpler `$or` form)**
 
-Replace `ChildGuardian.jsonc`'s `rls` block with the exact same block from Step 1 (the four operations are identical for this entity too — `ChildGuardian` is the join table between `Child` and `Guardian`, gated the same way as `Guardian` itself since it also carries Tutor-relationship data).
+Replace `ChildGuardian.jsonc`'s `create`/`read`/`update` blocks with the exact same three blocks from Step 1 — but leave `ChildGuardian.jsonc`'s `delete` block untouched (it's already the simpler `parish_id match OR platform admin` form, which is correct for this entity and was never meant to match Guardian's stricter `delete`).
 
 - [ ] **Step 3: Verify the app builds**
 
