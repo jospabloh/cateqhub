@@ -2,6 +2,24 @@
 
 Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appConfig.js` (consumida por la página "Acerca de" dentro de la app); este archivo es la versión en prosa.
 
+## 1.7.0 — 2026-07-27
+
+- **Escanear**: se eliminó el selector de grupo/libro antes de escanear. Cada código QR trae consigo el grupo del niño, así que una sola estación de escaneo puede recibir a todos los grupos al mismo tiempo, sin riesgo de registrar a un niño bajo el grupo equivocado. Sigue bloqueando el registro si el niño está inactivo o no tiene grupo/libro asignado.
+- **Permisos**: la sección pasó de ser una tabla informativa de solo lectura a una matriz editable. El administrador de la parroquia ahora decide, permiso por permiso, qué puede hacer el catequista: ver niños/reportes de todos los grupos, cambiar o dar de baja niños, escanear cualquier grupo, y agregar tutores. El cambio se aplica de inmediato a los catequistas ya asignados.
+- **Seguridad**: esos mismos permisos (y el candado del plan Premium sobre Tutores) ahora se hacen cumplir también en el backend — antes una llamada directa a la API de entidades podía saltárselos, aunque la pantalla los respetara.
+- **Gafetes QR por lotes**: desde "Niños" se pueden seleccionar uno o varios niños e imprimir o descargar (PNG, SVG o PDF) una hoja de gafetes con únicamente el código QR y guías de corte — sin nombre ni datos del niño. Se corrigieron además varios detalles de impresión: el QR ya llena la tarjeta completa y ya no se genera una segunda hoja casi en blanco.
+- **Reportes**: la gráfica de asistencia por fecha y la tabla de faltas acumuladas ahora llevan al detalle. Tocar una barra (o una fecha en la tabla) muestra quién asistió y quién faltó ese día, agrupado por grupo/libro; tocar un niño en "Faltas acumuladas" muestra su historial sesión por sesión, ambos con enlace directo al perfil del niño. El tooltip de la gráfica también muestra el porcentaje de asistencia, no solo el conteo.
+- Nuevo control en la ficha del niño para reasignar su grupo/libro (antes no existía en la interfaz), con un aviso de "cambió de grupo/libro" visible durante 7 días — útil para catequistas que trabajan con gafetes impresos organizados por grupo.
+- Corrección: asignar un catequista a un grupo/libro ahora sí se guarda (el campo se escribía con el nombre equivocado y se perdía en silencio).
+- Correcciones de manejo de datos sensibles: el borrado de datos Premium ya no se reporta como exitoso (`ok: true`) si una parte quedó sin borrar, y el registro de consentimiento de tratamiento de datos de una parroquia ya no puede reescribirse desde una llamada directa a la API — solo el administrador, y solo por el flujo previsto.
+
+## 1.6.0 — 2026-07-23
+
+- Ciclo de vida de licencia Premium: si el pago no se confirma, Tutores pasa primero a solo lectura y después a acceso denegado, con exportación autoservicio de tus datos antes de cualquier eliminación.
+- La restricción del plan Premium en Tutores ahora se hace cumplir también en el backend, no solo en la pantalla.
+- Nuevo aviso de manejo de datos sensibles (CURP y datos de menores) al crear una parroquia, conforme a la LFPDPPP.
+- "Acerca de" ahora indica las certificaciones de seguridad de Base44, el proveedor de infraestructura.
+
 ## 1.5.0 — 2026-07-23
 
 - El plan por default de `Parish` cambió de `trial` (90 días de funciones premium, luego bloqueo) a `free`: CateqHub arranca en el plan gratuito sin vencimiento, sin acceso a tutores/mensajería/tareas/pulseras hasta activar Premium. El límite de niños del plan gratuito todavía no está definido.

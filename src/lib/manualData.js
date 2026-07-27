@@ -2,7 +2,7 @@
 // de artículos hardcodeado (no una entidad ni un CMS), revisado a mano en cada
 // versión. `content` es texto plano; los párrafos se separan con línea en
 // blanco y las líneas que empiezan con "- " se muestran como lista.
-export const MANUAL_LAST_REVIEWED = "2026-07-23";
+export const MANUAL_LAST_REVIEWED = "2026-07-27";
 
 export const manualArticles = [
   {
@@ -24,7 +24,7 @@ Al crearla, quedas automáticamente como administrador de esa parroquia. Desde a
 La persona recibe un correo para crear su cuenta. Una vez que acepte, aparecerá en la lista y podrás asignarle un grupo/libro si es catequista.
 
 - Un administrador de parroquia puede gestionar grupos/libros, niños, usuarios y ver todos los reportes.
-- Un catequista solo ve y registra asistencia de su propio grupo/libro.`,
+- Por default, un catequista solo ve y registra asistencia de su propio grupo/libro — el administrador puede ampliar esto desde "Permisos".`,
   },
   {
     id: "crear-grupos",
@@ -44,7 +44,25 @@ Solo el administrador de la parroquia puede crear, editar o eliminar grupos/libr
 
 Al guardar, se genera automáticamente un código QR único e infalsificable para ese niño — nadie puede adivinarlo ni duplicarlo.
 
-Para imprimir o descargar la tarjeta con el QR, entra al niño desde la lista y usa los botones "Descargar PNG" o "Imprimir".`,
+Para imprimir o descargar la tarjeta con el QR, entra al niño desde la lista y usa los botones "Descargar PNG" o "Imprimir". La tarjeta lleva únicamente el código QR con guías de corte — nunca el nombre ni otros datos del niño, para que pueda circular físicamente sin exponer información.`,
+  },
+  {
+    id: "gafetes-lote",
+    category: "Niños y grupos/libros",
+    title: "Imprimir gafetes QR de varios niños a la vez",
+    keywords: ["gafete", "gafetes", "imprimir", "qr", "lote", "hoja", "pdf", "pulsera"],
+    content: `Ve a "Niños", selecciona a los niños que necesitas (casilla junto a cada nombre) y usa "Imprimir gafetes". Se arma una hoja carta con hasta 9 tarjetas QR, con navegación entre páginas si seleccionaste más.
+
+Desde ahí puedes imprimir directamente o descargar la hoja como PNG, SVG o PDF — el PDF incluye todas las páginas si seleccionaste más de 9 niños. Igual que el gafete individual, cada tarjeta lleva solo el código QR y guías de corte, sin nombre del niño.`,
+  },
+  {
+    id: "cambiar-grupo-nino",
+    category: "Niños y grupos/libros",
+    title: "Cambiar el grupo/libro de un niño",
+    keywords: ["cambiar grupo", "reasignar", "mover niño", "grupo/libro"],
+    content: `Desde la ficha del niño, usa "Cambiar" junto al grupo/libro actual y elige el nuevo. Requiere el permiso "Cambiar el grupo/libro de un niño" (los administradores siempre lo tienen; para catequistas se activa en "Permisos").
+
+Después de un cambio, el niño muestra un aviso "Cambió de grupo/libro" durante 7 días — útil si trabajas con gafetes o listas impresas organizadas por grupo, para saber que ese niño ya no está donde dice el papel.`,
   },
   {
     id: "dar-de-baja",
@@ -59,21 +77,23 @@ Puedes reactivarlo en cualquier momento desde el mismo botón.`,
     id: "escanear",
     category: "Asistencia",
     title: "Escanear asistencia",
-    keywords: ["escanear", "qr", "cámara", "registrar asistencia", "presente"],
-    content: `Ve a "Escanear", activa la cámara y apunta al código QR del niño. Si eres administrador, primero elige el grupo/libro; si eres catequista, se usa tu grupo/libro asignado automáticamente.
+    keywords: ["escanear", "qr", "cámara", "registrar asistencia", "presente", "grupo automático"],
+    content: `Ve a "Escanear", activa la cámara y apunta al código QR del niño. Ya no eliges un grupo/libro antes de empezar: cada código trae consigo el grupo del niño, así que una sola estación de escaneo puede recibir a niños de cualquier grupo, uno tras otro.
 
-Escanear el mismo código dos veces el mismo día no genera un registro duplicado — verás el aviso "Ya registrado hoy".
+Si el niño no tiene grupo/libro asignado, o está inactivo, el escaneo se rechaza con un mensaje explicando por qué. Un catequista sin el permiso "Escanear niños de cualquier grupo/libro" (ajustable en "Permisos") solo puede registrar asistencia de niños de su propio grupo/libro; si intenta escanear a otro, ve el aviso "Este niño no pertenece a tu grupo/libro" y no se registra nada.
 
-El código QR de un niño inactivo no registra asistencia.`,
+Escanear el mismo código dos veces el mismo día no genera un registro duplicado — verás el aviso "Ya registrado hoy".`,
   },
   {
     id: "reportes",
     category: "Asistencia",
     title: "Ver reportes de asistencia y faltas",
-    keywords: ["reporte", "asistencia", "faltas", "gráfica", "por fecha"],
-    content: `Ve a "Reportes". Puedes filtrar por grupo/libro y por rango de fechas.
+    keywords: ["reporte", "asistencia", "faltas", "gráfica", "por fecha", "detalle"],
+    content: `Ve a "Reportes". Puedes filtrar por grupo/libro y por rango de fechas. Arriba verás un resumen rápido: clases registradas, asistencia promedio y el niño con más faltas en el rango.
 
-La gráfica de barras muestra cuántos niños asistieron en cada fecha. Abajo, "Faltas acumuladas por niño" muestra, para cada niño activo, cuántas sesiones tuvo su grupo/libro, a cuántas asistió y cuántas faltó — ordenado con las más faltas primero.`,
+La gráfica de barras muestra cuántos niños asistieron en cada fecha — tócala (o toca una fecha en "Ver tabla de datos") para abrir el detalle de ese día: quién asistió y quién faltó, agrupado por grupo/libro, con enlace directo a la ficha de cada niño.
+
+Abajo, "Faltas acumuladas por niño" muestra, para cada niño activo, cuántas sesiones tuvo su grupo/libro, a cuántas asistió y cuántas faltó — ordenado con las más faltas primero. Toca a un niño para ver su historial sesión por sesión (presente/falta en cada fecha) y un enlace a su perfil completo.`,
   },
   {
     id: "tutores",
@@ -96,9 +116,20 @@ Ve a "Premium" para ver el estado de tu parroquia (gratuito o activo) y el preci
   {
     id: "permisos",
     category: "Cuenta y permisos",
-    title: "Qué puede hacer cada rol",
-    keywords: ["permisos", "roles", "administrador", "catequista", "quien puede"],
-    content: `CateqHub tiene dos roles dentro de cada parroquia: administrador y catequista. Ve a "Permisos" (solo visible para administradores) para ver exactamente qué puede hacer cada uno en cada sección de la app.`,
+    title: "Qué puede hacer cada rol — y cómo ajustarlo",
+    keywords: ["permisos", "roles", "administrador", "catequista", "quien puede", "ajustar", "matriz"],
+    content: `CateqHub tiene dos roles dentro de cada parroquia: administrador y catequista. El administrador tiene acceso total (grupos/libros, usuarios, parroquia y todos los niños) y eso no es configurable — puede haber más de un administrador por parroquia.
+
+Ve a "Permisos" (solo visible para administradores) para ajustar qué puede hacer el catequista, permiso por permiso:
+
+- Ver niños de todos los grupos/libros, o solo el propio.
+- Cambiar el grupo/libro de un niño.
+- Dar de baja o reactivar niños.
+- Escanear niños de cualquier grupo/libro, o solo el propio.
+- Ver y filtrar reportes de todos los grupos/libros, o solo el propio.
+- Agregar tutores (además requiere que la parroquia tenga el plan Premium activo).
+
+Los cambios se guardan por parroquia y se aplican de inmediato a todos los catequistas ya asignados — no hace falta reinvitarlos. Estos permisos controlan comportamiento real de la app (incluido el backend), no solo lo que se muestra en pantalla; las secciones reservadas al administrador (Usuarios, Parroquia, Premium, gestión de Grupos/Libros) no aparecen aquí porque están protegidas también a nivel de base de datos.`,
   },
   {
     id: "soporte",
