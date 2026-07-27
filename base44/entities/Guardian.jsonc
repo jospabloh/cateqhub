@@ -70,14 +70,23 @@
       ]
     },
     "delete": {
-      "$or": [
+      "$and": [
         {
           "data.parish_id": "{{user.data.parish_id}}"
         },
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "data.parish_role": "admin"
+              }
+            }
+          ]
         }
       ]
     }
