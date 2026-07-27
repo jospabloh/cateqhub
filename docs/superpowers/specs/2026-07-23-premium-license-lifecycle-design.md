@@ -221,6 +221,54 @@ como — vía duplicación literal, Base44 functions no comparten módulos con
 `src/` — por la función; se deja un comentario cruzado en ambos lados para no
 desincronizar la versión).
 
+## Puente `acaciaControl` — nueva acción `license.deletePremiumData`
+
+Agregada a `base44/functions/acaciaControl/entry.ts` (reemplaza el comentario
+placeholder obsoleto `// Fase 6 — writes land here...`). Genérica a propósito
+— Mission Control decide qué se borra, el puente solo ejecuta:
+
+```ts
+case 'license.deletePremiumData': {
+  const { deleteEntities } = params;
+  if (!Array.isArray(deleteEntities) || deleteEntities.length === 0) {
+    return Response.json({ error: 'params.deleteEntities required' }, { status: 400 });
+  }
+  const deletedCounts: Record<string, number> = {};
+  for (const spec of deleteEntities) {
+    // MC pasa deleteEntities en orden hijo→padre (ChildGuardian antes que
+    // Guardian) para no dejar referencias huérfanas.
+    const rows = await sr.entities[spec.entity].filter({ [spec.field]: spec.value });
+    let count = 0;
+    for (const row of rows) {
+      try { await sr.entities[spec.entity].delete(row.id); count++; } catch { /* ya borrado o inaccesible, seguir */ }
+    }
+    deletedCounts[spec.entity] = count;
+  }
+  return Response.json({ ok: true, deletedCounts });
+}
+```
+
+Deliberadamente **no** toca `Parish` — solo borra filas de las entidades que
+Mission Control indique. El reset de `Parish` (`plan: 'free'`,
+`license_status: 'active'`, limpiar los timestamps de ciclo de vida) va en
+una llamada **separada** a la acción `license.set` ya existente (con
+`mirror` para propagar a `User`, ver spec hermano §2) — así el borrado
+destructivo y la escritura de estado quedan como dos pasos auditables
+independientes, y un reintento tras un fallo parcial es seguro: `filter` +
+`delete` sobre filas que ya no existen simplemente no encuentra nada que
+borrar.
+
+Mission Control llama esta acción con:
+```js
+{
+  action: 'license.deletePremiumData',
+  params: { deleteEntities: [
+    { entity: 'ChildGuardian', field: 'parish_id', value: parishId },
+    { entity: 'Guardian',      field: 'parish_id', value: parishId },
+  ] },
+}
+```
+
 ## Frontend
 
 ### Pantalla de aceptación (`Parishes.jsx`, solo en modo "crear")
@@ -359,7 +407,7 @@ Admin entra a /premium en access_denied
   → checkbox "ya guardé mis datos" → confirm_premium_export → Parish.export_confirmed_at
 
 (Mission Control, tras confirmar borrado — ver spec hermano)
-  → acaciaControl license.deletePremiumData → borra ChildGuardian + Guardian de esa parroquia
+  → acaciaControl license.deletePremiumData { deleteEntities:[ChildGuardian, Guardian] } → deletedCounts
   → acaciaControl license.set { patch:{plan:'free', license_status:'active', ...reset}, mirror:[...] }
 ```
 
