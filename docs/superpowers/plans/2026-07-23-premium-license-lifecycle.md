@@ -1544,14 +1544,97 @@ Expected: `e2e/smoke.spec.js` passes (this task's changes don't touch anything t
 - [ ] Crear una parroquia nueva sin aceptar el aviso → botón deshabilitado.
 - [ ] Aceptar el aviso → parroquia creada, `Parish.data_processing_accepted_at/_by/_terms_version` poblados.
 - [ ] Con `plan=free`: intentar `POST` directo a `Guardian.create` (o desde la consola del navegador) con un `parish_id` de una parroquia free → rechazado por RLS.
-- [ ] Activar `plan=premium` en Base44 panel → Agregar Tutor funciona en la UI.
-- [ ] Setear `license_status=read_only` en Base44 panel → banner ámbar visible, botón "Agregar" deshabilitado en ChildDetail, Tutores existentes siguen visibles.
-- [ ] Setear `license_status=access_denied` → banner rojo, ChildDetail muestra "acceso bloqueado" sin listar Tutores, `/premium` muestra la pantalla de exportación.
+- [ ] **Corrección post-revisión final:** activar Premium editando **solo** `Parish.plan` desde el panel de Base44, sin tocar `User`, y confirmar que Agregar Tutor **falla** (RLS deniega porque el espejo en `User.parish_plan` sigue en `free`) — esto demuestra por qué activar desde el panel de Base44 ya no es un camino soportado (ver corrección de `Premium.jsx` más abajo). Para probar el camino real: setear **tanto** `Parish.plan=premium` **como** `User.parish_plan=premium` para cada usuario de esa parroquia (o, una vez desplegado el repo hermano, usar Mission Control) → Agregar Tutor funciona.
+- [ ] Igual para `license_status`: setear `Parish.license_status=read_only` **y** `User.parish_license_status=read_only` en cada usuario → banner ámbar visible, botón "Agregar" deshabilitado en ChildDetail, Tutores existentes siguen visibles.
+- [ ] Setear `access_denied` en ambos lados (`Parish` y cada `User` de la parroquia) → banner rojo, ChildDetail muestra "acceso bloqueado" sin listar Tutores, `/premium` muestra la pantalla de exportación.
 - [ ] Click "Descargar mis datos" → se descarga un `.json` con `guardians`/`child_guardians` de esa parroquia.
 - [ ] Marcar "Descargué y guardé mis datos" → `Parish.export_confirmed_at`/`_by` se escriben, el checkbox se reemplaza por el mensaje de confirmación.
-- [ ] Volver `plan=free` y `license_status=active` en Base44 panel → banner desaparece, Tutores vuelven a ser de solo-lectura-para-crear (mensaje "función premium"), lectura/eliminación siguen disponibles.
+- [ ] Volver `plan=free` y `license_status=active` en ambos lados → banner desaparece, Tutores vuelven a ser de solo-lectura-para-crear (mensaje "función premium"), lectura/eliminación siguen disponibles.
 - [ ] `/acerca-de` muestra la tarjeta de certificaciones de Base44 con el link correcto.
+- [ ] **Ejecutar `backfill_parish_license_mirror` (Task 17) contra datos de prueba** con parroquias/usuarios ya existentes (creados antes de este despliegue, sin espejo) → confirmar que después de correrla, `User.parish_plan`/`parish_license_status` quedan poblados para todos, y que Tutores vuelve a funcionar para esas parroquias sin necesidad de tocar cada `User` a mano.
 
 - [ ] **Step 4: Note deployment status in the PR**
 
-The PR description must state explicitly that `base44/entities/*.jsonc` and `base44/functions/*/entry.ts` changes in this branch have **not** been deployed to the live Base44 backend (no MCP/CLI access in this session) — deployment is a manual follow-up step for whoever has Base44 access, per this repo's `CLAUDE.md`/`AGENTS.md`.
+The PR description must state explicitly that `base44/entities/*.jsonc` and `base44/functions/*/entry.ts` changes in this branch have **not** been deployed to the live Base44 backend (no MCP/CLI access in this session) — deployment is a manual follow-up step for whoever has Base44 access, per this repo's `CLAUDE.md`/`AGENTS.md`. It must **also** state the deploy-ordering requirement found by the final whole-branch review: Base44 deploys a schema atomically, so `Guardian`/`ChildGuardian`'s new RLS (Task 2) goes live in the same deploy as everything else — every existing user (free and premium tenants alike) has no `parish_plan`/`parish_license_status` on their `User` record yet, and an absent field matches no RLS `user_condition` equality, so Tutores would stop working for every tenant already using the app the instant this schema deploys. The requirement: **run `backfill_parish_license_mirror` (Task 17) immediately after deploying the schema, before any real user hits a Guardian/ChildGuardian read or write** — treat the gap between those two steps as a live incident window, not a normal deploy step, and keep it as short as operationally possible.
+
+---
+
+### Task 17: `backfill_parish_license_mirror` — one-shot mirror backfill (critical deploy dependency)
+
+**Files:**
+- Create: `base44/functions/backfill_parish_license_mirror/entry.ts`
+
+**Interfaces:**
+- Produces: `POST` (platform-admin only, invoked manually once per deploy — never by end users, never scheduled) → `{ ok: true, parishes: number, usersUpdated: number, errors: Array<{parish_id: string, message: string}> }`. Walks every `Parish`, and for each, stamps `parish_plan`/`parish_license_status` on every `User` with that `parish_id`, from the live `Parish.plan`/`Parish.license_status` values.
+
+**Why this task exists:** the final whole-branch review of Tasks 1–16 found that Task 1's `User.parish_plan`/`parish_license_status` mirror fields are only ever seeded going forward — by `create_parish` (new parishes only) and `assign_parish_user` (users assigned after this deploy). Every user who already exists in an already-existing parish has these two fields **undefined** the moment this schema deploys. Task 2's RLS treats an absent field as matching no `user_condition` equality — the exact "cero items" failure mode this portfolio has already hit twice (see `stockflow/CLAUDE.md`). Concretely, on deploy day, without this task: every existing **premium** parish loses read AND write access to Tutores despite an active paid license, and every existing **free** parish loses even the read access the spec explicitly promises stays available forever. This function is the one-shot fix that must run immediately after the schema deploys, before real traffic hits `Guardian`/`ChildGuardian`.
+
+- [ ] **Step 1: Write `base44/functions/backfill_parish_license_mirror/entry.ts`**
+
+```ts
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+
+// Ejecutar UNA VEZ, manualmente, inmediatamente después de desplegar el
+// esquema de este PR (Parish/User/Guardian/ChildGuardian) y ANTES de que
+// tráfico real llegue a Guardian/ChildGuardian — ver Task 16 Step 4 del plan
+// para el detalle de por qué el orden importa. No es un cron, no se agenda:
+// solo rellena el espejo (parish_plan/parish_license_status en User) para
+// usuarios que ya existían antes de este despliegue.
+const COUNT_CAP = 5000; // igual límite documentado que acaciaControl.
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const me = await base44.auth.me();
+    if (!me) return Response.json({ error: 'No autorizado' }, { status: 401 });
+    if (me.role !== 'admin') {
+      return Response.json({ error: 'Solo un administrador de plataforma puede ejecutar el backfill' }, { status: 403 });
+    }
+
+    const sr = base44.asServiceRole;
+    const parishes = await sr.entities.Parish.list('-created_date', COUNT_CAP);
+
+    let usersUpdated = 0;
+    const errors: Array<{ parish_id: string; message: string }> = [];
+
+    for (const parish of parishes) {
+      try {
+        const users = await sr.entities.User.filter({ parish_id: parish.id });
+        for (const user of users) {
+          // Best-effort por usuario: un usuario que falle no debe abortar el
+          // resto de la parroquia ni de las demás parroquias.
+          try {
+            await sr.entities.User.update(user.id, {
+              parish_plan: parish.plan ?? 'free',
+              parish_license_status: parish.license_status ?? 'active',
+            });
+            usersUpdated++;
+          } catch (e) {
+            errors.push({ parish_id: parish.id, message: `usuario ${user.id}: ${(e as Error).message}` });
+          }
+        }
+      } catch (e) {
+        errors.push({ parish_id: parish.id, message: (e as Error).message });
+      }
+    }
+
+    return Response.json({ ok: true, parishes: parishes.length, usersUpdated, errors });
+  } catch (error) {
+    return Response.json({ error: (error as Error).message }, { status: 500 });
+  }
+});
+```
+
+Note: unlike `assign_parish_user`'s per-assignment mirror seed (which now fails closed on a `Parish.get` error per the fix in this same review round — see the fix-wave notes), this backfill's per-user `?? 'free'`/`?? 'active'` fallback is intentional and safe: it only runs when `parish.plan`/`parish.license_status` themselves are missing (a `Parish` created before Task 1's schema existed, with no `plan`/`license_status` value at all — for which `free`/`active` are the objectively correct defaults, not a fail-open shortcut around a failed lookup), not when a lookup fails outright (a lookup failure here is caught and reported in `errors`, not silently defaulted).
+
+- [ ] **Step 2: Verify TypeScript compiles**
+
+Run: `npm run typecheck`
+Expected: same pre-existing baseline as every other `base44/functions/**` file in this plan (this file isn't reached by the broken jsconfig `include` list either, so it contributes no new typecheck errors — confirm this specifically, since Tasks 7/8's functions also weren't reached but Task 10's new `src/` files were).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add base44/functions/backfill_parish_license_mirror/entry.ts
+git commit -m "Agregar backfill_parish_license_mirror: requisito de despliegue crítico (ver revisión final)"
+```
