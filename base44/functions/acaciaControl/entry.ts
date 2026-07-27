@@ -106,7 +106,12 @@ Deno.serve(async (req) => {
       case 'license.set': {
         // Mission Control writes a tenant's license (service-role, HMAC-gated).
         // MC owns the per-app field mapping and builds `patch`; optional `log`
-        // appends an audit row (e.g. puntos LicenseEvent). Returns the updated row.
+        // appends an audit row (e.g. puntos LicenseEvent). Optional `mirror`
+        // propagates fields from this same patch onto related records — used
+        // by CateqHub to keep Guardian/ChildGuardian RLS (which can't look up
+        // a related Parish directly) in sync with Parish.plan/license_status.
+        // Generic: any app/entity can pass `mirror`, harmless if omitted.
+        // Returns the updated row.
         const entity = params.entity;
         const id = params.id;
         const patch = params.patch;
@@ -114,11 +119,24 @@ Deno.serve(async (req) => {
           return Response.json({ error: 'params.entity/id/patch required' }, { status: 400 });
         }
         const updated = await sr.entities[entity].update(id, patch);
+        let mirrored = 0;
+        const mirror = params.mirror;
+        if (Array.isArray(mirror)) {
+          for (const m of mirror) {
+            if (!m || !m.entity || !m.matchField || !m.fields || typeof m.fields !== 'object') continue;
+            try {
+              const rows = await sr.entities[m.entity].filter({ [m.matchField]: id });
+              for (const row of rows) {
+                try { await sr.entities[m.entity].update(row.id, m.fields); mirrored++; } catch { /* best-effort per row */ }
+              }
+            } catch { /* best-effort per mirror spec */ }
+          }
+        }
         const log = params.log;
         if (log && log.entity && log.row && typeof log.row === 'object') {
           try { await sr.entities[log.entity].create(log.row); } catch { /* audit best-effort */ }
         }
-        return Response.json({ ok: true, updated });
+        return Response.json({ ok: true, updated, mirrored });
       }
 
       case 'emails.sendFollowup': {
@@ -269,7 +287,30 @@ Deno.serve(async (req) => {
         return Response.json({ ok: true, revoked });
       }
 
-      // Fase 6 — writes land here, e.g. 'license.activate' / 'license.suspend'.
+      case 'license.deletePremiumData': {
+        // Mission Control triggers this only after a tenant has confirmed its
+        // own data export (gated on Mission Control's side, never trusted
+        // blindly here) — service-role, HMAC-gated. Deletes rows by filter,
+        // never by a fixed id list, so a retried call after a partial failure
+        // is safe (nothing left to find = nothing to delete). Does NOT touch
+        // the license entity itself — Mission Control resets it with a
+        // separate license.set call so the mirror stays consistent.
+        const deleteEntities = params.deleteEntities;
+        if (!Array.isArray(deleteEntities) || deleteEntities.length === 0) {
+          return Response.json({ error: 'params.deleteEntities required' }, { status: 400 });
+        }
+        const deletedCounts: Record<string, number> = {};
+        for (const spec of deleteEntities) {
+          if (!spec || !spec.entity || !spec.field || spec.value === undefined) continue;
+          const rows = await sr.entities[spec.entity].filter({ [spec.field]: spec.value });
+          let count = 0;
+          for (const row of rows) {
+            try { await sr.entities[spec.entity].delete(row.id); count++; } catch { /* already gone or inaccessible, continue */ }
+          }
+          deletedCounts[spec.entity] = count;
+        }
+        return Response.json({ ok: true, deletedCounts });
+      }
 
       default:
         return Response.json({ error: `unknown action: ${action}` }, { status: 400 });
