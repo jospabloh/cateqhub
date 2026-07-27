@@ -106,24 +106,22 @@ export default function Scan() {
         return;
       }
 
-      const today = new Date().toISOString().slice(0, 10);
-      const existing = await base44.entities.Attendance.filter({
-        child_id: child.id,
-        date: today,
-      });
-      if (existing.length > 0) {
+      // El chequeo de arriba es solo para feedback instantáneo — el permiso
+      // real (y el registro de duplicado del día) los aplica record_attendance
+      // con rol de servicio, así una sesión con permisos desactualizados no
+      // puede saltárselo.
+      const res = await base44.functions.invoke("record_attendance", { child_id: child.id });
+      if (res.data?.error) {
+        setStatus({ kind: "error", childName: res.data.childName || child.name, message: res.data.error });
+        setTimeout(() => setStatus({ kind: "idle" }), 3000);
+        return;
+      }
+      if (res.data?.duplicate) {
         setStatus({ kind: "duplicate", childName: child.name, message: "Ya registrado hoy" });
         setTimeout(() => setStatus({ kind: "idle" }), 2500);
         return;
       }
 
-      await base44.entities.Attendance.create({
-        parish_id: user.parish_id,
-        group_id: child.group_id,
-        child_id: child.id,
-        date: today,
-        recorded_by: user.id,
-      });
       const groupName = groups.find((g) => g.id === child.group_id)?.name;
       setStatus({ kind: "success", childName: child.name, message: groupName ? `Asistencia registrada — ${groupName}` : "Asistencia registrada" });
       setTimeout(() => setStatus({ kind: "idle" }), 2500);
