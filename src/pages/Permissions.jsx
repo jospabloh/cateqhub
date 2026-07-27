@@ -84,7 +84,7 @@ export default function Permissions() {
                 <Badge className="bg-moss text-moss-foreground hover:bg-moss/90 border-0">Acceso total</Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                Gestiona grupos, usuarios, la parroquia y a todos los niños. Puede haber más de uno. No es configurable.
+                Gestiona grupos/libros, usuarios, la parroquia y a todos los niños. Puede haber más de uno. No es configurable.
               </p>
             </div>
           </CardContent>
@@ -102,7 +102,7 @@ export default function Permissions() {
             <div className="min-w-0">
               <p className="font-semibold flex items-center gap-1.5"><UserCog className="w-4 h-4 text-muted-foreground shrink-0" />Catequista</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Trabaja con su propio grupo por defecto. {summary.granted} de {summary.total} permisos adicionales activos — ajústalos abajo.
+                Trabaja con su propio grupo/libro por defecto. {summary.granted} de {summary.total} permisos adicionales activos — ajústalos abajo.
               </p>
             </div>
           </CardContent>
@@ -115,7 +115,7 @@ export default function Permissions() {
         <CardContent className="pt-5 flex items-start gap-3 text-sm text-muted-foreground">
           <Lock className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
           <p>
-            Estos permisos controlan comportamiento real de la app, no solo lo que se muestra en pantalla. Usuarios, Parroquia, Premium y la administración de Grupos siguen reservados al administrador de parroquia y no son configurables aquí: esas acciones están protegidas también a nivel de base de datos, así que ningún ajuste de esta pantalla puede abrirlas. Los datos en sí están aislados por parroquia a nivel de base de datos — ninguna parroquia puede ver ni modificar los datos de otra.
+            Estos permisos controlan comportamiento real de la app, no solo lo que se muestra en pantalla. Usuarios, Parroquia, Premium y la administración de Grupos/Libros siguen reservados al administrador de parroquia y no son configurables aquí: esas acciones están protegidas también a nivel de base de datos, así que ningún ajuste de esta pantalla puede abrirlas. Los datos en sí están aislados por parroquia a nivel de base de datos — ninguna parroquia puede ver ni modificar los datos de otra.
           </p>
         </CardContent>
       </Card>

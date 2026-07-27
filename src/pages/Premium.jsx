@@ -9,8 +9,8 @@ import { Check, Sparkles, Clock } from "lucide-react";
 
 const FREE_FEATURES = [
   "Registro de asistencia por QR, sin límite de niños",
-  "Alta de parroquia, grupos y niños",
-  "Reporte de asistencia por fecha y grupo",
+  "Alta de parroquia, grupos/libros y niños",
+  "Reporte de asistencia por fecha y grupo/libro",
   "Faltas acumuladas por niño",
 ];
 
@@ -94,7 +94,7 @@ export default function Premium() {
 
       {isParishAdmin(user) && status.tier !== "premium" && (
         <p className="text-sm text-muted-foreground">
-          Aún no hay activación automática de pago — {user?.role === "admin" ? "activa el plan Premium desde el panel de administración de Base44 para tu parroquia." : "contacta a quien administra la app para activar el plan Premium en tu parroquia."}
+          Aún no hay activación automática de pago — {user?.role === "admin" ? "activa el plan Premium para tu parroquia desde el panel de administración." : "contacta a quien administra la app para activar el plan Premium en tu parroquia."}
         </p>
       )}
     </div>

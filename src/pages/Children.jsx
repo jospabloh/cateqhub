@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { ClipboardList, Plus, Search, QrCode } from "lucide-react";
 import { usePermissions } from "@/lib/PermissionContext";
 import { normalizeCurp, isValidCurp } from "@/lib/curp";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
 
 const empty = { name: "", birth_date: "", group_id: "", curp: "" };
 const RECENT_GROUP_CHANGE_DAYS = 7;
@@ -20,23 +22,32 @@ const isRecentGroupChange = (c) => c.group_changed_at
 export default function Children() {
   const { user } = useAuth();
   const { can, loading: permsLoading } = usePermissions();
+  const { toast } = useToast();
   const [children, setChildren] = useState([]);
   const [groups, setGroups] = useState([]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(empty);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const load = async () => {
     if (!user?.parish_id) return;
-    const filter = { parish_id: user.parish_id };
-    if (!can("ninos", "ver_todos_los_grupos") && user.group_id) filter.group_id = user.group_id;
-    const [c, g] = await Promise.all([
-      base44.entities.Child.filter(filter, "-created_date"),
-      base44.entities.Group.filter({ parish_id: user.parish_id }),
-    ]);
-    setChildren(c);
-    setGroups(g);
+    setInitialLoading(true);
+    try {
+      const filter = { parish_id: user.parish_id };
+      if (!can("ninos", "ver_todos_los_grupos") && user.group_id) filter.group_id = user.group_id;
+      const [c, g] = await Promise.all([
+        base44.entities.Child.filter(filter, "-created_date"),
+        base44.entities.Group.filter({ parish_id: user.parish_id }),
+      ]);
+      setChildren(c);
+      setGroups(g);
+    } catch (e) {
+      toast({ title: "No se pudieron cargar los niños", description: e.message, variant: "destructive" });
+    } finally {
+      setInitialLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [user, permsLoading]);
@@ -64,7 +75,10 @@ export default function Children() {
         active: true,
       });
       setOpen(false);
-      load();
+      await load();
+      toast({ title: "Niño registrado" });
+    } catch (e) {
+      toast({ title: "No se pudo guardar", description: e.message, variant: "destructive" });
     } finally { setLoading(false); }
   };
 
@@ -83,7 +97,21 @@ export default function Children() {
         <Input className="pl-9" placeholder="Buscar por nombre…" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
-      {filtered.length === 0 ? (
+      {initialLoading ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="pt-5 flex items-center gap-4">
+                <Skeleton className="w-11 h-11 rounded-full shrink-0" />
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <Card><CardContent className="pt-6 text-center text-muted-foreground">No hay niños registrados.</CardContent></Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -95,13 +123,13 @@ export default function Children() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold truncate">{c.name}</p>
-                  <p className="text-sm text-muted-foreground truncate">{groupMap[c.group_id] || "Sin grupo"}</p>
+                  <p className="text-sm text-muted-foreground truncate">{groupMap[c.group_id] || "Sin grupo/libro"}</p>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {!c.active && <Badge variant="secondary">Inactivo</Badge>}
-                    {isRecentGroupChange(c) && <Badge variant="outline" className="text-[10px] font-normal">Cambió de grupo</Badge>}
+                    {isRecentGroupChange(c) && <Badge variant="outline" className="text-[10px] font-normal">Cambió de grupo/libro</Badge>}
                   </div>
                 </div>
-                <Button asChild size="icon" variant="ghost">
+                <Button asChild size="icon" variant="ghost" aria-label={`Ver código QR de ${c.name}`}>
                   <Link to={`/ninos/${c.id}`}><QrCode className="w-5 h-5 text-gold" /></Link>
                 </Button>
               </CardContent>
@@ -136,7 +164,7 @@ export default function Children() {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>Grupo</Label>
+              <Label>Grupo/Libro</Label>
               <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.group_id} onChange={(e) => setForm({ ...form, group_id: e.target.value })} disabled={!can("ninos", "ver_todos_los_grupos")}>
                 <option value="">Selecciona…</option>
                 {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}

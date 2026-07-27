@@ -96,12 +96,12 @@ export default function Scan() {
         return;
       }
       if (!child.group_id) {
-        setStatus({ kind: "error", childName: child.name, message: "No tiene grupo asignado — actualízalo en Niños" });
+        setStatus({ kind: "error", childName: child.name, message: "No tiene grupo/libro asignado — actualízalo en Niños" });
         setTimeout(() => setStatus({ kind: "idle" }), 3000);
         return;
       }
       if (!can("escanear", "cualquier_grupo") && child.group_id !== user.group_id) {
-        setStatus({ kind: "error", childName: child.name, message: "Este niño no pertenece a tu grupo" });
+        setStatus({ kind: "error", childName: child.name, message: "Este niño no pertenece a tu grupo/libro" });
         setTimeout(() => setStatus({ kind: "idle" }), 3000);
         return;
       }
@@ -150,8 +150,8 @@ export default function Scan() {
       <div>
         <h1 className="text-2xl font-heading font-semibold flex items-center gap-2"><ScanLine className="w-6 h-6 text-gold" />Escanear asistencia</h1>
         <p className="text-muted-foreground text-sm">
-          Apunta la cámara al código QR del niño — el grupo se detecta automáticamente
-          {can("escanear", "cualquier_grupo") ? ", puedes escanear niños de cualquier grupo desde aquí." : ", solo puedes escanear niños de tu propio grupo."}
+          Apunta la cámara al código QR del niño — el grupo/libro se detecta automáticamente
+          {can("escanear", "cualquier_grupo") ? ", puedes escanear niños de cualquier grupo/libro desde aquí." : ", solo puedes escanear niños de tu propio grupo/libro."}
         </p>
       </div>
 
