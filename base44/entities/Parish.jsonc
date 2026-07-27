@@ -18,15 +18,15 @@
     "plan": {
       "type": "string",
       "title": "Plan",
-      "description": "Nivel de suscripción. CateqHub es free por default (sin vencimiento); el límite de niños del plan free aún no está definido. Se activa a premium desde Mission Control (rol de servicio) o el panel de Base44 — un admin de parroquia puede verlo pero no activarlo por sí mismo.",
+      "description": "Nivel de suscripción. Ya no existe un plan gratuito permanente: toda parroquia nueva arranca en \"premium\" con una prueba gratuita de 30 días (ver premium_period_end_at), con acceso completo a toda la app (núcleo + Tutores/mensajería/tareas/pulseras). \"free\" ya no se asigna a parroquias nuevas — solo lo escribe, como estado terminal, el borrado automático de datos Premium (license-delete-premium-data en Mission Control) tras deletion_eligible: en \"free\" el núcleo (asistencia, niños, grupos, reportes) vuelve a ser de solo lectura hasta reactivarlo, y Tutores/mensajería/tareas/pulseras ya no aplican. Se activa/reactiva desde Mission Control (rol de servicio) o el panel de Base44 — un admin de parroquia puede verlo pero no cambiarlo por sí mismo.",
       "enum": ["free", "premium"],
-      "default": "free",
+      "default": "premium",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "license_status": {
       "type": "string",
-      "title": "Estado de licencia Premium",
-      "description": "Solo aplica mientras plan=premium. Escrito exclusivamente por Mission Control (rol de servicio) vía el puente acaciaControl — nunca a mano desde el panel de Base44, porque el espejo en User (parish_license_status) quedaría desincronizado.",
+      "title": "Estado de licencia",
+      "description": "Solo aplica mientras plan=premium (prueba de 30 días o pago confirmado). Ciclo: active → read_only → access_denied → deletion_eligible si el período (premium_period_end_at) vence sin renovarse — aplica a TODA la app (núcleo incluido), no solo a Tutores. Escrito exclusivamente por Mission Control (rol de servicio) vía el puente acaciaControl — nunca a mano desde el panel de Base44, porque el espejo en User (parish_license_status) quedaría desincronizado.",
       "enum": ["active", "read_only", "access_denied", "deletion_eligible"],
       "default": "active",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
@@ -34,7 +34,8 @@
     "premium_period_end_at": {
       "type": "string",
       "format": "date-time",
-      "title": "Fin del periodo Premium pagado",
+      "title": "Fin del periodo vigente (prueba o pago)",
+      "description": "Al crear la parroquia se estampa a 30 días (prueba gratuita). Al confirmarse un pago, Mission Control lo recorre. El cron license-lifecycle usa esta fecha para iniciar el ciclo active → read_only → access_denied → deletion_eligible si no se renueva.",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "read_only_since": {

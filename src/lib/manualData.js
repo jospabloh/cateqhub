@@ -102,16 +102,18 @@ Abajo, "Faltas acumuladas por niño" muestra, para cada niño activo, cuántas s
     keywords: ["tutor", "padre", "madre", "recoger", "autorizado", "premium"],
     content: `Desde la ficha del niño, sección "Tutores", puedes agregar nombre, teléfono, correo, CURP opcional, relación y si está autorizado para recoger al niño.
 
-Agregar tutores es una función Premium. Tu parroquia empieza en el plan gratuito, donde se puede ver pero no agregar tutores nuevos — los que ya registraste siguen visibles y los puedes eliminar cuando quieras. Para agregar tutores hay que activar el plan Premium.`,
+Agregar tutores requiere el plan Premium activo — igual que el resto de la app. Toda parroquia nueva arranca con 30 días de prueba Premium completa, así que puedes agregar tutores desde el primer día. Si el período de prueba o pago vence sin renovarse, primero se restringe la edición y después el acceso completo, pero lo que ya registraste no se elimina hasta que hayas tenido oportunidad de exportarlo.`,
   },
   {
     id: "premium",
     category: "Tutores y Premium",
-    title: "Plan Premium y licencia",
-    keywords: ["premium", "licencia", "plan", "precio", "pago", "gratis", "free"],
-    content: `CateqHub es gratis por default: la asistencia por QR, los reportes básicos y el alta de niños/grupos/libros no tienen costo ni vencimiento. El plan Premium suma tutores, mensajería a tutores, tareas de catecismo y pulseras/etiquetas físicas.
+    title: "Plan Premium, prueba de 30 días y licencia",
+    keywords: ["premium", "licencia", "plan", "precio", "pago", "prueba", "trial", "gratis", "free"],
+    content: `Ya no existe un plan gratuito permanente. Toda parroquia nueva arranca automáticamente con 30 días de prueba Premium: acceso completo a asistencia por QR, niños/grupos/libros, reportes, Tutores, mensajería, tareas de catecismo y pulseras/etiquetas físicas — sin costo.
 
-Ve a "Premium" para ver el estado de tu parroquia (gratuito o activo) y el precio de referencia. Ahí mismo se explica cómo activar el plan.`,
+Si el período de prueba (o de pago, una vez que actives Premium) vence sin renovarse, la app entra en el mismo ciclo que antes solo aplicaba a Tutores: primero solo lectura en toda la app, después acceso denegado con oportunidad de exportar tus datos de Tutores antes de que se eliminen. Los datos de niños, grupos y asistencia nunca se eliminan por falta de pago — solo quedan en modo de solo lectura hasta reactivar el plan.
+
+Ve a "Premium" para ver el estado de tu parroquia (días restantes de prueba, activo, o pausado) y el precio de referencia. Ahí mismo se explica cómo activar o renovar el plan.`,
   },
   {
     id: "permisos",

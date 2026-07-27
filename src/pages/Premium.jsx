@@ -8,19 +8,30 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, Clock, ShieldAlert } from "lucide-react";
 
-const FREE_FEATURES = [
+const ALL_FEATURES = [
   "Registro de asistencia por QR, sin límite de niños",
   "Alta de parroquia, grupos/libros y niños",
   "Reporte de asistencia por fecha y grupo/libro",
   "Faltas acumuladas por niño",
-];
-
-const PREMIUM_FEATURES = [
   "Tutores y autorización de recogida",
   "Mensajería a tutores por WhatsApp o correo",
   "Tareas de catecismo y seguimiento de entregas",
   "Impresión de pulseras y etiquetas físicas",
 ];
+
+function formatDate(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function daysLeft(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return Math.ceil((d.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+}
 
 export default function Premium() {
   const { user } = useAuth();
@@ -79,6 +90,9 @@ export default function Premium() {
 
   if (!isParishAdmin(user)) return <RestrictedNotice />;
 
+  const trialEndLabel = formatDate(status.trialEndsAt);
+  const trialDaysLeft = daysLeft(status.trialEndsAt);
+
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
@@ -87,7 +101,7 @@ export default function Premium() {
           Plan Premium
         </h1>
         <p className="text-muted-foreground text-sm">
-          La asistencia por QR es gratis para siempre. Esto es lo que se suma con Premium.
+          Toda parroquia nueva arranca con 30 días de acceso completo, sin costo. Ya no hay un plan gratuito permanente.
         </p>
       </div>
 
@@ -96,10 +110,10 @@ export default function Premium() {
           <CardContent className="pt-6 space-y-4">
             <div className="flex items-center gap-2 text-destructive">
               <ShieldAlert className="w-5 h-5" />
-              <p className="font-medium">Acceso a Tutores denegado por falta de pago</p>
+              <p className="font-medium">Acceso denegado por falta de pago</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              Tu parroquia dejó de tener acceso a la función Premium por falta de pago. Puedes descargar los datos de Tutores que registraste antes de que se eliminen. El resto de CateqHub (niños, grupos, asistencia) sigue funcionando normalmente.
+              Tu período de prueba o pago venció y no se renovó. Toda la app quedó pausada: escanear, niños, grupos/libros, reportes y Tutores. Puedes descargar los datos de Tutores que registraste antes de que se eliminen — el resto de la información (niños, grupos, asistencia) no se borra, solo queda inaccesible hasta reactivar el plan.
             </p>
             {exportError && <p className="text-sm text-destructive">{exportError}</p>}
             <Button onClick={handleExport} disabled={exporting}>
@@ -129,20 +143,23 @@ export default function Premium() {
           {status.tier === "free" && (
             <div className="flex items-center gap-2 text-sm rounded-lg border border-border bg-muted px-4 py-3">
               <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span>Tu parroquia está en el plan gratuito. Lo que ya cargaste en Tutores sigue visible y lo puedes eliminar cuando quieras; para volver a editarlo hay que activar el plan Premium.</span>
+              <span>Tus datos de Tutores se eliminaron tras un período sin pago. El resto (niños, grupos, asistencia) sigue visible en modo de solo lectura; para volver a editar todo y agregar tutores, activa el plan Premium.</span>
             </div>
           )}
-          {status.tier === "premium" && (
+          {status.tier === "premium" && status.status === "active" && (
             <div className="flex items-center gap-2 text-sm rounded-lg border border-moss/30 bg-moss/10 px-4 py-3">
               <Check className="w-4 h-4 text-moss shrink-0" />
-              <span>Tu parroquia tiene el plan Premium activo.</span>
+              <span>
+                Tu parroquia tiene acceso Premium activo
+                {trialEndLabel ? ` — vigente hasta el ${trialEndLabel}${trialDaysLeft != null && trialDaysLeft >= 0 ? ` (${trialDaysLeft} ${trialDaysLeft === 1 ? "día" : "días"})` : ""}.` : "."}
+              </span>
             </div>
           )}
           {status.isPremium && status.isReadOnly && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="w-4 h-4 shrink-0" />
-                <span>Tu plan Premium está pendiente de pago. Agregar o editar Tutores está pausado hasta que se confirme el pago.</span>
+                <span>Tu período de prueba o pago venció. Agregar o editar está pausado en toda la app hasta que se confirme el pago — lo que ya registraste sigue visible.</span>
               </div>
               {exportError && <p className="text-sm text-destructive">{exportError}</p>}
               <Button size="sm" variant="outline" onClick={handleExport} disabled={exporting}>
@@ -151,42 +168,27 @@ export default function Premium() {
             </div>
           )}
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="pt-6 space-y-3">
-                <p className="font-medium">Gratis, para siempre</p>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  {FREE_FEATURES.map((f) => (
-                    <li key={f} className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-moss shrink-0 mt-0.5" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/30">
-              <CardContent className="pt-6 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium">Premium</p>
-                  <span className="text-sm text-muted-foreground">desde $500 MXN/mes</span>
-                </div>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  {PREMIUM_FEATURES.map((f) => (
-                    <li key={f} className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-xs text-muted-foreground">El precio final depende de la cantidad de niños activos en tu parroquia.</p>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="border-primary/30">
+            <CardContent className="pt-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="font-medium">Todo incluido</p>
+                <span className="text-sm text-muted-foreground">desde $500 MXN/mes</span>
+              </div>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {ALL_FEATURES.map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-muted-foreground">Los primeros 30 días son gratis. El precio final se confirma con tu ejecutivo ACACIA.</p>
+            </CardContent>
+          </Card>
 
-          {isParishAdmin(user) && status.tier !== "premium" && (
+          {isParishAdmin(user) && (
             <p className="text-sm text-muted-foreground">
-              Aún no hay activación automática de pago — contacta a tu ejecutivo de ACACIA para activar el plan Premium en tu parroquia. (La activación ya no se hace desde el panel de administración de Base44: ese camino deja desincronizado el control de acceso interno y Tutores puede quedar bloqueado aunque el plan diga "premium".)
+              Aún no hay activación automática de pago — contacta a tu ejecutivo de ACACIA para renovar o activar el plan Premium de tu parroquia. (La activación ya no se hace desde el panel de administración de Base44: ese camino deja desincronizado el control de acceso interno y la app puede quedar bloqueada aunque el plan diga "premium".)
             </p>
           )}
         </>

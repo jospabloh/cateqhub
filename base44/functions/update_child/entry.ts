@@ -5,6 +5,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 // (cambiar de grupo/libro, dar de baja/reactivar) pasan por aquí, para
 // aplicar de verdad los permisos ninos:cambiar_grupo y ninos:dar_de_baja que
 // antes solo ocultaban el botón en la interfaz.
+//
+// Ya no hay núcleo gratuito permanente: si el período Premium (prueba o
+// pago) de la parroquia venció sin renovarse, esta función también bloquea
+// editar niños, igual que add_guardian ya hacía con Tutores.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -20,6 +24,15 @@ Deno.serve(async (req) => {
     const child = await sr.entities.Child.get(child_id).catch(() => null);
     if (!child || child.parish_id !== me.parish_id) {
       return Response.json({ error: 'Niño no encontrado en tu parroquia' }, { status: 404 });
+    }
+
+    const parish = await sr.entities.Parish.get(me.parish_id).catch(() => null);
+    if (!parish) return Response.json({ error: 'No se pudo verificar tu parroquia, intenta de nuevo' }, { status: 500 });
+    if (parish.plan !== 'premium') {
+      return Response.json({ error: 'Editar niños requiere el plan Premium activo', code: 'premium_required' }, { status: 403 });
+    }
+    if (parish.license_status && parish.license_status !== 'active') {
+      return Response.json({ error: 'Tu período de prueba o pago está pendiente', code: 'license_not_active' }, { status: 403 });
     }
 
     const isAdmin = me.role === 'admin' || me.parish_role === 'admin';

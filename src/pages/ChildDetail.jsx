@@ -272,13 +272,13 @@ export default function ChildDetail() {
                 <>
                   {!status.isPremium && (
                     <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
-                      Agregar tutores es una función premium. Lo que ya registraste sigue aquí — puedes eliminarlo cuando quieras.{" "}
+                      Agregar tutores requiere el plan Premium activo.{" "}
                       <Link to="/premium" className="text-primary hover:underline">Ver plan Premium</Link>
                     </p>
                   )}
-                  {status.isReadOnly && !status.isAccessDenied && (
+                  {status.isPremium && status.isReadOnly && !status.isAccessDenied && (
                     <p className="text-xs text-amber-800 bg-amber-50 rounded-md px-3 py-2">
-                      Tu plan Premium está pendiente de pago — puedes ver los tutores registrados, pero no agregar ni editar.
+                      Tu período de prueba o pago está vencido — puedes ver los tutores registrados, pero no agregar ni editar.
                     </p>
                   )}
                   {guardians.length === 0 && <p className="text-sm text-muted-foreground">Sin tutores registrados.</p>}

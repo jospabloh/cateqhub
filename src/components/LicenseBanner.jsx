@@ -19,8 +19,8 @@ export default function LicenseBanner({ parish }) {
       {isDenied ? <ShieldAlert className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
       <span>
         {isDenied
-          ? "Acceso a Tutores denegado por falta de pago del plan Premium. Exporta tus datos antes de que se eliminen."
-          : "Tu plan Premium está pendiente de pago. Agregar o editar Tutores está pausado."}
+          ? "Tu período de prueba o pago venció: escanear, niños, grupos/libros, reportes y Tutores están pausados. Exporta tus datos de Tutores antes de que se eliminen."
+          : "Tu período de prueba o pago venció y no se ha renovado. Agregar o editar está pausado en toda la app."}
       </span>
       <Link to="/premium" className="underline font-medium shrink-0">Ver detalles</Link>
     </div>
