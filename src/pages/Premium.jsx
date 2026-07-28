@@ -37,14 +37,20 @@ const PREMIUM_FEATURES = [
 ];
 
 // Precio mensual Premium por nivel de niños activos — mismos tramos que la
-// tabla pública en acaciaco-site (apps/cateqhub.html). Si cambian los
-// tramos o precios, cambia también ahí.
+// tabla pública en acaciaco-site (apps/cateqhub.html) y el comentario de
+// referencia en licenseControl.js (acacia-mission-control). Si cambian los
+// tramos o precios, cambia también ahí. 451-650 se acotó a precio fijo
+// (2026-07-28, primer cliente de ese tamaño pidió cotización) siguiendo el
+// mismo incremento de $150/100 niños de los tramos anteriores; 651+ (o
+// diócesis multi-parroquia) se mantiene a cotizar.
 const PREMIUM_TIERS = [
   { min: 51, max: 150, price: 500 },
   { min: 151, max: 250, price: 650 },
   { min: 251, max: 350, price: 800 },
   { min: 351, max: 450, price: 950 },
-  { min: 451, max: Infinity, price: null },
+  { min: 451, max: 550, price: 1100 },
+  { min: 551, max: 650, price: 1250 },
+  { min: 651, max: Infinity, price: null },
 ];
 
 function tierFor(activeChildren) {

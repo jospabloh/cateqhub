@@ -2,6 +2,10 @@
 
 Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appConfig.js` (consumida por la página "Acerca de" dentro de la app); este archivo es la versión en prosa.
 
+## 1.9.1 — 2026-07-28
+
+- **Planes y precios**: se acotaron dos tramos más de mensualidad Premium que antes decían "Contáctanos" — 451-550 niños activos $1,100 MXN/mes, 551-650 $1,250 MXN/mes, mismo incremento de $150 por cada 100 niños que ya traían los tramos anteriores. 651+ (o diócesis con varias parroquias) sigue a cotización.
+
 ## 1.9.0 — 2026-07-28
 
 - **Plan de cobro en 3 partes** ("Planes y precios"): implementación asistida opcional (cargo único, $1,490–$3,990 MXN según niños activos — migración de listas existentes, alta de catequistas, capacitación y configuración de pulseras/gafetes), la mensualidad Premium de siempre sin cambio de precio, y soporte adicional a la carta ($550 MXN/hora, $990 MXN/sesión de capacitación extra, +$250 MXN/mes por soporte prioritario).
