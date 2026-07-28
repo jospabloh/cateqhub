@@ -341,7 +341,7 @@ export default function Premium() {
               <li>Migración de tus listas existentes (Excel/papel) a niños, grupos y tutores</li>
               <li>Alta de catequistas</li>
               <li>Sesión de capacitación por videollamada para tu coordinación</li>
-              <li>Configuración de la plantilla de pulseras/gafetes QR</li>
+              <li>Diseño del gafete QR listo para imprimir (la impresión corre por cuenta de la parroquia: equipo, papel y consumibles no incluidos)</li>
             </ul>
             {implementationStatus === "completed" ? (
               <p className="flex items-center gap-2 text-sm text-moss">
