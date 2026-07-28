@@ -1,9 +1,16 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.9.0";
+export const APP_VERSION = "1.9.1";
 export const RELEASE_DATE = "2026-07-28";
 
 export const CHANGELOG = [
+  {
+    version: "1.9.1",
+    date: "2026-07-28",
+    changes: [
+      "Planes y precios: se acotaron dos tramos más de mensualidad Premium (451-550 $1,100 MXN, 551-650 $1,250 MXN) que antes decían \"Contáctanos\" — mismo incremento de $150 por cada 100 niños de los tramos anteriores. 651+ o diócesis multi-parroquia sigue a cotización.",
+    ],
+  },
   {
     version: "1.9.0",
     date: "2026-07-28",
