@@ -8,7 +8,7 @@ Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appCon
 
 ## 1.9.0 — 2026-07-28
 
-- **Plan de cobro en 3 partes** ("Planes y precios"): implementación asistida opcional (cargo único, $1,490–$3,990 MXN según niños activos — migración de listas existentes, alta de catequistas, capacitación y configuración de pulseras/gafetes), la mensualidad Premium de siempre sin cambio de precio, y soporte adicional a la carta ($550 MXN/hora, $990 MXN/sesión de capacitación extra, +$250 MXN/mes por soporte prioritario).
+- **Plan de cobro en 3 partes** ("Planes y precios"): implementación asistida opcional (cargo único, $1,490–$3,990 MXN según niños activos — migración de listas existentes, alta de catequistas, capacitación y diseño de gafete QR listo para imprimir), la mensualidad Premium de siempre sin cambio de precio, y soporte adicional a la carta ($550 MXN/hora, $990 MXN/sesión de capacitación extra, +$250 MXN/mes por soporte prioritario).
 - **Soporte**: cada plan trae un tope de prioridad de ticket incluido (Gratis hasta Baja, Premium hasta Alta); el nuevo add-on de soporte prioritario lo sube a Urgente. El formulario de "Nuevo ticket" en Soporte ahora solo ofrece las prioridades que tu plan incluye.
 - Puedes solicitar la implementación asistida o el soporte prioritario directamente desde "Planes y precios" — ambos quedan pendientes de confirmación de pago con tu ejecutivo de ACACIA, igual que la activación de Premium hoy (no hay cobro automático todavía).
 
