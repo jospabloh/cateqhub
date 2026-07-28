@@ -104,6 +104,7 @@ Deno.serve(async (req) => {
       parish_role,
       parish_plan: targetParish.plan ?? 'free',
       parish_license_status: targetParish.license_status ?? 'active',
+      parish_support_priority_addon: targetParish.support_priority_addon ?? false,
       ...permFlags,
     });
 

@@ -84,6 +84,45 @@
       "type": "string",
       "title": "Versión del aviso aceptado",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "implementation_requested_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Implementación asistida solicitada",
+      "description": "Autoservicio: cualquier admin de la parroquia puede estampar esto desde Premium.jsx al pedir la implementación asistida (pago único, ver implementation_requested_tier). Es solo una señal de interés, no activa nada — ACACIA confirma el pago por WhatsApp/factura y recién entonces marca implementation_status=\"completed\" (rol de servicio, vía Mission Control). Sin rls.write explícito: hereda la regla de update de Parish (admin de la propia parroquia, o rol de servicio)."
+    },
+    "implementation_requested_tier": {
+      "type": "string",
+      "title": "Tramo de implementación solicitado",
+      "enum": ["hasta_150", "151_350", "351_mas"],
+      "description": "Tramo de precio (ver IMPLEMENTATION_TIERS en src/lib/premium.js y acaciaco-site/apps/cateqhub.html — mismos tramos en los tres) según niños activos al momento de solicitarla. Autoservicio, igual que implementation_requested_at."
+    },
+    "implementation_status": {
+      "type": "string",
+      "title": "Estado de la implementación asistida",
+      "enum": ["none", "requested", "completed"],
+      "default": "none",
+      "description": "\"completed\" lo escribe únicamente ACACIA (rol de servicio, vía Mission Control) tras confirmar el pago del cargo único — un admin de parroquia puede solicitarla (implementation_requested_at) pero no marcarse a sí mismo como completada.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "implementation_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Implementación asistida completada",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "support_priority_addon_requested_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Soporte prioritario solicitado",
+      "description": "Autoservicio: señal de interés en el add-on de soporte prioritario ($250 MXN/mes, sube el tope de prioridad de ticket a \"urgente\") desde Premium.jsx. No activa el beneficio por sí sola — ver support_priority_addon."
+    },
+    "support_priority_addon": {
+      "type": "boolean",
+      "title": "Soporte prioritario activo",
+      "default": false,
+      "description": "Sube el tope de prioridad seleccionable en un ticket de SupportTicket a \"urgent\" (ver src/lib/premium.js maxTicketPriority y SupportTickets.jsx). Solo ACACIA lo activa (rol de servicio, vía Mission Control) tras confirmar el pago mensual del add-on; se espeja a User.parish_support_priority_addon con el mismo mecanismo que plan/license_status (acción license.set, params.mirror).",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
   },
   "required": [

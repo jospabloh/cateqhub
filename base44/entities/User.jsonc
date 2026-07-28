@@ -44,6 +44,13 @@
       "description": "Espejo de Parish.license_status. Mismo mecanismo de sincronización y misma advertencia de backfill que parish_plan.",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
+    "parish_support_priority_addon": {
+      "type": "boolean",
+      "title": "Add-on de soporte prioritario (espejo)",
+      "default": false,
+      "description": "Espejo de Parish.support_priority_addon. SupportTickets.jsx lee este campo (no Parish directamente) para decidir el tope de prioridad seleccionable en un ticket nuevo — mismo motivo y mismo mecanismo de sincronización que parish_plan/parish_license_status (create_parish, assign_parish_user, y el puente acaciaControl vía license.set/params.mirror). Ausente o false = sin el add-on (tope normal según parish_plan).",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
     "perm_ninos_ver_todos": {
       "type": "boolean",
       "title": "Permiso: ver niños de todos los grupos/libros",

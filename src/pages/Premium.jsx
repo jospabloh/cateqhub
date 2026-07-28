@@ -1,12 +1,26 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { useLicenseStatus, FREE_PLAN_CHILD_CAP } from "@/lib/premium";
+import {
+  useLicenseStatus,
+  FREE_PLAN_CHILD_CAP,
+  IMPLEMENTATION_TIERS,
+  implementationTierFor,
+  SUPPORT_ADDON_MONTHLY_MXN,
+  SUPPORT_HOURLY_MXN,
+  SUPPORT_TRAINING_SESSION_MXN,
+} from "@/lib/premium";
 import { isParishAdmin } from "@/lib/roles";
 import RestrictedNotice from "@/components/RestrictedNotice";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Sparkles, Clock, ShieldAlert } from "lucide-react";
+import { Check, Sparkles, Clock, ShieldAlert, LifeBuoy, Wrench } from "lucide-react";
+
+// Mismo número que About.jsx (Contacto y soporte directo).
+const WHATSAPP_NUMBER = "524498958291";
+function waLink(text) {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+}
 
 const FREE_FEATURES = [
   "Registro de asistencia por código QR",
@@ -68,6 +82,58 @@ export default function Premium() {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [implBusy, setImplBusy] = useState(false);
+  const [implError, setImplError] = useState("");
+  const [addonBusy, setAddonBusy] = useState(false);
+  const [addonError, setAddonError] = useState("");
+
+  const implTier = implementationTierFor(activeChildren);
+  // "completed" solo lo escribe ACACIA (rol de servicio); una parroquia solo
+  // puede pedirla (implementation_requested_at), nunca marcarse a sí misma
+  // como completada — por eso el estado "requested" se deriva de la marca de
+  // tiempo de la solicitud, no del campo implementation_status (ver
+  // Parish.jsonc, ambos campos tienen FLS distinto a propósito).
+  const implementationStatus =
+    parish?.implementation_status === "completed"
+      ? "completed"
+      : parish?.implementation_requested_at
+        ? "requested"
+        : "none";
+  const addonActive = !!parish?.support_priority_addon;
+  const addonRequested = !addonActive && !!parish?.support_priority_addon_requested_at;
+
+  const handleRequestImplementation = async () => {
+    if (!parish) return;
+    setImplBusy(true);
+    setImplError("");
+    try {
+      const patch = {
+        implementation_requested_at: new Date().toISOString(),
+        implementation_requested_tier: implTier.value,
+      };
+      await base44.entities.Parish.update(parish.id, patch);
+      setParish((p) => ({ ...p, ...patch }));
+    } catch (e) {
+      setImplError(e.message || "No se pudo enviar la solicitud.");
+    } finally {
+      setImplBusy(false);
+    }
+  };
+
+  const handleRequestAddon = async () => {
+    if (!parish) return;
+    setAddonBusy(true);
+    setAddonError("");
+    try {
+      const patch = { support_priority_addon_requested_at: new Date().toISOString() };
+      await base44.entities.Parish.update(parish.id, patch);
+      setParish((p) => ({ ...p, ...patch }));
+    } catch (e) {
+      setAddonError(e.message || "No se pudo enviar la solicitud.");
+    } finally {
+      setAddonBusy(false);
+    }
+  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -245,8 +311,101 @@ export default function Premium() {
                   </table>
                 </div>
                 <p className="text-xs text-muted-foreground">Pago anual disponible con 2 meses gratis. ¿Diócesis con varias parroquias? Precio preferencial — contáctanos.</p>
+                <p className="text-xs text-muted-foreground">Todos los tramos Premium incluyen soporte con prioridad hasta <strong>Alta</strong> (respuesta en horas hábiles) — ver Soporte abajo.</p>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <h2 className="text-lg font-heading font-semibold">Implementación asistida <span className="text-sm font-normal text-muted-foreground">(opcional)</span></h2>
+              <p className="text-sm text-muted-foreground">No es necesaria para usar CateqHub — el alta sigue siendo autoservicio y gratis. Si prefieres que ACACIA migre tus listas existentes, dé de alta a tus catequistas y capacite a tu coordinación, es un cargo único.</p>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-3">
+              {IMPLEMENTATION_TIERS.map((t) => (
+                <Card key={t.value} className={implTier.value === t.value ? "border-primary/40" : ""}>
+                  <CardContent className="pt-5 space-y-1">
+                    <p className="text-sm font-medium">{t.label}</p>
+                    <p className="text-lg font-heading font-semibold">${t.price} <span className="text-xs font-normal text-muted-foreground">MXN único</span></p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
+              <li>Migración de tus listas existentes (Excel/papel) a niños, grupos y tutores</li>
+              <li>Alta de catequistas</li>
+              <li>Sesión de capacitación por videollamada para tu coordinación</li>
+              <li>Configuración de la plantilla de pulseras/gafetes QR</li>
+            </ul>
+            {implementationStatus === "completed" ? (
+              <p className="flex items-center gap-2 text-sm text-moss">
+                <Check className="w-4 h-4 shrink-0" />
+                Implementación asistida completada{parish?.implementation_completed_at ? ` el ${formatDate(parish.implementation_completed_at)}` : ""}.
+              </p>
+            ) : implementationStatus === "requested" ? (
+              <p className="text-sm text-muted-foreground">
+                Solicitud enviada el {formatDate(parish?.implementation_requested_at)} ({IMPLEMENTATION_TIERS.find((t) => t.value === parish?.implementation_requested_tier)?.label ?? implTier.label}) — te contactaremos por WhatsApp para confirmar el pago.
+              </p>
+            ) : (
+              <>
+                {implError && <p className="text-sm text-destructive">{implError}</p>}
+                <Button variant="outline" onClick={handleRequestImplementation} disabled={implBusy}>
+                  <Wrench className="w-4 h-4 mr-2" />
+                  {implBusy ? "Enviando…" : `Solicitar implementación asistida (${implTier.label})`}
+                </Button>
+              </>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <h2 className="text-lg font-heading font-semibold">Soporte</h2>
+              <p className="text-sm text-muted-foreground">Tu plan trae un nivel de soporte incluido; para lo que quede fuera hay soporte adicional a la carta.</p>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Card>
+                <CardContent className="pt-5 space-y-1">
+                  <p className="text-sm font-medium">Incluido en tu plan</p>
+                  <p className="text-sm text-muted-foreground">
+                    {status.tier === "premium"
+                      ? "Ticket con prioridad hasta Alta — respuesta en horas hábiles."
+                      : "Ticket con prioridad hasta Baja — respuesta por correo, mejor esfuerzo."}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">Soporte prioritario</p>
+                    <span className="text-xs text-muted-foreground">+${SUPPORT_ADDON_MONTHLY_MXN} MXN/mes</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Sube el tope a prioridad Urgente en cualquier ticket, sin cambiar de tramo.</p>
+                  {addonActive ? (
+                    <p className="flex items-center gap-1.5 text-sm text-moss">
+                      <Check className="w-3.5 h-3.5 shrink-0" />
+                      Activo
+                    </p>
+                  ) : addonRequested ? (
+                    <p className="text-xs text-muted-foreground">Solicitado el {formatDate(parish?.support_priority_addon_requested_at)} — pendiente de confirmar pago.</p>
+                  ) : (
+                    <>
+                      {addonError && <p className="text-xs text-destructive">{addonError}</p>}
+                      <Button size="sm" variant="outline" onClick={handleRequestAddon} disabled={addonBusy}>
+                        <LifeBuoy className="w-3.5 h-3.5 mr-2" />
+                        {addonBusy ? "Enviando…" : "Solicitar"}
+                      </Button>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Soporte adicional a la carta: ${SUPPORT_HOURLY_MXN} MXN/hora (correcciones y ajustes puntuales) · ${SUPPORT_TRAINING_SESSION_MXN} MXN/sesión de capacitación extra.{" "}
+              <a href={waLink("Hola, necesito soporte adicional para mi parroquia en CateqHub")} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                Solicitar por WhatsApp
+              </a>
+              .
+            </p>
           </div>
 
           {isParishAdmin(user) && (
