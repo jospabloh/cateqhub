@@ -6,6 +6,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 // para el detalle de por qué el orden importa. No es un cron, no se agenda:
 // solo rellena el espejo (parish_plan/parish_license_status en User) para
 // usuarios que ya existían antes de este despliegue.
+//
+// Idempotente y seguro de volver a correr: cuando se agregó
+// parish_support_priority_addon (plan de cobro 2026-07-28) se sumó a este
+// mismo backfill en vez de escribir uno nuevo — los usuarios ya cubiertos
+// por la corrida anterior simplemente reciben también el campo nuevo.
 const COUNT_CAP = 5000; // igual límite documentado que acaciaControl.
 
 Deno.serve(async (req) => {
@@ -33,6 +38,7 @@ Deno.serve(async (req) => {
             await sr.entities.User.update(user.id, {
               parish_plan: parish.plan ?? 'free',
               parish_license_status: parish.license_status ?? 'active',
+              parish_support_priority_addon: parish.support_priority_addon ?? false,
             });
             usersUpdated++;
           } catch (e) {

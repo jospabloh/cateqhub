@@ -1,9 +1,17 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.8.0";
-export const RELEASE_DATE = "2026-07-27";
+export const APP_VERSION = "1.9.0";
+export const RELEASE_DATE = "2026-07-28";
 
 export const CHANGELOG = [
+  {
+    version: "1.9.0",
+    date: "2026-07-28",
+    changes: [
+      "Nuevo plan de cobro en 3 partes, en \"Planes y precios\": implementación asistida opcional (cargo único, $1,490–$3,990 MXN según niños activos, para migrar tus listas existentes, dar de alta catequistas y capacitar a tu coordinación), la mensualidad Premium de siempre (sin cambio de precio) y soporte adicional a la carta ($550 MXN/hora, $990 MXN/sesión de capacitación extra, o +$250 MXN/mes por soporte prioritario).",
+      "Soporte: cada plan trae un tope de prioridad de ticket incluido (Gratis hasta Baja, Premium hasta Alta); el add-on de soporte prioritario lo sube a Urgente. Puedes solicitar la implementación asistida o el soporte prioritario desde \"Planes y precios\" — ambos quedan pendientes de confirmación de pago con tu ejecutivo de ACACIA, igual que la activación de Premium hoy.",
+    ],
+  },
   {
     version: "1.8.0",
     date: "2026-07-27",

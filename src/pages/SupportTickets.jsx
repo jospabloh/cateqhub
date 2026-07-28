@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
-import { LifeBuoy, Plus, ArrowLeft, Send } from "lucide-react";
+import { LifeBuoy, Plus, ArrowLeft, Send, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { allowedTicketPriorities } from "@/lib/premium";
 
 const CATEGORIES = [
   { value: "technical", label: "Técnico" },
@@ -61,6 +62,19 @@ export default function SupportTickets() {
     setTickets(rows);
   };
   useEffect(() => { loadTickets(); }, [user?.parish_id]);
+
+  // Tope de prioridad según el nivel de soporte incluido en el plan (y el
+  // add-on de soporte prioritario) — ver maxTicketPriority en lib/premium.js.
+  // No es una restricción de seguridad (nadie pierde acceso a datos por
+  // elegir mal), es la promesa de SLA del plan: si el default ("normal") no
+  // está permitido para esta parroquia, se ajusta al tope disponible.
+  const allowedPriorities = allowedTicketPriorities(user);
+  useEffect(() => {
+    if (view === "new" && !allowedPriorities.includes(form.priority)) {
+      setForm((f) => ({ ...f, priority: allowedPriorities[allowedPriorities.length - 1] || "low" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, user?.parish_plan, user?.parish_support_priority_addon]);
 
   const openThread = async (ticket) => {
     setActive(ticket);
@@ -184,10 +198,20 @@ export default function SupportTickets() {
               <div className="space-y-1.5">
                 <Label>Prioridad</Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
-                  {PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  {PRIORITIES.filter((p) => allowedPriorities.includes(p.value)).map((p) => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
                 </select>
               </div>
             </div>
+            {allowedPriorities.length < PRIORITIES.length && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Lock className="w-3.5 h-3.5 shrink-0" />
+                {user?.parish_plan === "premium"
+                  ? "Prioridad Urgente disponible con el add-on de soporte prioritario ($250 MXN/mes) — ver Planes y precios."
+                  : "Prioridad Normal, Alta y Urgente están incluidas en Premium — ver Planes y precios."}
+              </p>
+            )}
             <div className="space-y-1.5">
               <Label>Descripción</Label>
               <Textarea rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Cuéntanos qué ocurre…" />

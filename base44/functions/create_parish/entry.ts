@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
       parish_role: 'admin',
       parish_plan: 'premium',
       parish_license_status: 'active',
+      parish_support_priority_addon: false,
     });
 
     return Response.json({ parish });
