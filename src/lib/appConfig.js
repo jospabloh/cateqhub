@@ -1,9 +1,16 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.9.1";
+export const APP_VERSION = "1.9.2";
 export const RELEASE_DATE = "2026-07-28";
 
 export const CHANGELOG = [
+  {
+    version: "1.9.2",
+    date: "2026-07-28",
+    changes: [
+      "Mantenimiento: se actualizaron dependencias (dompurify, js-yaml, postcss) para cerrar vulnerabilidades conocidas de las librerías, sin cambios visibles para el usuario.",
+    ],
+  },
   {
     version: "1.9.1",
     date: "2026-07-28",

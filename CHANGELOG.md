@@ -2,6 +2,10 @@
 
 Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appConfig.js` (consumida por la página "Acerca de" dentro de la app); este archivo es la versión en prosa.
 
+## 1.9.2 — 2026-07-28
+
+- **Mantenimiento/seguridad**: auditoría rutinaria de dependencias — se actualizaron `dompurify`, `js-yaml` y `postcss` a versiones que corrigen vulnerabilidades conocidas (XSS, consumo excesivo de CPU, y divulgación de archivos vía source maps, respectivamente). Sin cambios visibles para el usuario. Quedan pendientes dos vulnerabilidades moderadas (`react-router`, `quill`) cuyo arreglo requiere una actualización de versión mayor — se dejan documentadas para una migración planeada en vez de aplicarse a ciegas en esta rutina.
+
 ## 1.9.1 — 2026-07-28
 
 - **Planes y precios**: se acotaron dos tramos más de mensualidad Premium que antes decían "Contáctanos" — 451-550 niños activos $1,100 MXN/mes, 551-650 $1,250 MXN/mes, mismo incremento de $150 por cada 100 niños que ya traían los tramos anteriores. 651+ (o diócesis con varias parroquias) sigue a cotización.
