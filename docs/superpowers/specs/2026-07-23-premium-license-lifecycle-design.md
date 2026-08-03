@@ -1,5 +1,15 @@
 # Diseño — Ciclo de vida de licencia Premium, aviso de privacidad y certificaciones
 
+> **⚠️ Actualización 2026-08-03:** los umbrales de días (15 días activo→read_only,
+> 15 más read_only→access_denied, 30 más access_denied→deletion_eligible)
+> descritos abajo cambiaron — Mission Control migró CateqHub a su ciclo
+> acumulado unificado 8/15/30/45 (directiva "no exceptions" del owner de la
+> plataforma). Ningún código de este repo cambia (la lógica del cron y el
+> endpoint de borrado viven enteramente en `acacia-mission-control`) — solo
+> cambia CUÁNDO se dispara cada etapa. Ver
+> `docs/superpowers/specs/2026-08-03-portfolio-license-lifecycle-design.md` en
+> `acacia-mission-control` para el detalle.
+
 **Fecha:** 2026-07-23
 **Rama:** `claude/asistencia-licencias-datos-sensibles-52jhi2`
 **Repo hermano:** `jospabloh/acacia-mission-control` (ver
