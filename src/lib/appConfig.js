@@ -1,9 +1,18 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.9.2";
-export const RELEASE_DATE = "2026-07-28";
+export const APP_VERSION = "1.9.3";
+export const RELEASE_DATE = "2026-08-03";
 
 export const CHANGELOG = [
+  {
+    version: "1.9.3",
+    date: "2026-08-03",
+    changes: [
+      "Seguridad: corregido un hueco de permisos que permitía a cualquier catequista desvincular al tutor de cualquier niño de la parroquia (ChildGuardian), sin el control de \"solo administrador de parroquia\" que ya aplicaba a niños, tutores y asistencia. También se cerró el mismo hueco, hasta ahora sin explotar desde la interfaz, en la edición directa de registros de asistencia (Attendance).",
+      "Mantenimiento: se eliminó `react-quill`/`quill` (sin uso en el código) y se corrigió una vulnerabilidad de alta severidad en una dependencia transitiva (`brace-expansion`), sin cambios visibles para el usuario. Queda pendiente `react-router` (aceptado, requiere una actualización de versión mayor).",
+      "Corrección menor de código: el hook de permisos ahora falla de forma segura (deniega en vez de permitir) si se usa fuera de su proveedor, en vez de conceder acceso por accidente — no había ningún caso en la app donde esto ocurriera hoy.",
+    ],
+  },
   {
     version: "1.9.2",
     date: "2026-07-28",
