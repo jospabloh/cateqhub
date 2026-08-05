@@ -54,7 +54,7 @@ export function PermissionProvider({ children }) {
 export function usePermissions() {
   const ctx = useContext(PermissionContext);
   if (!ctx) {
-    return { profile: null, loading: false, can: () => true, reload: () => {} };
+    throw new Error('usePermissions must be used within a PermissionProvider');
   }
   return ctx;
 }
