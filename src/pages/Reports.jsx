@@ -62,6 +62,11 @@ export default function Reports() {
       const att = await base44.entities.Attendance.filter(f, "-date");
       setAttendances(att.filter((a) => a.date >= from && a.date <= to));
     } catch (e) {
+      // No dejar las filas del grupo/rango anterior en pantalla: con el
+      // filtro ya cambiado, esos datos responderían a la selección vieja y
+      // se verían como si fueran la respuesta a la nueva (tasas y faltas
+      // incorrectas). Mejor una tabla vacía que un número equivocado.
+      setAttendances([]);
       toast({ title: "No se pudo cargar la asistencia", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
