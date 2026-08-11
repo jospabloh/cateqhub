@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
+import { isParishAdmin } from "@/lib/roles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +36,7 @@ const RECENT_GROUP_CHANGE_DAYS = 7;
 
 export default function ChildDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
   const { can } = usePermissions();
   const { toast } = useToast();
   const badgePageRefs = useRef([]);
@@ -296,7 +299,9 @@ export default function ChildDetail() {
                       {g.email && <p className="text-sm text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{g.email}</p>}
                       {g.curp && <p className="text-sm text-muted-foreground flex items-center gap-1"><IdCard className="w-3 h-3" /><span className="font-mono">{g.curp}</span></p>}
                     </div>
-                    <Button size="icon" variant="ghost" aria-label={`Quitar a ${g.name} como tutor`} onClick={() => setRemoveTarget({ id: rel.id, name: g.name })}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    {isParishAdmin(user) && (
+                      <Button size="icon" variant="ghost" aria-label={`Quitar a ${g.name} como tutor`} onClick={() => setRemoveTarget({ id: rel.id, name: g.name })}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    )}
                   </div>
                 );
               })}

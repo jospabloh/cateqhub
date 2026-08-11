@@ -1,9 +1,18 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.9.4";
-export const RELEASE_DATE = "2026-08-10";
+export const APP_VERSION = "1.9.5";
+export const RELEASE_DATE = "2026-08-11";
 
 export const CHANGELOG = [
+  {
+    version: "1.9.5",
+    date: "2026-08-11",
+    changes: [
+      "Corrección menor: en la ficha del niño, el botón para quitar a un tutor ya no se muestra a catequistas — quitar un tutor siempre ha requerido ser administrador de parroquia (regla de base de datos desde la 1.9.3), pero el botón aparecía para cualquier catequista y, al usarlo, fallaba con un aviso genérico de \"no se pudo\" sin explicar por qué. Ahora el botón solo aparece para quien realmente puede usarlo, igual que \"Cambiar grupo/libro\", \"Dar de baja\" y \"Agregar tutor\" en la misma ficha.",
+      "Corrección: en Reportes, si la carga de asistencia o de grupos/libros fallaba (sesión vencida, corte de red), la pantalla se quedaba girando en el esqueleto de carga para siempre, sin aviso ni forma de reintentar salvo recargar. Ahora muestra el mismo aviso de error con reintento que ya tienen Dashboard, Niños, Grupos/Libros y Usuarios.",
+      "Auditoría rutinaria: se revisaron a fondo los permisos y el aislamiento de datos (RLS) en las 10 entidades y en las funciones de backend (`assign_parish_user`, `add_guardian`, `create_child`, `update_child`, `record_attendance`, `acaciaControl`) — todas re-derivan `parish_id`/rol de la sesión autenticada, ninguna confía en un valor enviado por el cliente. No se encontraron huecos nuevos. `react-router`/`react-router-dom` (moderada, redirección abierta) sigue como riesgo aceptado, pendiente de la migración mayor 6→7 — el catálogo de avisos vigente añade una variante con potencial de XSS (antes se documentaba solo como redirección abierta), sin cambiar la mitigación: sigue sin haber una versión 6.x que la corrija.",
+    ],
+  },
   {
     version: "1.9.4",
     date: "2026-08-10",
