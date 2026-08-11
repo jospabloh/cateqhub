@@ -17,11 +17,13 @@ import {
 import { format, parseISO, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { usePermissions } from "@/lib/PermissionContext";
+import { useToast } from "@/components/ui/use-toast";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function Reports() {
   const { user } = useAuth();
   const { can, loading: permsLoading } = usePermissions();
+  const { toast } = useToast();
   const [groups, setGroups] = useState([]);
   const [groupId, setGroupId] = useState("all");
   const [from, setFrom] = useState(subDays(new Date(), 30).toISOString().slice(0, 10));
@@ -46,17 +48,29 @@ export default function Reports() {
       setGroups(g);
       setChildren(c);
       if (restricted) setGroupId(user.group_id);
+    }).catch((e) => {
+      toast({ title: "No se pudieron cargar los grupos/libros", description: e.message, variant: "destructive" });
     });
   }, [user, permsLoading]);
 
   const loadAttendances = async () => {
     if (!user?.parish_id) return;
     setLoading(true);
-    const f = { parish_id: user.parish_id };
-    if (groupId !== "all") f.group_id = groupId;
-    const att = await base44.entities.Attendance.filter(f, "-date");
-    setAttendances(att.filter((a) => a.date >= from && a.date <= to));
-    setLoading(false);
+    try {
+      const f = { parish_id: user.parish_id };
+      if (groupId !== "all") f.group_id = groupId;
+      const att = await base44.entities.Attendance.filter(f, "-date");
+      setAttendances(att.filter((a) => a.date >= from && a.date <= to));
+    } catch (e) {
+      // No dejar las filas del grupo/rango anterior en pantalla: con el
+      // filtro ya cambiado, esos datos responderían a la selección vieja y
+      // se verían como si fueran la respuesta a la nueva (tasas y faltas
+      // incorrectas). Mejor una tabla vacía que un número equivocado.
+      setAttendances([]);
+      toast({ title: "No se pudo cargar la asistencia", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { loadAttendances(); }, [user, groupId, from, to]);
