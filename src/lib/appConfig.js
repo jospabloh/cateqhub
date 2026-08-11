@@ -1,9 +1,18 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.9.3";
-export const RELEASE_DATE = "2026-08-03";
+export const APP_VERSION = "1.9.4";
+export const RELEASE_DATE = "2026-08-10";
 
 export const CHANGELOG = [
+  {
+    version: "1.9.4",
+    date: "2026-08-10",
+    changes: [
+      "Mantenimiento/seguridad: auditoría rutinaria de dependencias — se actualizaron `dompurify`, `js-yaml`, `nanoid` y `socket.io-parser` (transitiva) a versiones que corrigen vulnerabilidades conocidas (dos de severidad alta, dos moderadas). Sin cambios visibles para el usuario. Sigue pendiente `react-router`/`react-router-dom` (moderada, redirección abierta), ya documentada como riesgo aceptado para una migración planeada (6→7).",
+      "Mantenimiento: se eliminaron las dependencias `@stripe/react-stripe-js` y `@stripe/stripe-js` — no se usaban en ninguna pantalla (el flujo de Premium hoy queda pendiente de confirmación manual con un ejecutivo de ACACIA, no cobra por tarjeta). Sin cambios visibles para el usuario.",
+      "Auditoría rutinaria: se revisó el aislamiento de datos por parroquia (RLS) en las 10 entidades del esquema — todas ya cuentan con reglas explícitas de `create`/`read`/`update`/`delete` acotadas a `parish_id` (o a rol de plataforma \"admin\"); no se encontraron entidades sin proteger. Se confirmó también que no hay secretos ni tokens embebidos en el repositorio.",
+    ],
+  },
   {
     version: "1.9.3",
     date: "2026-08-03",
