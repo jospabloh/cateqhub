@@ -54,15 +54,49 @@ See `CHANGELOG.md`'s 1.9.7 entry for the user-facing summary and the two
 module-7 additions (remove-user in `Users.jsx`, data export + delete-request
 danger zone in `Parishes.jsx`) that shipped in the same pass.
 
-## Dark theme (module 10) — not attempted, same shape of gap as elsewhere in the portfolio
+## Dark theme (module 10, added 2026-08-19)
 
-`tailwind.config.js` has `darkMode: ["class"]` configured, but no theme
-toggle exists anywhere in the app and only 3 spots use hardcoded
-`bg-amber-50`/`text-amber-800`/`border-amber-200` without a `dark:` variant
-(`LicenseBanner.jsx`, `ChildDetail.jsx`, `Premium.jsx`) — a real inconsistency,
-but fixing only those 3 spots would have zero visible effect for any real
-user, since dark mode is never actually engaged anywhere in the app (no
-toggle, no `prefers-color-scheme` handling). A real dark theme means
-re-skinning every page, which is a design-scale initiative — not attempted
-here, same call made for `jospabloh/puntos`'s identical situation (see its
-CLAUDE.md).
+`tailwind.config.js` already had `darkMode: ["class"]` and `src/index.css`
+already had a full, hand-tuned `.dark` palette (including the custom
+`--gold`/`--stamp`/`--moss` brand tokens mirrored for dark) — the missing
+piece was anything that actually applies the `.dark` class. Unlike
+`jospabloh/puntos` (which needed a ~500-token bulk slate/gray inversion
+across 37 files), this codebase already used semantic tokens
+(`text-foreground`, `bg-card`, etc. — 167 usages) almost everywhere, so the
+scope here was much smaller:
+
+- **`src/lib/ThemeContext.jsx`** (new) — `ThemeProvider`/`useTheme`,
+  `STORAGE_KEY = 'cq-theme'`. Resolution order: stored preference →
+  `prefers-color-scheme` → light.
+- **`index.html`** — inline pre-mount `<script>` reading the same
+  `localStorage` key + `prefers-color-scheme`, applying `.dark` before
+  React mounts (no flash of wrong theme). Kept manually in sync with
+  `ThemeContext.jsx`'s own resolution logic — both carry a comment pointing
+  at the other.
+- **`src/App.jsx`** — wrapped the whole provider tree in `<ThemeProvider>`.
+- **`src/components/Layout.jsx`** — new `ThemeToggle` component (Sun/Moon
+  icon button, optional `showLabel`), wired into both the desktop sidebar
+  footer (icon + label, next to "Cerrar sesión") and the mobile top bar
+  (icon-only).
+- **Three pre-existing hardcoded-light spots** (`ChildDetail.jsx`,
+  `Premium.jsx`, `LicenseBanner.jsx`) that used `bg-amber-50`/
+  `text-amber-800`/`border-amber-200` with no `dark:` variant — each got the
+  matching `dark:` classes (`dark:bg-amber-950/30`, `dark:text-amber-300`,
+  `dark:border-amber-800`).
+- The 6 pre-existing `bg-white` occurrences (`ChildDetail.jsx`, `Logo.jsx`,
+  `BadgePrint.jsx`, `BadgeSheet.jsx`, `QRBadge.jsx`, `QRCard.jsx`) were
+  checked and left as-is — all are QR-badge/print contexts (`print:bg-white`
+  or an actual physical badge background), not themed UI surfaces.
+
+No bulk inversion script was needed for this repo given how few hardcoded
+tokens existed; each spot above was fixed by hand.
+
+**Verified:** `npm run lint`, `npm run build`, `npm run validate:rls` all
+pass. Visually verified with Playwright (Chromium) against a local dev
+server — `/login` and `/register`, both light and dark — text contrast,
+form field borders, and button states all render correctly in both themes.
+**Not verified:** any authenticated page (Dashboard, Scan, Children,
+Reports, etc.) — not reachable without live Base44 auth in this
+environment. Risk is bounded: those pages already use the same semantic
+tokens the `.dark` palette in `index.css` was hand-tuned for, and the same
+call was made (and held up) for `jospabloh/puntos`'s equivalent gap.

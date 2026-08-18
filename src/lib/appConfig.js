@@ -1,9 +1,16 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.9.7";
+export const APP_VERSION = "1.9.8";
 export const RELEASE_DATE = "2026-08-18";
 
 export const CHANGELOG = [
+  {
+    version: "1.9.8",
+    date: "2026-08-18",
+    changes: [
+      "Tema oscuro: CateqHub ahora tiene un interruptor de tema claro/oscuro (icono de sol/luna en la barra lateral y en la barra superior en celular) — antes la app ya tenía toda la paleta de colores lista para modo oscuro pero no había forma de activarla. Se respeta tu elección entre sesiones y, si nunca elegiste una, se usa el modo del sistema operativo. Se corrigieron además 3 avisos (en la ficha del niño, en Premium y en el aviso de licencia) que quedaban con fondo claro fijo aunque activaras el modo oscuro.",
+    ],
+  },
   {
     version: "1.9.7",
     date: "2026-08-18",
