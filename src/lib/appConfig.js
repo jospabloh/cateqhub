@@ -1,9 +1,16 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.9.5";
-export const RELEASE_DATE = "2026-08-11";
+export const APP_VERSION = "1.9.6";
+export const RELEASE_DATE = "2026-08-18";
 
 export const CHANGELOG = [
+  {
+    version: "1.9.6",
+    date: "2026-08-18",
+    changes: [
+      "Mantenimiento: se agregó un validador estático de RLS (`npm run validate:rls`, bloqueante en CI) que revisa las 10 entidades de `base44/entities/*.jsonc` en cada push/PR — hasta ahora este repo dependía solo de revisión manual (las auditorías 1.9.3-1.9.5 de este mismo changelog). Las reglas ya eran correctas; este cambio evita que una futura edición las regrese sin que nadie lo note antes de publicar. Portado del guard equivalente en stockflow/puntos, adaptado al campo `parish_id` de CateqHub.",
+    ],
+  },
   {
     version: "1.9.5",
     date: "2026-08-11",

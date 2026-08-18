@@ -26,6 +26,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Static guard against a malformed multi-tenant RLS rule (wrong
+      # entity-/user-side path). Blocking — a regression here is exactly the
+      # class of silent cross-tenant leak / app-wide write outage this check
+      # exists to catch before it ships. See scripts/lib/entity-rls-rules.mjs.
+      - name: Validate entity RLS
+        run: npm run validate:rls
+
       # Informational only: this project's tsc + @types/react setup already
       # reports pre-existing errors on main (loose JSX typing in the shadcn
       # UI components), so it isn't a reliable pass/fail gate yet. Surfaced
