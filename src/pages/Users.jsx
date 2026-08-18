@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { UserCog, Plus, Send, UserCheck } from "lucide-react";
+import { UserCog, Plus, Send, UserCheck, UserX } from "lucide-react";
 
 export default function Users() {
   const { user } = useAuth();
@@ -28,6 +28,7 @@ export default function Users() {
   const [editForm, setEditForm] = useState({ group_id: "", parish_role: "catequist" });
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [removing, setRemoving] = useState(null);
 
   const load = async () => {
     if (!user?.parish_id) return;
@@ -125,6 +126,24 @@ export default function Users() {
   const groupName = (id) => groups.find((g) => g.id === id)?.name || "—";
   const isMe = (u) => u.id === user?.id;
 
+  const removeUser = async (u) => {
+    if (!window.confirm(`¿Quitar a ${u.full_name || u.email} de tu parroquia? Perderá acceso hasta que lo vuelvas a asignar.`)) return;
+    setRemoving(u.id);
+    try {
+      const res = await base44.functions.invoke("assign_parish_user", { action: "remove", email: u.email });
+      if (res.data?.removed) {
+        toast({ title: "Usuario removido", description: u.email });
+        load();
+      } else {
+        toast({ title: "No se pudo quitar", description: res.data?.error || "error", variant: "destructive" });
+      }
+    } catch (e) {
+      toast({ title: "No se pudo quitar", description: e.message || "error", variant: "destructive" });
+    } finally {
+      setRemoving(null);
+    }
+  };
+
   if (!isParishAdmin(user)) return <RestrictedNotice />;
 
   return (
@@ -163,7 +182,12 @@ export default function Users() {
                 {isMe(u) ? (
                   <Badge variant="outline">Tú</Badge>
                 ) : (
-                  <Button size="sm" variant="outline" onClick={() => openEdit(u)}>Editar</Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => openEdit(u)}>Editar</Button>
+                    <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => removeUser(u)} disabled={removing === u.id}>
+                      <UserX className="w-4 h-4 mr-1" />{removing === u.id ? "Quitando…" : "Quitar"}
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>

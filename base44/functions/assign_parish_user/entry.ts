@@ -49,6 +49,51 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No puedes asignar usuarios a otra parroquia' }, { status: 403 });
     }
 
+    // action: 'remove' — desvincula al usuario de la parroquia (module 7:
+    // Users.jsx podía invitar/asignar/editar pero nunca quitar a nadie).
+    // No borra la cuenta de plataforma del usuario, solo su membresía en
+    // esta parroquia — mismo alcance que el resto de las acciones de esta
+    // función, que ya solo tocan el espejo `parish_*` en User, no la cuenta.
+    if (body.action === 'remove') {
+      const usersToRemove = await base44.asServiceRole.entities.User.filter({ email });
+      const targetUser = usersToRemove?.[0];
+      if (!targetUser) return Response.json({ error: 'Usuario no encontrado' }, { status: 404 });
+      if (!isPlatformAdmin && targetUser.parish_id !== me.parish_id) {
+        return Response.json({ error: 'Ese usuario no pertenece a tu parroquia' }, { status: 403 });
+      }
+      if (targetUser.id === me.id) {
+        return Response.json({ error: 'No puedes quitarte a ti mismo. Pide a otro administrador que lo haga.' }, { status: 400 });
+      }
+      if (targetUser.parish_role === 'admin') {
+        const parishUsers = await base44.asServiceRole.entities.User.filter({ parish_id, parish_role: 'admin' });
+        const otherAdmins = (parishUsers || []).filter((u) => u.id !== targetUser.id);
+        if (otherAdmins.length === 0) {
+          return Response.json({ error: 'No puedes quitar al último administrador de la parroquia' }, { status: 409 });
+        }
+      }
+
+      // Cadenas vacías, no null/undefined: undefined se cae del JSON (Base44
+      // lo interpretaría como "no tocar este campo", no como "vaciarlo"), y
+      // null podría chocar con el enum de parish_role. parish_id="" no
+      // matchea el id de ninguna parroquia real, así que el aislamiento por
+      // tenant en el resto de las entidades ya queda cerrado con eso solo.
+      await base44.asServiceRole.entities.User.update(targetUser.id, {
+        parish_id: '',
+        group_id: '',
+        parish_role: '',
+        parish_plan: '',
+        parish_license_status: '',
+        parish_support_priority_addon: false,
+        perm_ninos_ver_todos: false,
+        perm_ninos_cambiar_grupo: false,
+        perm_ninos_dar_de_baja: false,
+        perm_escanear_restringido: false,
+        perm_tutores_restringido: false,
+      });
+
+      return Response.json({ removed: true, user: { id: targetUser.id, email: targetUser.email } });
+    }
+
     // El rol de plataforma NO se toca: los invitados siempre son `user` de plataforma.
     // El rol dentro del tenant se guarda en `parish_role`.
     const users = await base44.asServiceRole.entities.User.filter({ email });

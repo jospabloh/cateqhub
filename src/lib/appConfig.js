@@ -1,9 +1,17 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.9.6";
+export const APP_VERSION = "1.9.7";
 export const RELEASE_DATE = "2026-08-18";
 
 export const CHANGELOG = [
+  {
+    version: "1.9.7",
+    date: "2026-08-18",
+    changes: [
+      "Seguridad (crítico): la regla de eliminación de `Parish` permitía a cualquier administrador de parroquia borrar la parroquia de OTRO administrador — la condición que le daba paso al rol \"administrador de parroquia\" no comprobaba a cuál parroquia pertenecía, solo el rol. Las de crear/editar tenían el mismo defecto (editar, sin llegar a borrar). Ya corregido y publicado en el esquema en vivo de inmediato al detectarse — un administrador de parroquia ahora solo puede editar/eliminar la suya. Se agregó además un chequeo nuevo al validador de RLS (`npm run validate:rls`) que detecta esta clase específica de error (un rol propio del tenant sin la condición de \"solo tu propio tenant\" combinada) para que no pueda repetirse sin que CI lo note — no lo detectaba antes porque, a diferencia de los defectos que el validador ya cazaba, esta regla era sintácticamente válida; el problema era puramente que permitía de más.",
+      "Cuenta y zona de peligro: Usuarios ahora tiene un botón para quitar a un catequista o administrador de tu parroquia (antes solo se podía invitar, asignar o editar, nunca remover) — protegido para que nadie pueda quitarse a sí mismo ni quitar al último administrador de la parroquia. Parroquia ahora tiene \"Descargar mis datos\" (niños, grupos/libros, tutores y asistencias en JSON) y una zona de peligro para solicitar la eliminación permanente de la parroquia — vía un ticket de soporte, no un borrado instantáneo, porque eliminar el registro de la parroquia no borra en cascada sus niños/grupos/tutores/asistencias.",
+    ],
+  },
   {
     version: "1.9.6",
     date: "2026-08-18",
