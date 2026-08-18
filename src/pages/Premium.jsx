@@ -253,7 +253,7 @@ export default function Premium() {
             </div>
           )}
           {status.isPremium && status.isReadOnly && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 space-y-2">
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-amber-800 dark:text-amber-300 space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="w-4 h-4 shrink-0" />
                 <span>Tu período de prueba o pago venció. Agregar o editar está pausado en toda la app hasta que se confirme el pago — lo que ya registraste sigue visible.</span>

@@ -280,7 +280,7 @@ export default function ChildDetail() {
                     </p>
                   )}
                   {status.isPremium && status.isReadOnly && !status.isAccessDenied && (
-                    <p className="text-xs text-amber-800 bg-amber-50 rounded-md px-3 py-2">
+                    <p className="text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 rounded-md px-3 py-2">
                       Tu período de prueba o pago está vencido — puedes ver los tutores registrados, pero no agregar ni editar.
                     </p>
                   )}

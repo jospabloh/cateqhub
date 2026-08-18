@@ -2,13 +2,31 @@ import { useEffect, useState } from "react";
 import { Outlet, NavLink, useLocation, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { QrCode, Users, ClipboardList, ScanLine, Home, Church, LogOut, UserCog, Sparkles, ShieldCheck, BookOpen, LifeBuoy, Info, ShieldAlert } from "lucide-react";
+import { QrCode, Users, ClipboardList, ScanLine, Home, Church, LogOut, UserCog, Sparkles, ShieldCheck, BookOpen, LifeBuoy, Info, ShieldAlert, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isParishAdmin, parishRoleLabel } from "@/lib/roles";
 import { useLicenseStatus } from "@/lib/premium";
+import { useTheme } from "@/lib/ThemeContext";
 import Logo from "@/components/Logo";
 import LicenseBanner from "@/components/LicenseBanner";
 import { Card, CardContent } from "@/components/ui/card";
+
+function ThemeToggle({ className, showLabel = false }) {
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+      title={isDark ? "Modo claro" : "Modo oscuro"}
+      className={cn("p-2 rounded-md text-sidebar-foreground/65 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors", className)}
+    >
+      {isDark ? <Sun className="w-4 h-4 shrink-0" /> : <Moon className="w-4 h-4 shrink-0" />}
+      {showLabel && <span>{isDark ? "Modo claro" : "Modo oscuro"}</span>}
+    </button>
+  );
+}
 
 // Rutas que siguen operando toda la app (asistencia, niños, grupos, reportes)
 // — se bloquean solo cuando status.isAccessDenied (parish.plan=premium con
@@ -120,7 +138,8 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-        <div className="p-3 border-t border-sidebar-border">
+        <div className="p-3 border-t border-sidebar-border space-y-0.5">
+          <ThemeToggle className="w-full flex items-center gap-3 justify-start pl-3 pr-3 py-2 text-sm font-medium" showLabel />
           <button onClick={handleLogout} className="w-full flex items-center gap-3 pl-3 pr-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground/65 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors">
             <LogOut className="w-4 h-4" /> Cerrar sesión
           </button>
@@ -133,7 +152,10 @@ export default function Layout() {
           <Logo className="w-7 h-7" />
           <span className="font-heading font-semibold text-sm tracking-tight">CateqHub</span>
         </div>
-        <button onClick={handleLogout} className="p-2 text-sidebar-foreground/65"><LogOut className="w-5 h-5" /></button>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button onClick={handleLogout} className="p-2 text-sidebar-foreground/65"><LogOut className="w-5 h-5" /></button>
+        </div>
       </header>
 
       {/* Content */}
