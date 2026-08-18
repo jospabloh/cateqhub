@@ -130,18 +130,9 @@
   ],
   "rls": {
     "create": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "data.parish_role": "admin"
-          }
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "read": {
       "$or": [
@@ -164,24 +155,26 @@
           "user_condition": {
             "role": "admin"
           }
-        },
-        {
-          "user_condition": {
-            "data.parish_role": "admin"
-          }
         }
       ]
     },
     "delete": {
       "$or": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$and": [
+            {
+              "id": "{{user.data.parish_id}}"
+            },
+            {
+              "user_condition": {
+                "data.parish_role": "admin"
+              }
+            }
+          ]
         },
         {
           "user_condition": {
-            "data.parish_role": "admin"
+            "role": "admin"
           }
         }
       ]
