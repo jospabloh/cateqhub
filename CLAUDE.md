@@ -54,6 +54,19 @@ See `CHANGELOG.md`'s 1.9.7 entry for the user-facing summary and the two
 module-7 additions (remove-user in `Users.jsx`, data export + delete-request
 danger zone in `Parishes.jsx`) that shipped in the same pass.
 
+**Correction to a portfolio-standard audit claim (2026-08-18):** the audit
+that surfaced the bug above also claimed module 4 (RLS) was incomplete
+because "`validate-rls.mjs` doesn't run in CI, only manual review" — that
+claim was stale/wrong even at the time it was written.
+`.github/workflows/ci.yml`'s `build-and-test` job has run `npm run
+validate:rls` as a **blocking** step (with an explicit comment calling it
+"exactly the class of silent cross-tenant leak... this check exists to
+catch before it ships") on every push/PR since 1.9.6 — before this bug was
+even found. It's a real gate, not aspirational: this fix's own
+`checkCrossTenantRoleBranches` addition got its first live enforcement
+through that same CI job. Module 4 has no remaining gap: the validator
+exists, is wired into CI, runs clean against all 10 entities, and now also
+catches the specific defect class this section documents.
 ## Dark theme (module 10, added 2026-08-19)
 
 `tailwind.config.js` already had `darkMode: ["class"]` and `src/index.css`
