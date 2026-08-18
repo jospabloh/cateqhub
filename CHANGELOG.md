@@ -2,6 +2,10 @@
 
 Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appConfig.js` (consumida por la página "Acerca de" dentro de la app); este archivo es la versión en prosa.
 
+## 1.9.6 — 2026-08-18
+
+- **Mantenimiento**: se agregó un validador estático de RLS (`npm run validate:rls`, ahora bloqueante en CI vía `.github/workflows/ci.yml`) que revisa cada regla `rls` de las 10 entidades en `base44/entities/*.jsonc` — mismo par de defectos que ya cazan los guards equivalentes en stockflow/puntos: una ruta del lado de la entidad sin el prefijo `data.`, o una plantilla `{{user.X}}` del lado del usuario sin `data.` (ninguna de las dos falla con error — la regla simplemente deja de aplicar en silencio). Antes de este cambio, este repo dependía solo de revisión manual entidad por entidad en cada auditoría rutinaria (ver 1.9.3, 1.9.4, 1.9.5 arriba). Las reglas ya eran correctas — el validador pasa limpio (`10 entities, 9 tenant-scoped`) — este cambio no corrige nada, evita que una futura edición lo rompa sin que CI lo note. Ver `scripts/lib/entity-rls-rules.mjs`.
+
 ## 1.9.5 — 2026-08-11
 
 - **Corrección de UX/permisos**: en la ficha del niño, el botón para quitar a un tutor (`ChildDetail.jsx`) se mostraba a cualquier catequista aunque la regla de base de datos (desde 1.9.3) exige ser administrador de parroquia para poder borrar el vínculo `ChildGuardian`. No era un hueco de seguridad — el borrado seguía rechazado por RLS — pero un catequista que lo intentaba veía un aviso genérico de "no se pudo quitar al tutor" sin saber que era por falta de permiso. Ahora el botón solo se muestra a quien puede usarlo, igual que el resto de acciones reservadas a administrador en la misma pantalla.
