@@ -6,6 +6,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { PermissionProvider } from '@/lib/PermissionContext';
 import { ThemeProvider } from '@/lib/ThemeContext';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -97,6 +98,7 @@ function App() {
               <AuthenticatedApp />
             </Router>
             <Toaster />
+            <ThemeSwitcher />
           </QueryClientProvider>
         </PermissionProvider>
       </AuthProvider>
