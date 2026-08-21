@@ -8,12 +8,16 @@
     "prebuild": "npm run lint",
     "build": "vite build",
     "postbuild": "node scripts/verify-build.js",
-    "lint": "eslint . --quiet",
+    "lint": "eslint . --quiet && npm run validate:functions",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "validate:rls": "node scripts/validate-entity-rls.mjs"
+    "validate:rls": "node scripts/validate-entity-rls.mjs",
+    "deploy": "node scripts/base44-deploy.mjs",
+    "deploy:entities": "node scripts/base44-deploy.mjs --entities",
+    "functions:audit": "node scripts/base44-audit.mjs",
+    "validate:functions": "node scripts/validate-functions.mjs"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.41",
