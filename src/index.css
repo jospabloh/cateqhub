@@ -139,3 +139,14 @@
     }
   }
 }
+
+/* Corner theme switcher (src/components/ThemeSwitcher.jsx) — placement only.
+   Below `md` the bottom nav bar owns the bottom edge, so lift the control
+   clear of it. */
+:root {
+  --theme-switcher-bottom: 1rem;
+  --theme-switcher-right: 1rem;
+}
+@media (max-width: 767px) {
+  :root { --theme-switcher-bottom: 5.25rem; }
+}
