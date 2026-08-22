@@ -36,3 +36,7 @@ base44/.app.jsonc
 /playwright-report
 /blob-report
 /playwright/.cache
+
+# Playwright smoke-test output (tests/smoke) — local run artefacts
+test-results/
+playwright-report/
