@@ -245,3 +245,80 @@ portafolio llegó a desplegar eran **sintácticamente válidos**: la rama de rol
 motor descartaba la cláusula hermana de `user_condition`, los campos de licencia
 escribibles por el propio inquilino en puntos y rumbo, y el `PermissionProfile`
 que ningún RLS puede consultar porque vive en otra fila.
+
+### Resultado — 2026-08-23, contra el esquema desplegado
+
+Primera pasada del módulo 14 en este repo. **No se encontró ningún cruce entre
+parroquias.** Lo que sigue es lo que se revisó y con qué evidencia, para que la
+próxima pasada empiece donde acabó ésta y no desde cero.
+
+**Las 10 entidades, leídas del esquema vivo** (`list_entity_schemas`, no los
+`.jsonc`). Todas las tenant-scoped llevan `parish_id` **requerido** y las cuatro
+operaciones con la forma `$and`/`$or` correcta. El arreglo de `Parish` de
+2026-08-18 sigue desplegado: `delete` es
+`$and[id == {{user.data.parish_id}}, parish_role:admin]` dentro del `$or` con la
+rama de plataforma.
+
+**Todos los writes son `role: admin` en RLS**, así que ninguna escritura de
+inquilino pasa por RLS: pasan por funciones de servicio. Eso desplaza el peso
+entero de la defensa a las 15 funciones, que es exactamente lo que este módulo
+existe para mirar.
+
+**Las 15 funciones.** El inquilino sale del token (`me.parish_id`) en las 15.
+Dos leen `parish_id` del cuerpo de la petición —
+`const parish_id = body.parish_id || me.parish_id` en `assign_parish_user:40` y
+`sync_catequist_permissions:46` — que es el antipatrón que este módulo nombra;
+las dos lo rechazan en la línea inmediatamente posterior con
+`if (!isPlatformAdmin && parish_id !== me.parish_id) → 403`. Están cubiertas,
+pero son la forma exacta que hay que volver a mirar si alguien las edita.
+
+En update/delete la comprobación es contra el registro **almacenado**, no contra
+la petición: `update_child`, `add_guardian` y `record_attendance` hacen
+`child.parish_id !== me.parish_id → 404`. `record_attendance` es la forma más
+fuerte — escribe `parish_id: child.parish_id`, tomado del registro, no del
+token. `update_child` y `create_child` además validan que el **grupo destino**
+sea de la misma parroquia, que es lo que cierra "mover un niño a otra parroquia".
+
+**Exportaciones.** `export_parish_data` y `export_premium_data` filtran cada
+lectura por el `parish_id` del solicitante. Se comprobó la hipótesis que las
+haría inútiles — un filtro sobre un campo inexistente no filtra nada — leyendo
+`Guardian` y `ChildGuardian` del esquema desplegado: las dos tienen `parish_id`
+y es requerido. El filtro es real.
+
+**El caso difícil que el preámbulo nombra, resuelto aquí con un espejo.**
+Ningún RLS puede consultar `PermissionProfile` porque vive en otra fila, así que
+esta app copia los permisos a campos `perm_ninos_*` en `User` y las funciones
+leen el espejo. El riesgo de un espejo es el desfase, y está cubierto por los dos
+extremos: al editar el perfil, `Permissions.jsx` llama a
+`sync_catequist_permissions` y avisa por toast si falla (los permisos quedarían
+guardados pero **no** aplicados — el aviso dice justo eso); al asignar un
+catequista nuevo, `assign_parish_user` lee el `PermissionProfile` vigente y
+estampa los flags en ese momento. `PermissionProfile` en sí exige
+`$and[parish_id, $or[role:admin, parish_role:admin]]` para crear/editar/borrar,
+así que un catequista no puede darse permisos.
+
+**El único camino cross-tenant deliberado es `acaciaControl`** — el puente de
+Mission Control, sin `auth.me()` y cerrado por HMAC. Es su función.
+`seed_test_parish` está desplegada en producción pero exige rol de plataforma.
+
+#### Dos cosas que no son fuga de inquilino, pero quedan anotadas
+
+- **`Parish.update` es asimétrico con `delete`.** `delete` exige
+  `parish_role: admin`; `update` se lo concede a **cualquier** miembro de la
+  parroquia, catequista incluido. Los campos de licencia están bloqueados uno a
+  uno con `rls.write: {role:admin}` — que es la mitad que importa — y
+  `data_processing_accepted_at` también (su propia descripción explica por qué).
+  Lo que queda es que un catequista puede renombrar la parroquia o estampar
+  `implementation_requested_*`. Es dentro del inquilino: módulo 3, no 14.
+- **`list_parish_users` devuelve el correo de todos los miembros a cualquier
+  miembro**, sin comprobar `parish_role`. La proyección es una allowlist
+  explícita y no cruza parroquias. También módulo 3.
+
+#### No verificado
+
+Una sesión autenticada como `catequist` de una segunda parroquia. No hay cuentas
+de prueba en este entorno y no se crearon: sembrar dos inquilinos en producción
+para probar aislamiento es peor que declarar el hueco. Todo lo de arriba es
+lectura de código y del esquema desplegado — bastante para descartar los defectos
+estructurales, insuficiente para afirmar que el motor evalúa cada regla como se
+lee.
