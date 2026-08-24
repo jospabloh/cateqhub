@@ -1,9 +1,17 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.9.8";
-export const RELEASE_DATE = "2026-08-18";
+export const APP_VERSION = "1.9.9";
+export const RELEASE_DATE = "2026-08-24";
 
 export const CHANGELOG = [
+  {
+    version: "1.9.9",
+    date: "2026-08-24",
+    changes: [
+      "Rendimiento: las pantallas detrás del inicio de sesión (Panel, Escanear, Niños, Reportes, Usuarios, etc.) ahora se cargan bajo demanda (`React.lazy`) en vez de venir todas en el mismo archivo que Ingresar/Crear cuenta. El paquete principal que descarga cualquier visitante — incluida la mitad que solo ve la pantalla de login — bajó de 1.93 MB a 437 KB minificados (–77%); nadie que no entre a Reportes o a Escanear vuelve a pagar el peso de esas pantallas.",
+      "Auditoría rutinaria: revisión completa de seguridad (RLS contra el validador estático, secretos, XSS/inyección, PII en logs, dependencias), calidad de código, permisos, CI, pruebas automatizadas (8/8 e2e) y funciones de backend — sin hallazgos nuevos de severidad media o alta. `react-router`/`react-router-dom` (moderada, redirección abierta con variante XSS) sigue como riesgo aceptado sin cambio: la corrección real sigue requiriendo la migración mayor 6→7, fuera de alcance de esta rutina. `migrate_free_parishes_to_trial` y `seed_test_parish` siguen sin llamador visible en el repo pero ambas exigen rol de administrador de plataforma en el propio código — confirmado de nuevo, no se tocaron.",
+    ],
+  },
   {
     version: "1.9.8",
     date: "2026-08-18",
