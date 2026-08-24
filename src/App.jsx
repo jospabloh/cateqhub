@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -11,26 +12,39 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
-import Dashboard from '@/pages/Dashboard';
-import Scan from '@/pages/Scan';
-import Groups from '@/pages/Groups';
-import Children from '@/pages/Children';
-import ChildDetail from '@/pages/ChildDetail';
-import BadgePrint from '@/pages/BadgePrint';
-import Reports from '@/pages/Reports';
-import Parishes from '@/pages/Parishes';
-import Users from '@/pages/Users';
-import Premium from '@/pages/Premium';
-import Permissions from '@/pages/Permissions';
-import Manual from '@/pages/Manual';
-import SupportTickets from '@/pages/SupportTickets';
-import About from '@/pages/About';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import { Navigate } from 'react-router-dom';
+
+// Everything behind the auth gate is lazy — none of it can render before
+// ProtectedRoute resolves anyway, so splitting it out of the main chunk is
+// free: it shrinks the bundle every visitor downloads (including the ~half
+// who only ever see /login) without changing when any of these screens
+// actually appear on screen. The four public auth pages above stay eager —
+// they're on the very first paint for a signed-out visitor.
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Scan = lazy(() => import('@/pages/Scan'));
+const Groups = lazy(() => import('@/pages/Groups'));
+const Children = lazy(() => import('@/pages/Children'));
+const ChildDetail = lazy(() => import('@/pages/ChildDetail'));
+const BadgePrint = lazy(() => import('@/pages/BadgePrint'));
+const Reports = lazy(() => import('@/pages/Reports'));
+const Parishes = lazy(() => import('@/pages/Parishes'));
+const Users = lazy(() => import('@/pages/Users'));
+const Premium = lazy(() => import('@/pages/Premium'));
+const Permissions = lazy(() => import('@/pages/Permissions'));
+const Manual = lazy(() => import('@/pages/Manual'));
+const SupportTickets = lazy(() => import('@/pages/SupportTickets'));
+const About = lazy(() => import('@/pages/About'));
 // Add page imports here
+
+const RouteFallback = () => (
+  <div className="fixed inset-0 flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin"></div>
+  </div>
+);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -57,31 +71,33 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/escanear" element={<Scan />} />
-          <Route path="/grupos" element={<Groups />} />
-          <Route path="/ninos" element={<Children />} />
-          <Route path="/ninos/gafetes" element={<BadgePrint />} />
-          <Route path="/ninos/:id" element={<ChildDetail />} />
-          <Route path="/reportes" element={<Reports />} />
-          <Route path="/parroquia" element={<Parishes />} />
-          <Route path="/usuarios" element={<Users />} />
-          <Route path="/premium" element={<Premium />} />
-          <Route path="/permisos" element={<Permissions />} />
-          <Route path="/manual" element={<Manual />} />
-          <Route path="/soporte" element={<SupportTickets />} />
-          <Route path="/acerca-de" element={<About />} />
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/escanear" element={<Scan />} />
+            <Route path="/grupos" element={<Groups />} />
+            <Route path="/ninos" element={<Children />} />
+            <Route path="/ninos/gafetes" element={<BadgePrint />} />
+            <Route path="/ninos/:id" element={<ChildDetail />} />
+            <Route path="/reportes" element={<Reports />} />
+            <Route path="/parroquia" element={<Parishes />} />
+            <Route path="/usuarios" element={<Users />} />
+            <Route path="/premium" element={<Premium />} />
+            <Route path="/permisos" element={<Permissions />} />
+            <Route path="/manual" element={<Manual />} />
+            <Route path="/soporte" element={<SupportTickets />} />
+            <Route path="/acerca-de" element={<About />} />
+          </Route>
         </Route>
-      </Route>
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+    </Suspense>
   );
 };
 
