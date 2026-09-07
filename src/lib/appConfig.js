@@ -1,9 +1,17 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
 // src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.9.9";
-export const RELEASE_DATE = "2026-08-24";
+export const APP_VERSION = "1.9.10";
+export const RELEASE_DATE = "2026-09-07";
 
 export const CHANGELOG = [
+  {
+    version: "1.9.10",
+    date: "2026-09-07",
+    changes: [
+      "Mantenimiento/seguridad: auditoría rutinaria de dependencias — `npm audit fix` corrigió 4 de 6 vulnerabilidades (1 alta en `browserslist`, agotamiento de memoria sin límite de caché; 3 moderadas/bajas en `@humanfs/node`, `fflate` y `postcss-selector-parser`), todas mediante actualizaciones menores sin cambios de comportamiento. `react-router`/`react-router-dom` (moderada, redirección abierta — GHSA-wrjc-x8rr-h8h6) sigue como riesgo aceptado sin cambio: la única corrección disponible sigue siendo la migración mayor a 7.x, fuera de alcance de una rutina automatizada — documentado igual desde la 1.9.3.",
+      "Auditoría rutinaria: RLS (`npm run validate:rls`, 10 entidades, aislamiento por `parish_id` intacto), `npm run lint`, `npm run build` y `npm run functions:audit` limpios; `tsc` en el mismo recuento preexistente de 470 errores (sin relación con este cambio); `e2e/smoke.spec.js` 8/8 aprobadas. Sin hallazgos nuevos de severidad media o alta. Módulos 14/15 (aislamiento multi-tenant y firma del puente con Mission Control) re-verificados: el único archivo tocado desde la última pasada (`base44/functions/acaciaControl/_acaciaSign.ts`, el vaivén de `ACCEPT_LEGACY_MASTER` documentado el 2026-08-24) sigue en el estado correcto (`false`) — sin cambios de esquema ni de funciones que ameriten repetir la auditoría completa.",
+    ],
+  },
   {
     version: "1.9.9",
     date: "2026-08-24",
