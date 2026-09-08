@@ -1,5 +1,12 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
-// src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
+// src/pages/About.jsx.
+//
+// NO edites este archivo a mano para publicar: `npm run release <version>
+// --nota "…"` escribe APP_VERSION, RELEASE_DATE, la entrada de CHANGELOG de
+// aquí, la de CHANGELOG.md y la versión de package.json de una sola vez
+// (módulo 6 del estándar). Antes eran cuatro ediciones manuales garantizadas
+// por un comentario, y así se perdió la 1.8.0 entera de CHANGELOG.md.
+// tests/unit/release.test.js afirma los invariantes después.
 export const APP_VERSION = "1.9.10";
 export const RELEASE_DATE = "2026-09-07";
 

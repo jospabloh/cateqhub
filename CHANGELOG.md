@@ -71,6 +71,19 @@ Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appCon
 - **Soporte**: cada plan trae un tope de prioridad de ticket incluido (Gratis hasta Baja, Premium hasta Alta); el nuevo add-on de soporte prioritario lo sube a Urgente. El formulario de "Nuevo ticket" en Soporte ahora solo ofrece las prioridades que tu plan incluye.
 - Puedes solicitar la implementación asistida o el soporte prioritario directamente desde "Planes y precios" — ambos quedan pendientes de confirmación de pago con tu ejecutivo de ACACIA, igual que la activación de Premium hoy (no hay cobro automático todavía).
 
+## 1.8.0 — 2026-07-27
+
+> Reconstruida el 2026-09-08. Esta versión existía en `src/lib/appConfig.js` —o
+> sea, la veía cualquier usuario dentro de "Acerca de"— pero nunca se escribió
+> aquí: este archivo saltaba de 1.7.2 directo a 1.9.0. Lo encontró la prueba de
+> invariantes que se añadió con el módulo 6 (`tests/unit/release.test.js`), y el
+> texto de abajo es el de `appConfig.js`, que es el único registro que
+> sobrevivió de este cambio.
+
+- **Nuevos planes**: el plan Gratis (hasta 50 niños activos, sin vencimiento) se mantiene, y toda parroquia nueva arranca además con 30 días de prueba Premium completa (Tutores, mensajería, tareas y pulseras incluidos) sin costo y sin tarjeta.
+- **Precio de Premium por niños activos** de la parroquia, con descuento en pago anual — antes era un precio único de referencia.
+- **Vencimiento**: si el período de prueba o de pago Premium vence sin renovarse, con 50 niños activos o menos la parroquia baja directo al plan Gratis sin ningún bloqueo; con más de 50, aplica el mismo ciclo de solo lectura → acceso denegado → exportación que antes solo restringía Tutores, ahora sobre toda la app, hasta reactivar el nivel Premium que corresponda. Ningún dato de niños/grupos/asistencia se elimina automáticamente; solo Tutores, y solo tras poder exportarlo.
+
 ## 1.7.2 — 2026-07-27
 
 - **Gafetes QR**: la tarjeta impresa o descargada ahora muestra el nombre del niño arriba del código QR, para poder identificarlo a simple vista antes de escanearlo o entregarlo. Sigue sin llevar ningún otro dato (grupo/libro, CURP, logo, etc.) — aplica tanto al gafete individual (ficha del niño) como a la hoja de gafetes por lote.
