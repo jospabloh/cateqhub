@@ -47,6 +47,35 @@ const DETACHED = {
   perm_tutores_restringido: false,
 };
 
+// Módulo 18: Membership registra TODAS las parroquias a las que pertenece una
+// cuenta; User.parish_id sigue siendo la única en la que está actuando ahora.
+// Los dos se escriben juntos, aquí, porque una fila que no se mantiene es peor
+// que no tener la entidad: el selector ofrecería parroquias de las que ya
+// salió.
+async function upsertMembership(sr, user, parish, parish_role: string) {
+  const rows = await sr.entities.Membership.filter({ user_id: user.id }).catch(() => []);
+  const existing = (rows || []).find((m) => m.parish_id === parish.id);
+  const patch = {
+    email: user.email || '',
+    parish_name: parish.name || '',
+    parish_role,
+    active: true,
+  };
+  if (existing) return sr.entities.Membership.update(existing.id, patch);
+  return sr.entities.Membership.create({ user_id: user.id, parish_id: parish.id, ...patch });
+}
+
+// Salir o ser removido NO borra la fila: se marca inactiva. Saber que alguien
+// estuvo sirve para reincorporarlo, y un borrado real perdería ese rastro.
+async function deactivateMembership(sr, userId: string, parishId: string) {
+  const rows = await sr.entities.Membership.filter({ user_id: userId }).catch(() => []);
+  for (const m of rows || []) {
+    if (m.parish_id === parishId && m.active !== false) {
+      await sr.entities.Membership.update(m.id, { active: false }).catch(() => {});
+    }
+  }
+}
+
 // Una parroquia que se queda sin ningún administrador no tiene camino de vuelta:
 // nadie puede invitar, editar permisos, exportar datos ni solicitar la baja, y
 // este app todavía no tiene transferencia de administración (módulo 7 del
@@ -120,6 +149,7 @@ Deno.serve(async (req) => {
           code: 'last_admin',
         }, { status: 409 });
       }
+      await deactivateMembership(base44.asServiceRole, me.id, me.parish_id);
       await base44.asServiceRole.entities.User.update(me.id, DETACHED);
       return Response.json({ left: true });
     }
@@ -181,11 +211,14 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Ya eres administrador de esta parroquia' }, { status: 400 });
       }
 
+      const ownParish = await base44.asServiceRole.entities.Parish.get(me.parish_id).catch(() => null);
       await base44.asServiceRole.entities.User.update(successor.id, { parish_role: 'admin', group_id: '' });
+      if (ownParish) await upsertMembership(base44.asServiceRole, successor, ownParish, 'admin');
       // El llamante baja a catequista sólo después. Si esto falla, la parroquia
       // queda con DOS administradores —un estado válido y reversible a mano—,
       // nunca con cero.
       await base44.asServiceRole.entities.User.update(me.id, { parish_role: 'catequist' });
+      if (ownParish) await upsertMembership(base44.asServiceRole, me, ownParish, 'catequist');
       return Response.json({ transferred: true, to: { id: successor.id, email: successor.email } });
     }
 
@@ -214,6 +247,7 @@ Deno.serve(async (req) => {
       // null podría chocar con el enum de parish_role. parish_id="" no
       // matchea el id de ninguna parroquia real, así que el aislamiento por
       // tenant en el resto de las entidades ya queda cerrado con eso solo.
+      await deactivateMembership(base44.asServiceRole, targetUser.id, targetUser.parish_id);
       await base44.asServiceRole.entities.User.update(targetUser.id, DETACHED);
 
       return Response.json({ removed: true, user: { id: targetUser.id, email: targetUser.email } });
@@ -291,6 +325,7 @@ Deno.serve(async (req) => {
       parish_support_priority_addon: targetParish.support_priority_addon ?? false,
       ...permFlags,
     });
+    await upsertMembership(sr, target, targetParish, parish_role);
 
     return Response.json({
       found: true,
