@@ -35,14 +35,18 @@ test('hay funciones que revisar (la prueba no pasa por estar vacía)', () => {
 for (const { name, src } of entries) {
   const usesSession = src.includes('auth.me()');
 
-  // acaciaControl es el puente de Mission Control: entra por HMAC, sin usuario,
-  // así que no tiene sesión que releer. Es la única excepción legítima y se
-  // afirma explícitamente en vez de dejarla pasar en silencio.
+  // Las funciones sin usuario. No es una lista para ir creciendo: cada una
+  // entra por una puerta que NO es una sesión, y por eso no tiene nada que
+  // releer. acaciaControl es el puente de Mission Control (HMAC);
+  // purge_stale_sessions es el reaper del módulo 20 (guardia de CRON_SECRET,
+  // que falla cerrado). Una función nueva que no llame a auth.me() falla aquí
+  // hasta que alguien decida a propósito en cuál de los dos casos cae.
+  const NO_SESSION = ['acaciaControl', 'purge_stale_sessions'];
   if (!usesSession) {
-    test(`${name}: no usa auth.me(), así que no le aplica (puente HMAC)`, () => {
-      assert.equal(name, 'acaciaControl',
+    test(`${name}: no usa auth.me(), así que no le aplica`, () => {
+      assert.ok(NO_SESSION.includes(name),
         `${name} no llama a auth.me(). Si es una función nueva de usuario, le falta el bloque del módulo 22; ` +
-        'si de verdad no tiene sesión, añádela a esta excepción a propósito.');
+        'si de verdad no tiene sesión (puente HMAC, cron), añádela a NO_SESSION a propósito.');
     });
     continue;
   }
