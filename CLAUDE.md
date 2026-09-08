@@ -489,7 +489,10 @@ a live query proved it; the dated audit under them says with what evidence.
       the current route on every render.
 
 Last audited against the standard: 2026-09-08 — primera pasada completa de los
-23 módulos. 13 conformes, 6 parciales, 4 ausentes; detalle abajo.
+23 módulos. 13 conformes, 6 parciales, 4 ausentes; detalle abajo. El hallazgo 1
+se **corrigió el mismo día**: afirmaba un fallo abierto de licencia que no
+existe (un `plan` ausente resuelve a Plan Gratis en toda la app). Lo que queda
+ahí es una incoherencia de presentación entre el app y el panel.
 Last multi-tenant isolation audit: 2026-08-23 — ver "Módulo 14" arriba. Sigue
 vigente: no se ha añadido ninguna entidad, función ni rol desde entonces.
 
@@ -531,48 +534,71 @@ justo la pareja documentada. Ningún resto de un control viejo.
 
 ### Los cuatro hallazgos que valen la pena
 
-#### 1. La única parroquia en producción no tiene licencia (módulo 1)
+#### 1. La parroquia demo y el panel no dicen lo mismo (módulo 1)
 
-`licenses` tiene **una** fila para cateqhub y sale así:
+**Corregido el 2026-09-08, después de que el dueño del repo señalara el error.**
+La primera redacción de este hallazgo afirmaba que la parroquia sin campos de
+licencia tenía «Premium completo, sin tope de niños y sin vencimiento posible».
+Eso es **falso en los tres términos**, y la lectura del código lo desmiente:
 
-    plan: null   status: null   trial_ends_at: null   current_period_end: null
-    synced_at: 2026-09-08 08:29:22+00
+- `create_child:37` — `if (parish.plan !== 'premium')` es **verdadero** con el
+  campo ausente, así que sí entra al bloque del Plan Gratis y sí aplica
+  `FREE_PLAN_CHILD_CAP`.
+- `add_guardian:32` — `if (!parish || parish.plan !== 'premium')` → **403
+  `premium_required`**. Tutores queda bloqueado, no abierto.
+- `premium.js:33` — `isPremium = parish?.plan === "premium"` → `tier: "free"`.
 
-Sincronizada hoy, y vacía. No es el mapeo: `apps.config.field_map` es correcto
-(`plan→plan`, `status→license_status`, `current_period_end→premium_period_end_at`)
-y `api/_lib/sync/licenseMapping.js` lo lee bien. Lo dice la columna `raw`, que
-guarda el registro tal como llegó por el puente:
+Un `plan` ausente resuelve a **Plan Gratis** en toda la app: núcleo completo,
+tope de 50 niños activos, sin Tutores. Que es exactamente lo que le toca a una
+parroquia demo sin licencia. No hay fallo abierto y no hay nada que arreglar
+del lado del app. La lección de método está abajo, porque vale más que el
+hallazgo.
 
-    { id, name: "Parroquia San Testing", active: true, is_sample: false,
-      created_date: "2026-07-22", admin_contact, created_by_id }
+**Lo que sí queda, que es una incoherencia entre las tres superficies.** La
+parroquia se creó el 2026-07-22, antes de que existieran `plan`,
+`license_status` y `premium_period_end_at`, y los `default` de un `.jsonc` se
+aplican al crear el registro, no retroactivamente: esa fila no tiene los campos
+—no los tiene en `null`, no los tiene—. El puente manda el registro crudo, así
+que:
 
-La parroquia se creó el 2026-07-22, **antes** de que existieran `plan`,
-`license_status` y `premium_period_end_at`. Los `default` de un `.jsonc` se
-aplican al crear el registro, no retroactivamente, así que esa fila no tiene los
-campos — no los tiene en `null`, no los tiene.
+| superficie | qué dice de esa parroquia |
+|---|---|
+| el app | `tier: "free"`, activa, tope de 50, sin Tutores |
+| Mission Control | `licenses.plan = null`, `status = null` → `Licenses.jsx:578` pinta `—` / `—` |
+| correos automatizados | ninguno: `portfolioLifecycle.js:120` filtra por `paidPlanValues.includes(l.plan)`, y `null` no está |
 
-Y el backfill que existe para esto no la alcanza:
-`migrate_free_parishes_to_trial` filtra `{ plan: 'free' }`, y un campo ausente no
-matchea una igualdad. La parroquia es invisible para la migración, para el cron
-de lifecycle y para el panel de Licencias a la vez.
+Los correos aciertan, pero por omisión, no por decisión. El que falla es el
+panel: **un operador no puede distinguir «Gratis» de «el sync está roto»**,
+porque las dos cosas se pintan igual. El app ya sabe resolver la ausencia
+(`getLicenseStatus` lo hace en una línea); Mission Control recibe el campo
+crudo y no tiene con qué.
 
-La consecuencia práctica está en las funciones: `create_child`,
-`update_child` y `record_attendance` bloquean con
-`parish.plan === 'premium' && parish.license_status !== 'active'`, y
-`add_guardian` con `parish.license_status && ... !== 'active'`. Con los tres
-campos ausentes las dos condiciones son falsas, así que **esa parroquia tiene
-Premium completo, sin tope de niños y sin vencimiento posible.**
-`src/lib/premium.js:33` hace lo mismo del lado del cliente
-(`parish?.license_status || "active"`). Todo falla abierto, y en la dirección
-cómoda, que es la que nadie nota.
+El arreglo correcto es enseñarle esa misma resolución al lado que lee, no
+escribir la fila de producción: un `config.field_defaults` en el registro de
+apps, hermano del `field_map` que ya existe, que `mapLicenseRecord` aplica
+cuando el campo llega ausente. Sirve para toda parroquia futura creada antes de
+un campo nuevo, no solo para ésta. Estampar `plan: 'free'` a mano arregla una
+fila y vuelve a romperse en la siguiente migración de esquema.
 
-Es una sola parroquia y se llama "Testing", así que el daño hoy es cero. Lo que
-importa es que **el ciclo de licencia de esta app nunca se ha ejercido de
-extremo a extremo contra un registro real**, y el día que se onboardee una
-parroquia de verdad esa será la primera vez. El arreglo barato es un backfill que
-filtre por ausencia en vez de por `'free'`, o simplemente estampar los tres
-campos en esa fila a mano; el arreglo que vale es correr el ciclo completo una
-vez contra ella antes de que haya una segunda.
+`migrate_free_parishes_to_trial` sigue filtrando `{ plan: 'free' }` y sigue sin
+alcanzar una fila sin el campo — pero eso ya **no** es un bug que haya que
+correr: a un demo no se le regala una prueba. Queda anotado sólo para que nadie
+lo «arregle» de más.
+
+Lo que se mantiene del hallazgo original, sin exagerarlo: **el ciclo de licencia
+de esta app nunca se ha ejercido de extremo a extremo contra un registro real.**
+Con un solo inquilino y sin campos de licencia, nada ha hecho recorrer
+`premium_period_end_at` → `read_only` → `access_denied` por el cron. El día que
+se onboardee una parroquia de verdad será la primera vez.
+
+**La lección de método, que es lo que hay que quedarse.** El hallazgo se
+escribió leyendo *una* condición (`plan === 'premium' && license_status !==
+'active'`) y deduciendo el comportamiento del resto. La condición siguiente
+—`if (parish.plan !== 'premium')`, ocho líneas más abajo en el mismo archivo—
+decía lo contrario y no se leyó. Un `&&` que sale falso no significa «pasa sin
+control»; significa «pasa a la siguiente rama», y la siguiente rama hay que
+abrirla. Vale para toda esta auditoría: donde el veredicto dependa de qué
+camino toma un valor ausente, hay que leer las dos ramas, no una.
 
 Aparte, y menor: el estado no se llama `billing_status` ni toma los cuatro
 valores del estándar. `plan` + `license_status` es una desviación deliberada y
