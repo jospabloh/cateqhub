@@ -4,6 +4,15 @@
 // Por eso este archivo importa el registro (JS plano) y LEE las funciones como
 // texto: es el mismo patrón que acaciaco-site usa para que soporte.html y
 // KNOWN_APPS no se separen.
+//
+// `npm run test:unit` es `node --test` A SECAS, con autodescubrimiento, igual
+// que Mission Control. NO uses un glob entre comillas
+// (`node --test "tests/**/*.test.js"`): los patrones glob llegaron en Node 21,
+// así que pasan en una máquina moderna y fallan en el CI de este repo con
+// `Could not find '.../tests/unit/**/*.test.js'`. Ya rompió el pipeline una vez,
+// el 2026-09-08, por exactamente eso. La forma directorio (`node --test
+// tests/unit/`) tampoco sirve: Node la resuelve como ruta de módulo y truena
+// con `Cannot find module`. Comprobado en Node 20 y en Node 22.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
