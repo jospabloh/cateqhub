@@ -5,14 +5,30 @@
 // texto: es el mismo patrón que acaciaco-site usa para que soporte.html y
 // KNOWN_APPS no se separen.
 //
-// `npm run test:unit` es `node --test` A SECAS, con autodescubrimiento, igual
-// que Mission Control. NO uses un glob entre comillas
-// (`node --test "tests/**/*.test.js"`): los patrones glob llegaron en Node 21,
-// así que pasan en una máquina moderna y fallan en el CI de este repo con
-// `Could not find '.../tests/unit/**/*.test.js'`. Ya rompió el pipeline una vez,
-// el 2026-09-08, por exactamente eso. La forma directorio (`node --test
-// tests/unit/`) tampoco sirve: Node la resuelve como ruta de módulo y truena
-// con `Cannot find module`. Comprobado en Node 20 y en Node 22.
+// `npm run test:unit` es `cd tests/unit && node --test`, y las tres palabras
+// importan. Las otras formas se probaron y las tres fallan, cada una en una
+// versión distinta de Node — que es lo que las hace peligrosas:
+//
+//   node --test "tests/unit/**/*.test.js"   los glob llegaron en Node 21: pasa
+//                                           en 22, y en el Node 20 de este CI
+//                                           da `Could not find '...'`. Rompió
+//                                           el pipeline el 2026-09-08.
+//   node --test tests/unit/                 Node resuelve el directorio como
+//                                           ruta de módulo: `Cannot find
+//                                           module`. Falla en las dos.
+//   node --test  (a secas, desde la raíz)   pasa en Node 20 y FALLA en Node 22:
+//                                           22 entiende TypeScript, así que el
+//                                           autodescubrimiento se traga
+//                                           base44/functions/_acaciaSign.test.ts
+//                                           —que es de Deno— y truena con
+//                                           `ReferenceError: Deno is not
+//                                           defined`. El espejo exacto del
+//                                           primer fallo, en la otra dirección.
+//
+// El `cd` enraiza el descubrimiento aquí, así que ninguna versión de Node
+// alcanza el test de Deno. Los `readFileSync(new URL('../../…', import.meta.url))`
+// de abajo son relativos al ARCHIVO, no al cwd, así que no les afecta.
+// Comprobado en Node 20 y en Node 22: 5/5 en las dos.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

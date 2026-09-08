@@ -29,10 +29,22 @@ Deno.serve(async (req) => {
     if (Math.abs(Date.now() - Number(ts)) > MAX_SKEW_MS) return Response.json({ error: 'stale request' }, { status: 401 });
 
     // Verified against THIS app's derived key — see _acaciaSign.ts, and Module
-    // 15 of jospabloh/acacia-app-standard. While ACCEPT_LEGACY_MASTER is true a
-    // signature made with the bare INGEST_HMAC_SECRET is still accepted, which
-    // is what lets Mission Control and the nine apps deploy in any order.
-    const slug = Deno.env.get('ACACIA_APP_SLUG') ?? '';
+    // 15 of jospabloh/acacia-app-standard. ACCEPT_LEGACY_MASTER has been false
+    // since 63a8337, so a signature made with the bare INGEST_HMAC_SECRET is no
+    // longer accepted: that is exactly what closes the hole this module exists
+    // for. (This comment claimed the opposite until 2026-09-08 — it was written
+    // during the migration and went stale on the commit that ended it.)
+    //
+    // The slug gets its own named 500, like INGEST_HMAC_SECRET above, instead of
+    // `?? ''`. Both directions fail closed, but they fail LEGIBLY differently:
+    // an empty slug derives a key from an empty string, so every call comes back
+    // `bad signature` — which reads as a wrong secret and is not one. That exact
+    // confusion cost this portfolio two hours on 2026-08-24, when four apps had
+    // ACACIA_APP_SLUG set to something that was not their Mission Control id
+    // (see Module 15 in Mission Control's CLAUDE.md: "parece un secreto mal
+    // puesto y no lo es"). A missing value should say its own name.
+    const slug = Deno.env.get('ACACIA_APP_SLUG');
+    if (!slug) return Response.json({ error: 'ACACIA_APP_SLUG not set in app secrets' }, { status: 500 });
     if (!(await verifyAs(secret, slug, { ts, action, params, sig }))) {
       return Response.json({ error: 'bad signature' }, { status: 401 });
     }

@@ -14,7 +14,7 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "validate:rls": "node scripts/validate-entity-rls.mjs",
-    "test:unit": "node --test",
+    "test:unit": "cd tests/unit && node --test",
     "deploy": "node scripts/base44-deploy.mjs",
     "deploy:site": "node scripts/base44-deploy.mjs --site",
     "deploy:entities": "node scripts/base44-deploy.mjs --entities",
