@@ -43,6 +43,33 @@ export default function Login() {
           <Link to="/register" className="text-primary font-medium hover:underline">
             Crear una
           </Link>
+          {/* Módulo 10 del estándar: el login enlaza a soporte y a la prueba.
+              Quien no puede entrar es justo quien no tiene ninguna otra vía
+              dentro del app para pedir ayuda —/soporte vive detrás de la
+              sesión—, así que sin esto la única salida es adivinar un correo.
+              Los dos van a acaciaco.com.mx porque el sitio es la superficie
+              pública de esta app (módulo 9); `rel="noreferrer"` porque abren
+              en pestaña nueva. */}
+          <span className="block mt-3 text-xs text-muted-foreground">
+            ¿Problemas para entrar?{" "}
+            <a
+              href="https://acaciaco.com.mx/soporte"
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline"
+            >
+              Soporte
+            </a>
+            {" · "}
+            <a
+              href="https://acaciaco.com.mx/apps/cateqhub"
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline"
+            >
+              Conoce CateqHub
+            </a>
+          </span>
         </>
       }
     >
