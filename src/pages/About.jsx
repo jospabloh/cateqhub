@@ -1,19 +1,55 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
+import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
 import { APP_VERSION, RELEASE_DATE, CHANGELOG } from "@/lib/appConfig";
-import { Info, ChevronDown, BookOpen, LifeBuoy, ShieldCheck, Users, Mail, MessageCircle, Copyright, Heart } from "lucide-react";
+import { Info, ChevronDown, BookOpen, LifeBuoy, ShieldCheck, Users, Mail, MessageCircle, Copyright, Heart, LogOut } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
 export default function About() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [showAll, setShowAll] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [latest, ...older] = CHANGELOG;
   const visibleOlder = showAll ? older : [];
+
+  // Módulo 7, segundo alcance: salir de la parroquia. Vive aquí y no en
+  // /parroquia porque esa página corta con RestrictedNotice a quien no es
+  // admin, y quien más necesita salir es justo un catequista que dejó de
+  // servir. /acerca-de es la única pantalla que alcanza cualquier miembro.
+  //
+  // El backend re-deriva quién se va del token, nunca del cuerpo, y rechaza a
+  // un último administrador remitiéndolo a transferir primero (code
+  // 'last_admin'). Al salir se recarga entera: la sesión sigue viva pero ya no
+  // tiene parroquia, y medio árbol de la app está montado sobre parish_id.
+  const handleLeave = async () => {
+    setLeaving(true);
+    try {
+      const res = await base44.functions.invoke("assign_parish_user", { action: "leave" });
+      if (res.data?.left) {
+        window.location.href = "/";
+        return;
+      }
+      toast({
+        title: "No se pudo salir",
+        description: res.data?.error || "Intenta de nuevo",
+        variant: "destructive",
+      });
+    } catch (e) {
+      toast({ title: "No se pudo salir", description: e.message, variant: "destructive" });
+    } finally {
+      setLeaving(false);
+      setConfirmLeave(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-xl">
@@ -117,6 +153,43 @@ export default function About() {
           </div>
         </CardContent>
       </Card>
+
+      {user?.parish_id && (
+        <Card className="border-destructive/40">
+          <CardContent className="pt-6 space-y-3">
+            <div className="flex items-center gap-2">
+              <LogOut className="w-4 h-4 text-destructive shrink-0" />
+              <p className="font-medium text-sm">Salir de la parroquia</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Dejas de tener acceso a los niños, grupos y reportes de esta parroquia. Tu cuenta sigue existiendo — un administrador puede volver a invitarte. No se borra ningún dato de la parroquia.
+            </p>
+            {!confirmLeave ? (
+              <Button
+                variant="outline"
+                className="border-destructive text-destructive hover:bg-destructive/10"
+                onClick={() => setConfirmLeave(true)}
+              >
+                Salir de la parroquia
+              </Button>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-destructive font-medium">
+                  ¿Seguro? Perderás el acceso de inmediato.
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setConfirmLeave(false)} disabled={leaving}>
+                    Cancelar
+                  </Button>
+                  <Button variant="destructive" onClick={handleLeave} disabled={leaving}>
+                    {leaving ? "Saliendo…" : "Sí, salir"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="pt-6 space-y-2">
