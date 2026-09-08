@@ -33,6 +33,16 @@ jobs:
       - name: Validate entity RLS
         run: npm run validate:rls
 
+      # Bloqueante, y por el mismo motivo que el de arriba: el catálogo de
+      # permisos vive en tres copias que Base44 obliga a duplicar (una función
+      # no puede importar de src/ ni de otra función), y hasta 2026-09-08 la
+      # única garantía de que no derivaran era un comentario. Mission Control ya
+      # perdió esa apuesta con licenseCatalog — rumbo llevó `view_only`
+      # desplegado un mes sin que el panel lo ofreciera. Ver
+      # tests/unit/permissionRegistry.test.js.
+      - name: Unit tests
+        run: npm run test:unit
+
       # Informational only: this project's tsc + @types/react setup already
       # reports pre-existing errors on main (loose JSX typing in the shadcn
       # UI components), so it isn't a reliable pass/fail gate yet. Surfaced
