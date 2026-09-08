@@ -370,3 +370,385 @@ llevaba su propio `stableStringify` / `hmacHex` / `timingSafeEqual`, copiados a
 mano contra `api/_lib/ingestSign.js` de Mission Control. Dejarlos al lado del
 helper no es desorden: es una segunda implementación de la misma rutina en el
 mismo archivo, que es exactamente la deriva que este módulo quita.
+
+## ACACIA Portfolio Standard
+
+This app is part of the ACACIA portfolio and must stay compliant with
+`jospabloh/acacia-app-standard`. Full rationale for each item is in that repo's
+`STANDARD.md` — read it before implementing any item below for the first time,
+and re-read the relevant section before touching a module that's already
+implemented. Status boxes below are checked only where this repo's own code or
+a live query proved it; the dated audit under them says with what evidence.
+
+- [x] Module 1 — License lifecycle: tenant entity has `billing_status`
+      (trial|active|view_only|suspended), written ONLY by Mission Control's
+      unified cron. No native lifecycle/renewal/reminder cron in this repo.
+      Trial is exactly 30 calendar days from tenant creation; automatic
+      (Mercado Pago) renewal always lands on the 1st of the calendar month
+      regardless of the app's manual-payment day convention. Self-serve
+      tenant creation (any user with no tenant may create one) sets
+      billing_status: trial and fires a real-time, HMAC-signed ping to
+      Mission Control so the platform owner is alerted immediately, not at
+      the next daily sync.
+      → **parcial.** Sin cron nativo y con la prueba de 30 días correcta, pero
+      el estado no se llama `billing_status` (son `plan` + `license_status`) y
+      la única parroquia en producción no trae ninguno de los tres campos. Sin
+      ping en tiempo real al crear tenant (hueco de todo el portafolio).
+- [x] Module 2 — Roles: app role model declared in one file, mapped onto the
+      backend's built-in role field; Mission Control operator roles
+      (owner/admin/viewer) are a separate layer, never conflated. Only a
+      tenant's own admin can promote a member to admin or demote a fellow
+      admin (same server-derived gate, shared code path, blocked if it would
+      leave zero admins). Joining an EXISTING tenant is by invite code
+      (request → admin approves) or emailed invite (admin-initiated,
+      pre-approved) — never an open self-serve join.
+      → **parcial.** Falta el candado de cero administradores en la ruta de
+      degradación (solo existe en `action:'remove'`).
+- [x] Module 3 — Granular permissions: one client registry file + server-side
+      re-check on every write path (permission key, in the same precedence
+      order as the client), gated behind billing_status too. No entity is
+      written to directly from the client without a Safe-function equivalent.
+      An admin-facing "Permisos" screen renders that same registry as a
+      matrix (module x action, tri-state group + per-section overrides) so
+      the tenant's own admin can see and approve what each role can do,
+      instead of a registry file only the client hides/disables UI from.
+      → **parcial.** Todo lo sustantivo está; lo que falta es el generador que
+      mantenga en sync las tres copias del catálogo, y una prueba unitaria.
+- [x] Module 4 — RLS: every tenant-scoped entity has the four-op `$or` shape
+      (tenant branch + service-role admin branch), both halves of every rule
+      verified (data.* on the entity side, {{user.data.*}} on the user side).
+      Static validator wired into CI. Schema changes are deployed, not just
+      committed.
+- [x] Module 5 — Health: a real (not hardcoded-200) health/latency endpoint
+      Mission Control's adapter can poll.
+- [ ] Module 6 — Changelog: APP_VERSION/RELEASE_DATE + in-app changelog,
+      generated only by the release script, never by the routine build.
+      → No hay script de release; el arreglo `CHANGELOG` de `appConfig.js` se
+      edita a mano y convive con un `CHANGELOG.md` separado.
+- [ ] Module 7 — Account & danger zone: member management gated by Module 3,
+      data export, irreversible delete with a real confirmation step.
+      Danger zone covers BOTH scopes, not just one: "delete my account"
+      (leave the tenant) is separate from "delete the tenant" (every
+      member loses access), plus delegate/transfer tenant admin to another
+      approved member and promote a member to tenant admin — all three
+      re-derive actor and target from the tenant's own stored membership,
+      never from the request body.
+      → Falta el segundo alcance entero: no hay "salir de la parroquia" ni
+      transferencia de administración.
+- [x] Module 8 — Support/mejoras: entry point writes to this app first, then
+      syncs into Mission Control's tickets/leads bodega. No parallel triage UI.
+      EVERY place a ticket is born (support page AND the danger zone's deletion
+      request) notifies Mission Control in real time.
+- [x] Module 9 — acaciaco-site: this app has a page under apps/ (or freeware/),
+      using styles/base.css tokens, dark-theme correct.
+- [x] Module 10 — Login page: a real in-app screen, on-brand, real
+      error/suspended/view_only states, links to trial and support,
+      dark-theme correct. Every social button shown corresponds to a
+      provider actually enabled on the Base44 app.
+      → **parcial.** No enlaza a soporte ni a precios/prueba desde el login.
+- [x] Module 11 — Deploy discipline: `base44.app.json` + `npm run deploy`
+      (refuses `--app-id`), `deploy:site` for the frontend, `deploy:entities`
+      behind a typed confirmation, and `validate:functions` in lint keeping
+      endpoints under 40.
+- [x] Module 12 — Theme control: the shared corner switcher from
+      `shared/theme/`, copied in unchanged and rendered once inside the theme
+      provider, no other theme control left in the app.
+- [x] Module 13 — Live-site smoke test: the shared suite from `shared/smoke/`
+      against the DEPLOYED site, wired to `.github/workflows/smoke.yml`.
+      → **parcial.** `config.routes` vacío: la comprobación de colisión solo
+      corre sobre el login.
+- [x] Module 14 — Multi-tenant isolation audit: dated, evidenced, and repeated
+      whenever an entity, a function or a role is added.
+- [x] Module 15 — Bridge to Mission Control: `shared/bridge/acaciaSign.ts`
+      copied in unchanged plus its test at the functions ROOT, and outbound
+      signing on the DERIVED key.
+      → **parcial.** El helper sí, la prueba al lado no.
+- [ ] Module 16 — Secrets: every guard built on one FAILS CLOSED when the
+      value is missing, and that branch has a test. Each value has been READ
+      BACK from the panel or proven by a call that only succeeds if it is right.
+      → `ACACIA_APP_SLUG` ausente falla cerrado solo como `bad signature`, y
+      ninguna rama de fallo cerrado tiene prueba.
+- [x] Module 17 — Mission Control side: row in `apps`, an adapter, and entries
+      in `licenseControl.js`, `ticketControl.js`, `messaging.js` plus the client
+      catalogue mirror. Then PROVE the data path.
+- [ ] Module 18 — Multi-tenant account switching AND joining, on a first-class
+      `Membership` entity. → Ausente por completo.
+- [x] Module 19 — Lock survives debugging: every security-relevant RLS/field
+      lock states its rationale AND which operation it governs in its own
+      field description.
+- [ ] Module 20 — Session control: client-side idle warning + hard logout
+      (`shared/session/`), a per-device Session with the active/passive
+      model, and a server-side reap job at 48h. → Ausente por completo.
+- [x] Module 21 — About screen: user manual, changelog, version line in sync
+      with package.json, contact + ACACIA acknowledgment card.
+- [ ] Module 22 — Server-authoritative diffing: any backend function that
+      compares a server-authoritative custom field against a target value to
+      decide whether to write it does a FRESH read via `asServiceRole` first.
+      → Las 15 funciones derivan la parroquia de `auth.me()` sin relectura.
+- [x] Module 23 — Nav survives reload: the nav's active item is derived from
+      the current route on every render.
+
+Last audited against the standard: 2026-09-08 — primera pasada completa de los
+23 módulos. 13 conformes, 6 parciales, 4 ausentes; detalle abajo.
+Last multi-tenant isolation audit: 2026-08-23 — ver "Módulo 14" arriba. Sigue
+vigente: no se ha añadido ninguna entidad, función ni rol desde entonces.
+
+## Auditoría contra el estándar — 2026-09-08
+
+Primera pasada de los **23 módulos**. Antes de esto el repo documentaba en prosa
+los módulos 11, 12, 13, 14 y 15 y no llevaba cuenta de los otros dieciocho, así
+que "cumple el estándar" no era una afirmación que nadie pudiera comprobar. El
+bloque de arriba es ahora esa cuenta.
+
+Tres cosas se verificaron **contra la base viva de Mission Control**
+(`app_health`, `audit_actions`, `apps`, `licenses`), no contra el repo — que es
+lo que las tablas de "verification gates" del estándar piden y lo que este
+portafolio ha aprendido a no dar por supuesto.
+
+### Lo que está bien, y con qué evidencia
+
+**El puente funciona de verdad** (módulos 5 y 17). `app_health` tiene una fila
+`status: ok` con fecha de hoy y latencia real (342 ms; 226-429 ms los cinco días
+anteriores), y `audit_actions` una fila `control:run-sync` para `cateqhub` del
+2026-09-08 00:40 UTC. La fila en `apps` está completa (`backend: base44`,
+`external_id` = el `appId` de `base44.app.json`, `status: active`) y las entradas
+de `licenseControl.js`, `ticketControl.js`, `messaging.js` y el espejo
+`licenseCatalog.js` existen del lado de Mission Control. El camino de datos está
+probado, no solo configurado.
+
+**Los tres archivos compartidos son idénticos byte a byte** a su fuente canónica
+en `jospabloh/acacia-app-standard` — comprobado con `diff`, no con la vista:
+`tests/smoke/smoke.spec.js` ↔ `shared/smoke/`, `src/components/ThemeSwitcher.jsx`
+↔ `shared/theme/`, y `base44/functions/acaciaControl/_acaciaSign.ts` ↔
+`shared/bridge/`. `ACCEPT_LEGACY_MASTER` está en `false`.
+
+**La RLS pasa su propio validador**: `npm run validate:rls` limpio sobre 10
+entidades, 9 tenant-scoped, y es un paso bloqueante de CI desde 1.9.6.
+
+**El tema tiene un solo dueño**: los únicos escritores de `.dark` son
+`src/lib/ThemeContext.jsx` y el script pre-montaje de `index.html`, que son
+justo la pareja documentada. Ningún resto de un control viejo.
+
+### Los cuatro hallazgos que valen la pena
+
+#### 1. La única parroquia en producción no tiene licencia (módulo 1)
+
+`licenses` tiene **una** fila para cateqhub y sale así:
+
+    plan: null   status: null   trial_ends_at: null   current_period_end: null
+    synced_at: 2026-09-08 08:29:22+00
+
+Sincronizada hoy, y vacía. No es el mapeo: `apps.config.field_map` es correcto
+(`plan→plan`, `status→license_status`, `current_period_end→premium_period_end_at`)
+y `api/_lib/sync/licenseMapping.js` lo lee bien. Lo dice la columna `raw`, que
+guarda el registro tal como llegó por el puente:
+
+    { id, name: "Parroquia San Testing", active: true, is_sample: false,
+      created_date: "2026-07-22", admin_contact, created_by_id }
+
+La parroquia se creó el 2026-07-22, **antes** de que existieran `plan`,
+`license_status` y `premium_period_end_at`. Los `default` de un `.jsonc` se
+aplican al crear el registro, no retroactivamente, así que esa fila no tiene los
+campos — no los tiene en `null`, no los tiene.
+
+Y el backfill que existe para esto no la alcanza:
+`migrate_free_parishes_to_trial` filtra `{ plan: 'free' }`, y un campo ausente no
+matchea una igualdad. La parroquia es invisible para la migración, para el cron
+de lifecycle y para el panel de Licencias a la vez.
+
+La consecuencia práctica está en las funciones: `create_child`,
+`update_child` y `record_attendance` bloquean con
+`parish.plan === 'premium' && parish.license_status !== 'active'`, y
+`add_guardian` con `parish.license_status && ... !== 'active'`. Con los tres
+campos ausentes las dos condiciones son falsas, así que **esa parroquia tiene
+Premium completo, sin tope de niños y sin vencimiento posible.**
+`src/lib/premium.js:33` hace lo mismo del lado del cliente
+(`parish?.license_status || "active"`). Todo falla abierto, y en la dirección
+cómoda, que es la que nadie nota.
+
+Es una sola parroquia y se llama "Testing", así que el daño hoy es cero. Lo que
+importa es que **el ciclo de licencia de esta app nunca se ha ejercido de
+extremo a extremo contra un registro real**, y el día que se onboardee una
+parroquia de verdad esa será la primera vez. El arreglo barato es un backfill que
+filtre por ausencia en vez de por `'free'`, o simplemente estampar los tres
+campos en esa fila a mano; el arreglo que vale es correr el ciclo completo una
+vez contra ella antes de que haya una segunda.
+
+Aparte, y menor: el estado no se llama `billing_status` ni toma los cuatro
+valores del estándar. `plan` + `license_status` es una desviación deliberada y
+Mission Control la mapea (`suspended→access_denied`, `view_only→read_only`), pero
+no hay estado `trial` — la prueba es "plan=premium con `premium_period_end_at`
+en el futuro", que no es un estado que se pueda consultar. La renovación al día 1
+del mes no aplica: `billing: null`, este app no cobra por Mercado Pago todavía.
+
+#### 2. Se puede degradar al último administrador de una parroquia (módulo 2)
+
+`assign_parish_user` tiene el candado de cero administradores, y está bien
+escrito — pero solo en la rama `action: 'remove'` (entry.ts:67-73): lee los
+administradores de la parroquia con rol de servicio, descuenta al objetivo, y
+devuelve 409 si no queda ninguno. La rama de asignación/edición, que es la que
+usa el botón "Editar" de `Users.jsx:113`, no tiene nada equivalente: pasa
+`parish_role` directo al `User.update` final (entry.ts:146).
+
+Un administrador puede abrir su propia ficha, ponerse "Catequista" y guardar. No
+hay comprobación de que sea él mismo (la rama `remove` sí la tiene,
+entry.ts:64), ni de que quede algún otro admin. A partir de ahí la parroquia no
+tiene quién invite, edite permisos, exporte datos ni solicite la baja — y como
+el módulo 7 tampoco tiene transferencia de administración, no hay camino de
+vuelta sin tocar el panel de Base44 a mano.
+
+El estándar lo nombra literalmente: *"a demote that would leave zero admins on
+the tenant is rejected, not silently allowed — there is no support-ticket-free
+way back in once that happens."* Es el hallazgo más barato de arreglar y el de
+peor consecuencia: mover las dos comprobaciones que ya existen en `remove` a un
+punto anterior, común a las dos ramas.
+
+#### 3. El catálogo de permisos vive en tres copias a mano (módulo 3)
+
+El servidor sí re-checa — eso está bien y es la mitad que importa. Las funciones
+leen los espejos `perm_*` del `User`, y antes de eso comprueban `license_status`
+con una lectura fresca de `Parish`, en el orden que el estándar pide.
+
+Lo que no está es el generador. `DEFAULTS` y `computeFlags` están duplicados
+literalmente en `sync_catequist_permissions/entry.ts:13-31` y en
+`assign_parish_user/entry.ts:7-24`, y los dos tienen que coincidir con
+`src/lib/permissionRegistry.js`. La garantía es un comentario: *"DEFAULTS debe
+reflejar exactamente src/lib/permissionRegistry.js — si se agrega o cambia un
+permiso configurable ahí, actualiza también este mapa."*
+
+Este portafolio ya sabe cómo termina eso. Mission Control tenía tres espejos
+sueltos del catálogo de licencias dentro de una sola página y derivaron:
+**rumbo llevaba `view_only` desplegado desde el 2026-08-03 sin que el panel lo
+ofreciera, y radar no estaba en ninguno de los tres.** Se cerró con
+`src/lib/licenseCatalog.test.js`, que falla si las copias se separan. Aquí el
+equivalente sería un generador (`scripts/generatePermissionManifests.mjs`, el
+patrón que el estándar nombra) o, más barato, una prueba que lea los tres
+archivos y compare.
+
+Lo que hace este caso más incómodo que el de Mission Control: **el repo no tiene
+corredor de pruebas unitarias.** `package.json` no declara vitest ni jest; lo
+único que corre es Playwright (`test:e2e`, `test:smoke`). Así que la prueba del
+resolver que el módulo 3 pide como su verification gate no está, y no puede
+estar sin añadir primero esa pieza. Lo mismo bloquea la prueba de fallo cerrado
+del módulo 16 y la prueba `acaciaSign.test.ts` del módulo 15.
+
+#### 4. La parroquia se deriva de `auth.me()` en las 15 funciones (módulo 22)
+
+Todas hacen la misma forma: `me = await base44.auth.me()`, y a partir de ahí
+`me.parish_id` para acotar la operación y `me.parish_role` / `me.role` para
+autorizarla. Ninguna relee el registro del propio llamante con `asServiceRole`
+antes de usarlos.
+
+Es exactamente el punto 3 del módulo: *"the same rule applies one layer up
+whenever a caller's own server-authoritative field gates the operation — e.g.
+deriving which tenant an admin action should scope to from the caller's own
+tenant_id. A stale read there doesn't just skip a write, it can scope an entire
+operation against the wrong record."*
+
+Conviene ser justo con lo que sí está bien, porque no es poco:
+
+- **No hay ningún diff-then-skip**, que es la forma concreta que tumbó a rumbo.
+  Ninguna función compara "ya vale esto, no escribo".
+- **El lado del objetivo sí se lee fresco**: `assign_parish_user:61` compara
+  contra el `targetUser` leído con rol de servicio, y `update_child`,
+  `add_guardian` y `record_attendance` comprueban `child.parish_id` contra el
+  registro almacenado. El módulo 14 del 2026-08-23 ya lo había verificado.
+- **Los parches son campos nombrados**, no un `data: {...}` que arrase con los
+  hermanos.
+
+El punto más expuesto es `create_parish:17`: `if (me.parish_id) return 400`. Ese
+`if` es lo único que impide que un usuario cree una segunda parroquia, y sale de
+la vista cacheada. Si esa vista discrepa de lo persistido —el escenario entero
+del módulo 22— el usuario crea una parroquia nueva, la función lo re-apunta a
+ella (`User.update` en la línea 55), y queda huérfano de la primera sin que
+nadie devuelva un error. Y como no hay `Membership` (módulo 18), la primera
+parroquia se queda sin él.
+
+No está demostrado que pase aquí; el mecanismo que lo causó en rumbo era un
+campo suelto en la raíz del documento. Lo que sí es cierto es que la defensa
+cuesta una línea y no está puesta.
+
+### Los dos módulos ausentes, y qué implica cada uno
+
+**Módulo 18 (cambio y alta de inquilino).** No hay entidad `Membership`; la
+pertenencia es un `parish_id` plano en `User`. Las tres consecuencias que el
+estándar nombra están las tres presentes: `create_parish:17` rechaza si ya
+tienes una, `assign_parish_user:113` rechaza mover a alguien que pertenece a
+otra parroquia (*"El usuario ya pertenece a otra parroquia"*), y no hay control
+de cambio de inquilino en ninguna pantalla. Es la forma "leave your tenant
+first" que el módulo prohíbe explícitamente — agravada porque, por el módulo 7,
+**no existe manera de salir**. Un catequista que sirva en dos parroquias necesita
+dos cuentas de correo. Retrofitearlo es caro y el estándar avisa por qué: cada
+perfil ya fijado a la parroquia equivocada necesita un empujón para re-resolver.
+
+**Módulo 20 (control de sesión).** Nada de `shared/session/` está copiado: ni el
+par aviso-de-inactividad/logout, ni el heartbeat, ni la entidad `Session` por
+dispositivo, ni el job de reaper a 48 h. Vale la pena decir dónde muerde esto en
+concreto: `acaciaControl` **ya trae** los casos `sessions.list` y
+`sessions.revoke` (entry.ts:302-326), porque el archivo es idéntico en todo el
+portafolio. Los dos reciben el nombre de la entidad en `params.entity`. Aquí no
+hay ninguna que darles, así que Mission Control tiene el botón de revocar sesión
+y no tiene a qué apuntarlo. En una app que guarda CURP y datos de menores, una
+sesión abierta en un dispositivo prestado no caduca nunca por sí sola.
+
+### Lo menor, junto
+
+- **Módulo 6**: no hay script de release. El arreglo `CHANGELOG` de
+  `src/lib/appConfig.js` se edita a mano y convive con un `CHANGELOG.md` en la
+  raíz que se mantiene aparte — dos registros del mismo hecho, que es la forma
+  de la deriva. La versión sí está en sync (1.9.10 en los dos sitios) y el
+  módulo 21 la muestra bien.
+- **Módulo 7**: el primer alcance está completo (exportación, solicitud de
+  borrado con confirmación y aviso en tiempo real a Mission Control, gestión de
+  miembros). Falta el segundo entero: no hay "salir de la parroquia" ni
+  transferencia/delegación de administración. `assign_parish_user:64-66` bloquea
+  quitarse a uno mismo y remite a *"pide a otro administrador que lo haga"* —
+  correcto contra el auto-bloqueo, pero deja sin salida al único admin.
+- **Módulo 10**: el login es real (campos propios llamando a
+  `loginViaEmailPassword`, Google por `loginWithProvider`, estado de error,
+  enlace a registro). No enlaza a soporte ni a precios/prueba, que el estándar
+  sí pide.
+- **Módulo 13**: la suite está bien cableada pero `smoke.config.js` no declara
+  `routes`, así que la quinta afirmación —el selector no tapa nada y nada lo
+  tapa— solo corre sobre el login. `/register`, `/forgot-password` y un 404 son
+  públicas y quedan fuera, que es justo donde el ejemplo del estándar avisa que
+  suele aparecer un segundo control de esquina.
+- **Módulo 15**: `_acaciaSign.ts` es idéntico al canónico, pero
+  `acaciaSign.test.ts` no está en la raíz de `base44/functions/` como el módulo
+  pide. Y un comentario en `acaciaControl/entry.ts:31-34` sigue diciendo *"While
+  ACCEPT_LEGACY_MASTER is true a signature made with the bare
+  INGEST_HMAC_SECRET is still accepted"* — quedó viejo en el commit 63a8337, que
+  lo puso en `false`. Es el tipo de comentario que hace perder una hora.
+- **Módulo 16**: `INGEST_HMAC_SECRET` ausente devuelve un 500 con su nombre
+  (`entry.ts:23-24`), que es lo correcto. `ACACIA_APP_SLUG` no: `?? ''` deriva
+  una llave desde una cadena vacía y el resultado es un `bad signature` genérico
+  en cada llamada. Falla cerrado, sí, pero **con el síntoma exacto que este
+  portafolio ya diagnosticó mal durante dos horas** el 2026-08-24 (ver módulo 15
+  del `CLAUDE.md` de Mission Control: *"parece un secreto mal puesto y no lo
+  es"*). Merece su propio 500, como su vecino.
+
+### Lo que NO se pudo verificar
+
+- **El esquema desplegado.** Esta sesión no tiene el MCP de Base44, así que todo
+  lo que se dice de entidades y RLS sale de `base44/entities/*.jsonc` y del
+  validador estático, no de `list_entity_schemas`. La última lectura del esquema
+  vivo es la del módulo 14 del 2026-08-23 y sigue siendo la referencia. El
+  módulo 19 pide precisamente que repo y esquema desplegado coincidan; eso queda
+  sin comprobar en esta pasada.
+- **Los valores de los secrets en el panel de Base44** (módulo 16). Que la
+  sincronización de hoy pasara demuestra que `INGEST_HMAC_SECRET` y
+  `ACACIA_APP_SLUG` valen lo que deben — es una llamada que solo tiene éxito si
+  son correctos, que es el estándar de prueba que pide el módulo — pero no se
+  leyeron de vuelta uno por uno.
+- **Los proveedores sociales habilitados** en el app de Base44 (módulo 10). El
+  login solo ofrece Google, así que no hay un botón que lleve a un callejón sin
+  salida; que Google esté configurado se infiere de que es el único y de que el
+  app está en producción, no se comprobó en el panel.
+- **El camino de tickets de extremo a extremo** (módulo 8). Los dos sitios donde
+  nace un ticket llaman a `/api/ingest/ticket-pull`, pero `tickets` tiene **0**
+  filas para cateqhub en Mission Control, así que el camino nunca se ha
+  recorrido con un ticket real. El gate del módulo es *"raise one and watch it
+  appear in MC in seconds"*, y eso no se hizo: levantar un ticket de prueba en
+  producción para auditar tiene su propio costo.
+- **Cualquier pantalla autenticada.** Sin sesión de Base44 en este entorno, igual
+  que en las pasadas anteriores.
