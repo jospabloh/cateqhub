@@ -23,6 +23,30 @@ function computeFlags(effective: Record<string, boolean>) {
   };
 }
 
+// Una parroquia que se queda sin ningún administrador no tiene camino de vuelta:
+// nadie puede invitar, editar permisos, exportar datos ni solicitar la baja, y
+// este app todavía no tiene transferencia de administración (módulo 7 del
+// estándar). El único remedio sería el panel de Base44 a mano.
+//
+// Por eso QUITAR y DEGRADAR pasan por el mismo gate en vez de dos que puedan
+// derivar: son la misma operación con la dirección cambiada. Hasta 2026-09-08
+// el candado vivía solo en la rama `action:'remove'`, así que el botón "Editar"
+// de Users.jsx podía dejar la parroquia sin administrador — incluso el propio
+// admin sobre su propia ficha.
+//
+// Cuenta contra los administradores REALES de la parroquia, leídos con rol de
+// servicio, nunca contra lo que diga el cuerpo de la petición. `parish_id` es
+// siempre el del registro ALMACENADO del objetivo, no el del cuerpo: un admin
+// de plataforma puede mandar otra parroquia, y contar los administradores de
+// una parroquia distinta a la que se está tocando no responde la pregunta.
+type ServiceRole = {
+  entities: { User: { filter: (q: Record<string, unknown>) => Promise<Array<{ id: string }>> } };
+};
+async function wouldLeaveNoAdmin(sr: ServiceRole, parish_id: string, targetId: string) {
+  const admins = await sr.entities.User.filter({ parish_id, parish_role: 'admin' });
+  return (admins || []).filter((u) => u.id !== targetId).length === 0;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -64,12 +88,9 @@ Deno.serve(async (req) => {
       if (targetUser.id === me.id) {
         return Response.json({ error: 'No puedes quitarte a ti mismo. Pide a otro administrador que lo haga.' }, { status: 400 });
       }
-      if (targetUser.parish_role === 'admin') {
-        const parishUsers = await base44.asServiceRole.entities.User.filter({ parish_id, parish_role: 'admin' });
-        const otherAdmins = (parishUsers || []).filter((u) => u.id !== targetUser.id);
-        if (otherAdmins.length === 0) {
-          return Response.json({ error: 'No puedes quitar al último administrador de la parroquia' }, { status: 409 });
-        }
+      if (targetUser.parish_role === 'admin'
+          && await wouldLeaveNoAdmin(base44.asServiceRole, targetUser.parish_id, targetUser.id)) {
+        return Response.json({ error: 'No puedes quitar al último administrador de la parroquia' }, { status: 409 });
       }
 
       // Cadenas vacías, no null/undefined: undefined se cae del JSON (Base44
@@ -119,6 +140,20 @@ Deno.serve(async (req) => {
     }
 
     const sr = base44.asServiceRole;
+
+    // Degradar es quitar con otro nombre, así que pasa por el mismo gate. Un
+    // administrador deja de serlo de su parroquia actual de dos maneras, y las
+    // dos cuentan: se le cambia el rol ahí mismo, o un admin de plataforma lo
+    // mueve a otra parroquia (la de origen se queda igual de huérfana). Todo se
+    // evalúa contra `target.parish_id` —el registro almacenado— porque es el
+    // único que dice de qué parroquia es administrador HOY.
+    const leavesAdminPost = target.parish_role === 'admin' && !!target.parish_id
+      && (parish_role !== 'admin' || parish_id !== target.parish_id);
+    if (leavesAdminPost && await wouldLeaveNoAdmin(sr, target.parish_id, target.id)) {
+      return Response.json({
+        error: 'No puedes dejar a la parroquia sin administrador. Nombra a otro administrador antes de cambiar este rol.',
+      }, { status: 409 });
+    }
 
     // Espejar plan/license_status vigentes de la parroquia en el usuario
     // recién asignado — Guardian/ChildGuardian RLS los lee de aquí (Base44
