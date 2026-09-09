@@ -373,6 +373,14 @@ mismo archivo, que es exactamente la deriva que este módulo quita.
 
 ## ACACIA Portfolio Standard
 
+**Cómo leer estas casillas, porque en este repo la distinción no es un
+tecnicismo.** `[x]` significa CORRIENDO, no "mergeado". Mergear a `main` no
+despliega nada aquí (ver "Deploy" arriba: en flowfin se comprobó al revés, y
+costó horas). Un módulo cuyo código está en `main` pero cuya función sigue sin
+`npm run deploy` **no está hecho**: está escrito. Los que están así llevan
+`[ ]` y dicen "escrito, falta desplegar" — no `[x]` con una nota al lado, que
+es lo que alguien escaneando casillas lee como hecho.
+
 This app is part of the ACACIA portfolio and must stay compliant with
 `jospabloh/acacia-app-standard`. Full rationale for each item is in that repo's
 `STANDARD.md` — read it before implementing any item below for the first time,
@@ -390,11 +398,16 @@ a live query proved it; the dated audit under them says with what evidence.
       billing_status: trial and fires a real-time, HMAC-signed ping to
       Mission Control so the platform owner is alerted immediately, not at
       the next daily sync.
-      → **parcial.** Sin cron nativo y con la prueba de 30 días correcta, pero
-      el estado no se llama `billing_status` (son `plan` + `license_status`) y
-      la única parroquia en producción no trae ninguno de los tres campos. Sin
-      ping en tiempo real al crear tenant (hueco de todo el portafolio).
-- [x] Module 2 — Roles: app role model declared in one file, mapped onto the
+      → **parcial, a propósito.** Sin cron nativo y con la prueba de 30 días
+      correcta. El estado no se llama `billing_status` (son `plan` +
+      `license_status`): desviación deliberada que Mission Control mapea. La
+      parroquia demo sin campos de licencia resuelve a Plan Gratis en toda la
+      app, que es lo correcto para un demo; su presentación en el panel se
+      arregló en acacia-mission-control#103 (`config.field_defaults`,
+      desplegado el 2026-09-08). Sigue sin ping en tiempo real al crear tenant
+      — hueco de TODO el portafolio, ninguna app lo tiene y MC no tiene el
+      endpoint.
+- [ ] Module 2 — Roles: app role model declared in one file, mapped onto the
       backend's built-in role field; Mission Control operator roles
       (owner/admin/viewer) are a separate layer, never conflated. Only a
       tenant's own admin can promote a member to admin or demote a fellow
@@ -402,8 +415,10 @@ a live query proved it; the dated audit under them says with what evidence.
       leave zero admins). Joining an EXISTING tenant is by invite code
       (request → admin approves) or emailed invite (admin-initiated,
       pre-approved) — never an open self-serve join.
-      → **parcial.** Falta el candado de cero administradores en la ruta de
-      degradación (solo existe en `action:'remove'`).
+      → Cerrado 2026-09-08. `wouldLeaveNoAdmin` es UN gate compartido por
+      quitar y degradar. Cubre las tres rutas por las que alguien deja de ser
+      administrador, contando siempre contra `target.parish_id` (el registro
+      almacenado).
 - [x] Module 3 — Granular permissions: one client registry file + server-side
       re-check on every write path (permission key, in the same precedence
       order as the client), gated behind billing_status too. No entity is
@@ -412,8 +427,11 @@ a live query proved it; the dated audit under them says with what evidence.
       matrix (module x action, tri-state group + per-section overrides) so
       the tenant's own admin can see and approve what each role can do,
       instead of a registry file only the client hides/disables UI from.
-      → **parcial.** Todo lo sustantivo está; lo que falta es el generador que
-      mantenga en sync las tres copias del catálogo, y una prueba unitaria.
+      → Cerrado 2026-09-08, con un hueco nombrado. Hay corredor de pruebas
+      (`npm run test:unit`, bloqueante en CI) y guardia contra la deriva de las
+      tres copias. PENDIENTE DE DECISIÓN: `reportes:ver_todos_los_grupos` sólo
+      se aplica en el cliente — ver `UI_ONLY` en
+      tests/unit/permissionRegistry.test.js.
 - [x] Module 4 — RLS: every tenant-scoped entity has the four-op `$or` shape
       (tenant branch + service-role admin branch), both halves of every rule
       verified (data.* on the entity side, {{user.data.*}} on the user side).
@@ -421,10 +439,11 @@ a live query proved it; the dated audit under them says with what evidence.
       committed.
 - [x] Module 5 — Health: a real (not hardcoded-200) health/latency endpoint
       Mission Control's adapter can poll.
-- [ ] Module 6 — Changelog: APP_VERSION/RELEASE_DATE + in-app changelog,
+- [x] Module 6 — Changelog: APP_VERSION/RELEASE_DATE + in-app changelog,
       generated only by the release script, never by the routine build.
-      → No hay script de release; el arreglo `CHANGELOG` de `appConfig.js` se
-      edita a mano y convive con un `CHANGELOG.md` separado.
+      → Cerrado 2026-09-08. `npm run release` escribe los cuatro sitios de una
+      vez y se niega a correr sin notas o con una versión ya usada.
+      tests/unit/release.test.js fija los invariantes.
 - [ ] Module 7 — Account & danger zone: member management gated by Module 3,
       data export, irreversible delete with a real confirmation step.
       Danger zone covers BOTH scopes, not just one: "delete my account"
@@ -433,19 +452,21 @@ a live query proved it; the dated audit under them says with what evidence.
       approved member and promote a member to tenant admin — all three
       re-derive actor and target from the tenant's own stored membership,
       never from the request body.
-      → Falta el segundo alcance entero: no hay "salir de la parroquia" ni
-      transferencia de administración.
+      → Cerrado 2026-09-08. `action:'leave'` (en /acerca-de, la única pantalla
+      que alcanza cualquier miembro) y `action:'transfer_admin'` (en el danger
+      zone de /parroquia).
 - [x] Module 8 — Support/mejoras: entry point writes to this app first, then
       syncs into Mission Control's tickets/leads bodega. No parallel triage UI.
       EVERY place a ticket is born (support page AND the danger zone's deletion
       request) notifies Mission Control in real time.
 - [x] Module 9 — acaciaco-site: this app has a page under apps/ (or freeware/),
       using styles/base.css tokens, dark-theme correct.
-- [x] Module 10 — Login page: a real in-app screen, on-brand, real
+- [ ] Module 10 — Login page: a real in-app screen, on-brand, real
       error/suspended/view_only states, links to trial and support,
       dark-theme correct. Every social button shown corresponds to a
       provider actually enabled on the Base44 app.
-      → **parcial.** No enlaza a soporte ni a precios/prueba desde el login.
+      → Cerrado 2026-09-08. Enlaces a /soporte y a /apps/cateqhub de
+      acaciaco.com.mx, verificados renderizando el build en claro y oscuro.
 - [x] Module 11 — Deploy discipline: `base44.app.json` + `npm run deploy`
       (refuses `--app-id`), `deploy:site` for the frontend, `deploy:entities`
       behind a typed confirmation, and `validate:functions` in lint keeping
@@ -455,46 +476,105 @@ a live query proved it; the dated audit under them says with what evidence.
       provider, no other theme control left in the app.
 - [x] Module 13 — Live-site smoke test: the shared suite from `shared/smoke/`
       against the DEPLOYED site, wired to `.github/workflows/smoke.yml`.
-      → **parcial.** `config.routes` vacío: la comprobación de colisión solo
-      corre sobre el login.
+      → Cerrado 2026-09-08. `routes` cubre login, registro, recuperación y un
+      404. El spec compartido sigue byte a byte idéntico al canónico.
 - [x] Module 14 — Multi-tenant isolation audit: dated, evidenced, and repeated
       whenever an entity, a function or a role is added.
 - [x] Module 15 — Bridge to Mission Control: `shared/bridge/acaciaSign.ts`
       copied in unchanged plus its test at the functions ROOT, and outbound
       signing on the DERIVED key.
-      → **parcial.** El helper sí, la prueba al lado no.
+      → Cerrado 2026-09-08. `base44/functions/_acaciaSign.test.ts` (copia del
+      canónico, difiere sólo en la ruta del import) y CORRIENDO: job
+      `bridge-signing` con Deno en CI. Antes recibía su primer type-check al
+      desplegar.
 - [ ] Module 16 — Secrets: every guard built on one FAILS CLOSED when the
       value is missing, and that branch has a test. Each value has been READ
       BACK from the panel or proven by a call that only succeeds if it is right.
-      → `ACACIA_APP_SLUG` ausente falla cerrado solo como `bad signature`, y
-      ninguna rama de fallo cerrado tiene prueba.
+      → Cerrado 2026-09-08. `ACACIA_APP_SLUG` ausente devuelve su propio 500
+      con su nombre, como `INGEST_HMAC_SECRET`. `CRON_SECRET` (nuevo, módulo 20)
+      falla cerrado con 503.
 - [x] Module 17 — Mission Control side: row in `apps`, an adapter, and entries
       in `licenseControl.js`, `ticketControl.js`, `messaging.js` plus the client
       catalogue mirror. Then PROVE the data path.
 - [ ] Module 18 — Multi-tenant account switching AND joining, on a first-class
-      `Membership` entity. → Ausente por completo.
+      `Membership` entity.
+      → Escrito 2026-09-08, NO DESPLEGADO. Entidad `Membership` (lectura por
+      {{user.id}}, no por parroquia), función `memberships` (list/switch con
+      backfill perezoso), y selector en la barra lateral. PENDIENTE DE
+      DECISIÓN: el alta cross-parroquia — ver abajo.
 - [x] Module 19 — Lock survives debugging: every security-relevant RLS/field
       lock states its rationale AND which operation it governs in its own
       field description.
 - [ ] Module 20 — Session control: client-side idle warning + hard logout
       (`shared/session/`), a per-device Session with the active/passive
-      model, and a server-side reap job at 48h. → Ausente por completo.
+      model, and a server-side reap job at 48h.
+      → Escrito 2026-09-08, NO DESPLEGADO. Los cuatro archivos de
+      `shared/session/` byte a byte, entidad `Session`, router `session` y
+      `purge_stale_sessions` con guardia de `CRON_SECRET` que falla cerrado.
 - [x] Module 21 — About screen: user manual, changelog, version line in sync
       with package.json, contact + ACACIA acknowledgment card.
 - [ ] Module 22 — Server-authoritative diffing: any backend function that
       compares a server-authoritative custom field against a target value to
       decide whether to write it does a FRESH read via `asServiceRole` first.
-      → Las 15 funciones derivan la parroquia de `auth.me()` sin relectura.
+      → Cerrado 2026-09-08. Las funciones con sesión releen al llamante con
+      `asServiceRole`; `session` es la identidad, `me` el registro almacenado.
+      tests/unit/freshCallerRead.test.js exige el bloque literal en todas.
 - [x] Module 23 — Nav survives reload: the nav's active item is derived from
       the current route on every render.
+
+### Lo que falta desplegar (2026-09-08)
+
+Los 23 módulos están escritos y en `main` desde el PR #57. **Nada de eso corre
+todavía.** Falta, en este orden:
+
+1. `npm run deploy:entities` — DESTRUCTIVO, pide escribir "CateqHub". Añade
+   `Session` y `Membership`. Sin esto, `session`, `purge_stale_sessions` y
+   `memberships` fallan contra entidades que no existen.
+2. **`CRON_SECRET` en los secrets de la app, ANTES de programar el reaper.**
+   Sin él `purge_stale_sessions` responde 503 y no corre — dirección segura,
+   pero sigue siendo una caída silenciosa, y es el error que flowfin documenta
+   en el sentido contrario.
+3. `npm run deploy` — las funciones (3 nuevas, 4 modificadas).
+4. `npm run deploy:site` — el frontend (login, /acerca-de, danger zone,
+   selector de parroquia, control de sesión).
+5. Verificar por **contenido**, no por hash, y correr `npm run test:smoke`
+   desde Actions.
+
+Dos decisiones que NO son mías y bloquean cerrar dos módulos del todo:
+
+- **`reportes:ver_todos_los_grupos` (módulo 3).** Está en el registro y en los
+  dos `DEFAULTS`, pero no tiene bandera `perm_*`: sólo se comprueba en
+  `Reports.jsx`, del lado del cliente. Reportes no pasa por función de
+  servicio —la página consulta Attendance/Child por el SDK y la RLS acota por
+  `parish_id`, no por `group_id`— así que un catequista al que su parroquia le
+  apagó ese permiso puede pedir los datos de otro grupo desde devtools. **No
+  cruza parroquias.** O una función de servicio que devuelva el reporte ya
+  filtrado, o aceptarlo como comodidad de interfaz y decirlo en la pantalla de
+  Permisos en vez de dibujarlo como candado. Vive en `UI_ONLY` en
+  tests/unit/permissionRegistry.test.js; esa lista se encoge, nunca se agranda.
+- **El alta cross-parroquia (módulo 18, punto 2).** `assign_parish_user`
+  rechaza dar de alta a quien ya pertenece a otra parroquia — que es la forma
+  "leave your tenant first" que el módulo prohíbe. Pero ese mismo rechazo es el
+  candado contra el secuestro de cuentas cross-tenant. Levantarlo exige decidir
+  antes si un alta ajena debe MOVER el puntero activo de esa persona o sólo
+  añadir la membresía y dejar que se cambie ella. Es una decisión de producto
+  con consecuencia de seguridad.
+
+**El módulo 14 hay que rehacerlo.** Se añadieron dos entidades (`Session`,
+`Membership`) y tres funciones (`session`, `purge_stale_sessions`,
+`memberships`), que es exactamente el disparador que ese módulo define. La
+pasada del 2026-08-23 cubre 10 entidades y 15 funciones; hoy son 12 y 18. Hay
+que correrla contra el esquema DESPLEGADO, después del deploy, no antes.
 
 Last audited against the standard: 2026-09-08 — primera pasada completa de los
 23 módulos. 13 conformes, 6 parciales, 4 ausentes; detalle abajo. El hallazgo 1
 se **corrigió el mismo día**: afirmaba un fallo abierto de licencia que no
 existe (un `plan` ausente resuelve a Plan Gratis en toda la app). Lo que queda
 ahí es una incoherencia de presentación entre el app y el panel.
-Last multi-tenant isolation audit: 2026-08-23 — ver "Módulo 14" arriba. Sigue
-vigente: no se ha añadido ninguna entidad, función ni rol desde entonces.
+Last multi-tenant isolation audit: 2026-08-23 — ver "Módulo 14" arriba.
+**VENCIDA**: el PR #57 añadió dos entidades y tres funciones, que es el
+disparador del módulo. Rehacerla contra el esquema desplegado, después del
+deploy.
 
 ## Auditoría contra el estándar — 2026-09-08
 
