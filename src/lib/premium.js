@@ -56,8 +56,14 @@ export const usePremiumStatus = useLicenseStatus;
 // esto solo decide qué tramo se le muestra/registra a cada parroquia.
 export const IMPLEMENTATION_TIERS = [
   { value: "hasta_150", max: 150, price: 1490, label: "Hasta 150 niños activos" },
-  { value: "151_500", max: 500, price: 2490, label: "151 a 500 niños activos" },
-  { value: "501_mas", max: Infinity, price: 3990, label: "501+ niños activos o diócesis" },
+  // Los `value` son llaves opacas y NO se renombran: son el enum desplegado de
+  // Parish.implementation_requested_tier (["hasta_150","151_350","351_mas"]).
+  // Cambiarlos exigiría un `deploy:entities`, que es destructivo, para ganar
+  // cero — lo que el usuario ve es el label, y lo que decide el tramo es `max`.
+  // Las fronteras sí se movieron a 150/500 el 2026-09-09 para coincidir con la
+  // tabla de suscripción.
+  { value: "151_350", max: 500, price: 2490, label: "151 a 500 niños activos" },
+  { value: "351_mas", max: Infinity, price: 3990, label: "501+ niños activos o diócesis" },
 ];
 
 export function implementationTierFor(activeChildren) {
