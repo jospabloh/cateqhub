@@ -141,6 +141,17 @@ Y comprueba el resultado por **contenido**, no por hashes: el checkpoint del app
 puede reportar un `git_commit_hash` igual al HEAD de `main` mientras el árbol que
 de verdad se sirve está atrasado.
 
+**Y un paso más adentro: `deploy:site` construye siempre, desde el 2026-09-09.**
+`npx base44 site deploy` *pregunta* si construir antes de subir, y mientras el
+script no pasó `--build` esa pregunta se contestaba a mano en cada deploy. Basta
+contestar que no una vez para subir el `dist/` que hubiera en disco —el de otra
+rama, el de antes del arreglo— y entonces el repo dice una cosa y el sitio
+servido dice otra. Pasó ese día: el arreglo del selector de tema estaba mergeado
+en `main`, el `deploy:site` se corrió, y el smoke de producción siguió fallando
+en la misma línea con el mismo elemento. No era que el arreglo estuviera mal:
+era que no había viajado. `tests/unit/deploySite.test.js` fija la bandera, y
+falla si alguien la quita o mete `--no-build`.
+
 `scripts/base44-deploy.mjs` **rechaza** un `--app-id` por argumento, así que el
 directorio y la app destino no pueden desalinearse. `deploy:entities` imprime la
 lista de entidades y el nombre de la app antes de pedir confirmación — ver

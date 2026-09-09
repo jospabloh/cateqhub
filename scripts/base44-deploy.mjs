@@ -135,8 +135,16 @@ function run(args) {
 // `--site` es el frontend y nada más: un cambio de UI no tiene por qué volver a
 // recorrer 45 funciones, y separarlo hace que el paso que faltaba sea el que se
 // corre a propósito.
+//
+// `--build` no es opcional. Sin él, `base44 site deploy` PREGUNTA si construir,
+// y una respuesta distraída sube el `dist/` que hubiera en disco — el de otra
+// rama, el de antes del arreglo, el que sea. Eso deja el repo diciendo una cosa
+// y el sitio servido otra, que es justo el fallo que este repo lleva documentado
+// desde el módulo 11 ("mergear no deploya nada, y hay que verificar por
+// contenido"). Construir siempre cuesta un minuto; no construir cuesta una
+// corrida de smoke que miente.
 const steps = deploySite
-  ? [['site', 'deploy', '--app-id', config.appId]]
+  ? [['site', 'deploy', '--app-id', config.appId, '--build']]
   : [['functions', 'deploy', '--app-id', config.appId, '--force']];
 
 if (pushEntities) {
