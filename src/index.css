@@ -141,12 +141,26 @@
 }
 
 /* Corner theme switcher (src/components/ThemeSwitcher.jsx) — placement only.
-   Below `md` the bottom nav bar owns the bottom edge, so lift the control
-   clear of it. */
+
+   El levantón de móvil existe por LA BARRA INFERIOR, y sólo por ella. Estuvo
+   suelto en un media query hasta el 2026-09-09, así que se aplicaba también a
+   /login, /register y /recuperar — pantallas que NO tienen barra inferior. Ahí
+   dejaba el control a 84 px del borde, justo sobre el pie centrado de
+   AuthLayout: a 390 px, con el selector desplegado, la pista de tres ranuras
+   se comía el clic del enlace "Ingresar" (medido: selector x 266-374, enlace
+   x 248-306, y elementFromPoint devolvía el svg del selector).
+
+   Lo encontró la quinta afirmación del smoke el día que se le añadieron las
+   rutas públicas al config — que es exactamente para lo que está.
+
+   Ahora la clase la pone Layout.jsx, que es el componente que dibuja esa
+   barra, así que el levantón vale donde vale la barra y en ningún otro sitio.
+   El estándar es explícito sobre la dirección: si otra cosa ya es dueña de esa
+   esquina, se mueve el selector, no el control. */
 :root {
   --theme-switcher-bottom: 1rem;
   --theme-switcher-right: 1rem;
 }
 @media (max-width: 767px) {
-  :root { --theme-switcher-bottom: 5.25rem; }
+  body.has-bottom-nav { --theme-switcher-bottom: 5.25rem; }
 }
