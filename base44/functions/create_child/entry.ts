@@ -6,9 +6,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 // que hoy solo se aplicaba en el cliente (un catequista restringido podía
 // llamar Child.create directo con cualquier group_id de su parroquia).
 //
-// Duplicado de src/lib/premium.js FREE_PLAN_CHILD_CAP — los functions de
-// Base44 no pueden importar de src/. Si cambia, cambia también ahí.
-const FREE_PLAN_CHILD_CAP = 50;
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -49,19 +46,11 @@ Deno.serve(async (req) => {
     // que add_guardian: esta función siempre tiene el estado real de Parish.
     const parish = await sr.entities.Parish.get(me.parish_id).catch(() => null);
     if (!parish) return Response.json({ error: 'No se pudo verificar tu parroquia, intenta de nuevo' }, { status: 500 });
-    if (parish.plan === 'premium' && parish.license_status && parish.license_status !== 'active') {
+    // No hay tope de niños: CateqHub es un solo producto con precio por
+    // volumen desde el 2026-09-09 (ver src/lib/premium.js). Lo único que
+    // detiene un alta es una licencia que no está activa.
+    if (parish.license_status && parish.license_status !== 'active') {
       return Response.json({ error: 'Tu período de prueba o pago está pendiente', code: 'license_not_active' }, { status: 403 });
-    }
-    if (parish.plan !== 'premium') {
-      // Plan Gratis: el núcleo (incluida el alta de niños) sigue funcionando
-      // sin fecha de vencimiento, hasta el tope de niños activos.
-      const activeChildren = await sr.entities.Child.filter({ parish_id: me.parish_id, active: true });
-      if (activeChildren.length >= FREE_PLAN_CHILD_CAP) {
-        return Response.json({
-          error: `Tu parroquia alcanzó el límite de ${FREE_PLAN_CHILD_CAP} niños activos del plan Gratis — activa Premium para dar de alta más`,
-          code: 'free_plan_cap_reached',
-        }, { status: 403 });
-      }
     }
 
     const group = await sr.entities.Group.get(group_id).catch(() => null);

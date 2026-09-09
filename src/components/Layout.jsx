@@ -12,14 +12,14 @@ import LicenseBanner from "@/components/LicenseBanner";
 import { Card, CardContent } from "@/components/ui/card";
 
 // Rutas que siguen operando toda la app (asistencia, niños, grupos, reportes)
-// — se bloquean solo cuando status.isAccessDenied (parish.plan=premium con
-// license_status access_denied/deletion_eligible): una parroquia con MÁS de
-// FREE_PLAN_CHILD_CAP niños activos cuya prueba o pago vence sin renovarse.
-// Con FREE_PLAN_CHILD_CAP niños o menos, Mission Control la baja directo a
-// plan="free" (permanente, sin bloqueo) y nunca llega a este estado — ver
-// src/lib/premium.js. Premium/Soporte/Manual/Acerca de/Parroquia/Usuarios/
-// Permisos siguen accesibles siempre, para que el administrador pueda ver
-// por qué, exportar datos de Tutores, o pedir ayuda.
+// — se bloquean solo cuando status.isAccessDenied (license_status en
+// access_denied/deletion_eligible): una parroquia cuya prueba o pago venció
+// sin renovarse. Desde el 2026-09-09 esto aplica a TODA parroquia, sin
+// importar su tamaño: el plan gratuito al que Mission Control bajaba a las
+// pequeñas dejó de existir (ver src/lib/premium.js).
+// Premium/Soporte/Manual/Acerca de/Parroquia/Usuarios/Permisos siguen
+// accesibles siempre, para que el administrador pueda ver por qué, exportar
+// datos de Tutores, o pedir ayuda.
 const BLOCKED_ON_ACCESS_DENIED = ["/", "/escanear", "/grupos", "/ninos", "/reportes"];
 const isBlockedRoute = (pathname) =>
   BLOCKED_ON_ACCESS_DENIED.some((p) => (p === "/" ? pathname === "/" : pathname === p || pathname.startsWith(p + "/")));
@@ -32,9 +32,9 @@ function AccessDeniedGate() {
           <ShieldAlert className="w-8 h-8 mx-auto text-destructive" />
           <p className="font-medium">Acceso restringido por falta de pago</p>
           <p className="text-sm text-muted-foreground">
-            Tu parroquia supera el tope de niños del plan Gratis y el período de prueba o pago Premium venció sin renovarse. Escanear, niños, grupos/libros y reportes están pausados hasta reactivar el plan Premium.
+            Tu período de prueba o pago venció sin renovarse. Escanear, niños, grupos/libros y reportes están pausados hasta reactivar la suscripción.
           </p>
-          <Link to="/premium" className="text-primary font-medium hover:underline text-sm inline-block">Ver plan Premium →</Link>
+          <Link to="/premium" className="text-primary font-medium hover:underline text-sm inline-block">Ver mi suscripción →</Link>
         </CardContent>
       </Card>
     </div>

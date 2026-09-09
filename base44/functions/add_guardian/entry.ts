@@ -46,9 +46,11 @@ Deno.serve(async (req) => {
     }
 
     const parish = await sr.entities.Parish.get(me.parish_id).catch(() => null);
-    if (!parish || parish.plan !== 'premium') {
-      return Response.json({ error: 'Agregar tutores requiere el plan Premium', code: 'premium_required' }, { status: 403 });
+    if (!parish) {
+      return Response.json({ error: 'No se pudo verificar tu parroquia, intenta de nuevo' }, { status: 500 });
     }
+    // Tutores dejó de ser exclusivo de un plan de pago el 2026-09-09: no hay
+    // plan gratuito del que excluirlo, todos pagan y todos lo tienen.
     // Lee license_status en vivo (no un espejo) — esta función siempre tiene
     // el estado real de Parish, así que el ciclo de vida de licencia se hace
     // cumplir aquí sin depender del espejo en User (que solo existe para
