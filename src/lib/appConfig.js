@@ -7,10 +7,19 @@
 // (módulo 6 del estándar). Antes eran cuatro ediciones manuales garantizadas
 // por un comentario, y así se perdió la 1.8.0 entera de CHANGELOG.md.
 // tests/unit/release.test.js afirma los invariantes después.
-export const APP_VERSION = "1.9.10";
-export const RELEASE_DATE = "2026-09-07";
+export const APP_VERSION = "1.9.11";
+export const RELEASE_DATE = "2026-09-09";
 
 export const CHANGELOG = [
+  {
+    version: "1.9.11",
+    date: "2026-09-09",
+    changes: [
+      "Corrección al registro de versiones: el cierre del módulo 15 (puente con Mission Control) nunca tuvo entrada aquí. Entre la 1.9.9 y esta versión, `base44/functions/acaciaControl/_acaciaSign.ts` cambió — `ACCEPT_LEGACY_MASTER` pasó a `false`, ya desplegado (detalle completo en `CLAUDE.md`, sección Módulo 15) — dejando de aceptar una firma hecha con el secreto maestro compartido por las diez apps del portafolio. Quedó documentado solo en `CLAUDE.md` y nunca en este changelog versionado. Un primer borrador de esta misma entrada decía que el único cambio desde 1.9.9 eran dos bumps de dependencias — incorrecto, detectado por una revisión automatizada sobre el PR de esta rutina antes de mergear (el chequeo había comparado `base44/entities/` contra la 1.9.9 pero no `base44/functions/`). Corregido aquí.",
+      "Auditoría rutinaria: se corrió de nuevo el conjunto completo de verificaciones automatizadas (`validate:rls` — 10 entidades, 9 con alcance de parroquia, limpio; `lint` incl. `validate:functions` — 15 endpoints de 40 permitidos; `build` + `verify-build`; `e2e/smoke.spec.js` 8/8; `npm audit`). Aparte del cambio de `acaciaControl` de arriba, el único movimiento en el repo desde la 1.9.9 fueron dos actualizaciones automáticas de `@base44/sdk` (0.8.43→0.8.44) y `@base44/vite-plugin` (1.0.30→1.0.31) por el bot de Base44, sin tocar ningún `.jsonc` de esquema. Sin hallazgos nuevos. `react-router`/`react-router-dom` (moderada, redirección abierta) sigue como riesgo aceptado sin cambio — la migración mayor 6→7 sigue fuera de alcance de una rutina automatizada. `migrate_free_parishes_to_trial` y `seed_test_parish` siguen sin llamador visible en el repo pero ambas siguen exigiendo rol de administrador de plataforma en el propio código.",
+      "No verificado en esta pasada (mismo criterio del módulo 14): sin acceso al MCP de Base44 desde este entorno, no se pudo comparar el esquema `rls` desplegado contra el del repo — solo el chequeo estático de `validate:rls` corrió; sin sesión autenticada real, no se ejercitaron las pantallas ni los escenarios de UAT por rol; `npm run test:smoke` contra el sitio desplegado no corre desde este entorno (el proxy no alcanza esos dominios, por diseño — ver CLAUDE.md), así que rendimiento y Core Web Vitals en producción no se midieron esta vez. Este repo no tiene ninguna función de envío de correo propia (`base44/functions/` no trae ningún `send_*`) — el correo de autenticación (invitación, restablecer contraseña) lo maneja la plataforma Base44, fuera del alcance de este repositorio.",
+    ],
+  },
   {
     version: "1.9.10",
     date: "2026-09-07",
