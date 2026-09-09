@@ -1,16 +1,31 @@
 // Fuente única de verdad para la versión de CateqHub — consumida por
-// src/pages/About.jsx. Mantener package.json sincronizado con APP_VERSION.
-export const APP_VERSION = "1.9.10";
-export const RELEASE_DATE = "2026-08-31";
+// src/pages/About.jsx.
+//
+// NO edites este archivo a mano para publicar: `npm run release <version>
+// --nota "…"` escribe APP_VERSION, RELEASE_DATE, la entrada de CHANGELOG de
+// aquí, la de CHANGELOG.md y la versión de package.json de una sola vez
+// (módulo 6 del estándar). Antes eran cuatro ediciones manuales garantizadas
+// por un comentario, y así se perdió la 1.8.0 entera de CHANGELOG.md.
+// tests/unit/release.test.js afirma los invariantes después.
+export const APP_VERSION = "1.9.11";
+export const RELEASE_DATE = "2026-09-09";
 
 export const CHANGELOG = [
   {
-    version: "1.9.10",
-    date: "2026-08-31",
+    version: "1.9.11",
+    date: "2026-09-09",
     changes: [
       "Corrección al registro de versiones: el cierre del módulo 15 (puente con Mission Control) nunca tuvo entrada aquí. Entre la 1.9.9 y esta versión, `base44/functions/acaciaControl/_acaciaSign.ts` cambió — `ACCEPT_LEGACY_MASTER` pasó a `false`, ya desplegado (detalle completo en `CLAUDE.md`, sección Módulo 15) — dejando de aceptar una firma hecha con el secreto maestro compartido por las diez apps del portafolio. Quedó documentado solo en `CLAUDE.md` y nunca en este changelog versionado. Un primer borrador de esta misma entrada decía que el único cambio desde 1.9.9 eran dos bumps de dependencias — incorrecto, detectado por una revisión automatizada sobre el PR de esta rutina antes de mergear (el chequeo había comparado `base44/entities/` contra la 1.9.9 pero no `base44/functions/`). Corregido aquí.",
       "Auditoría rutinaria: se corrió de nuevo el conjunto completo de verificaciones automatizadas (`validate:rls` — 10 entidades, 9 con alcance de parroquia, limpio; `lint` incl. `validate:functions` — 15 endpoints de 40 permitidos; `build` + `verify-build`; `e2e/smoke.spec.js` 8/8; `npm audit`). Aparte del cambio de `acaciaControl` de arriba, el único movimiento en el repo desde la 1.9.9 fueron dos actualizaciones automáticas de `@base44/sdk` (0.8.43→0.8.44) y `@base44/vite-plugin` (1.0.30→1.0.31) por el bot de Base44, sin tocar ningún `.jsonc` de esquema. Sin hallazgos nuevos. `react-router`/`react-router-dom` (moderada, redirección abierta) sigue como riesgo aceptado sin cambio — la migración mayor 6→7 sigue fuera de alcance de una rutina automatizada. `migrate_free_parishes_to_trial` y `seed_test_parish` siguen sin llamador visible en el repo pero ambas siguen exigiendo rol de administrador de plataforma en el propio código.",
       "No verificado en esta pasada (mismo criterio del módulo 14): sin acceso al MCP de Base44 desde este entorno, no se pudo comparar el esquema `rls` desplegado contra el del repo — solo el chequeo estático de `validate:rls` corrió; sin sesión autenticada real, no se ejercitaron las pantallas ni los escenarios de UAT por rol; `npm run test:smoke` contra el sitio desplegado no corre desde este entorno (el proxy no alcanza esos dominios, por diseño — ver CLAUDE.md), así que rendimiento y Core Web Vitals en producción no se midieron esta vez. Este repo no tiene ninguna función de envío de correo propia (`base44/functions/` no trae ningún `send_*`) — el correo de autenticación (invitación, restablecer contraseña) lo maneja la plataforma Base44, fuera del alcance de este repositorio.",
+    ],
+  },
+  {
+    version: "1.9.10",
+    date: "2026-09-07",
+    changes: [
+      "Mantenimiento/seguridad: auditoría rutinaria de dependencias — `npm audit fix` corrigió 4 de 6 vulnerabilidades (1 alta en `browserslist`, agotamiento de memoria sin límite de caché; 3 moderadas/bajas en `@humanfs/node`, `fflate` y `postcss-selector-parser`), todas mediante actualizaciones menores sin cambios de comportamiento. `react-router`/`react-router-dom` (moderada, redirección abierta — GHSA-wrjc-x8rr-h8h6) sigue como riesgo aceptado sin cambio: la única corrección disponible sigue siendo la migración mayor a 7.x, fuera de alcance de una rutina automatizada — documentado igual desde la 1.9.3.",
+      "Auditoría rutinaria: RLS (`npm run validate:rls`, 10 entidades, aislamiento por `parish_id` intacto), `npm run lint`, `npm run build` y `npm run functions:audit` limpios; `tsc` en el mismo recuento preexistente de 470 errores (sin relación con este cambio); `e2e/smoke.spec.js` 8/8 aprobadas. Sin hallazgos nuevos de severidad media o alta. Módulos 14/15 (aislamiento multi-tenant y firma del puente con Mission Control) re-verificados: el único archivo tocado desde la última pasada (`base44/functions/acaciaControl/_acaciaSign.ts`, el vaivén de `ACCEPT_LEGACY_MASTER` documentado el 2026-08-24) sigue en el estado correcto (`false`) — sin cambios de esquema ni de funciones que ameriten repetir la auditoría completa.",
     ],
   },
   {

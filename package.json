@@ -1,7 +1,7 @@
 {
   "name": "base44-app",
   "private": true,
-  "version": "1.9.10",
+  "version": "1.9.11",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,6 +14,8 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "validate:rls": "node scripts/validate-entity-rls.mjs",
+    "test:unit": "cd tests/unit && node --test",
+    "release": "node scripts/release.mjs",
     "deploy": "node scripts/base44-deploy.mjs",
     "deploy:site": "node scripts/base44-deploy.mjs --site",
     "deploy:entities": "node scripts/base44-deploy.mjs --entities",
@@ -22,8 +24,8 @@
     "test:smoke": "playwright test --config playwright.smoke.config.js"
   },
   "dependencies": {
-    "@base44/sdk": "^0.8.44",
-    "@base44/vite-plugin": "^1.0.31",
+    "@base44/sdk": "^0.8.48",
+    "@base44/vite-plugin": "^1.0.36",
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^4.1.2",
     "@radix-ui/react-accordion": "^1.2.3",

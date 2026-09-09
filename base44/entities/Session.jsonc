@@ -1,0 +1,95 @@
+{
+  // Módulo 20 del estándar: una fila por (user_id, device_id). Existe para que
+  // una sesión pueda cerrarse desde el SERVIDOR — un temporizador en el cliente
+  // sólo protege la pestaña que sigue abierta y ejecutando JavaScript, nunca un
+  // dispositivo cuya batería murió con la sesión viva. En una app que guarda
+  // CURP y datos de menores, esa sesión colgada es el riesgo real.
+  //
+  // La escriben SÓLO funciones de servicio (session, purge_stale_sessions) y el
+  // puente acaciaControl (sessions.list / sessions.revoke, que ya venían en el
+  // archivo compartido y hasta hoy no tenían a qué apuntar).
+  "name": "Session",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "title": "Usuario",
+      "description": "Dueño de la sesión. La regla de lectura exige que coincida con {{user.id}}, así que un miembro ve sus propios dispositivos y no los de sus compañeros — el nombre del dispositivo es un dato personal.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "parish_id": {
+      "type": "string",
+      "title": "Parroquia",
+      "description": "Se estampa desde el registro almacenado del usuario al crear la sesión, nunca desde la petición. Permite a Mission Control atribuir sesiones por inquilino y mantiene esta entidad dentro de la misma forma de aislamiento que el resto. Si el usuario sale de la parroquia, sus filas viejas dejan de ser legibles para él (la lectura exige las DOS condiciones) y el reaper las cierra a las 48 h.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "device_id": {
+      "type": "string",
+      "title": "Dispositivo (id)",
+      "description": "Identificador generado en el navegador y guardado bajo la clave acacia_device_id. Es lo que hace que reabrir la app en el mismo equipo reutilice su fila en vez de crear una nueva cada vez.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "device_name": {
+      "type": "string",
+      "title": "Dispositivo (nombre)",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "status": {
+      "type": "string",
+      "title": "Estado",
+      "enum": ["active", "passive", "revoked"],
+      "default": "active",
+      "description": "active = el dispositivo en uso ahora; passive = otra sesión del mismo usuario que sigue viva pero ya no es la primaria; revoked = cerrada, por el reaper de 48 h o por una revocación remota. El heartbeat lee este campo y devuelve 403 en cuanto vale revoked: sin esa lectura, revocar del lado del servidor no haría nada.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Último latido",
+      "description": "Lo mueve el heartbeat cada 4 minutos. Es sobre este campo que decide el reaper — no sobre last_activity_at, que mide otra cosa.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "last_activity_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Última actividad real",
+      "description": "Señal de uso, acotada a una escritura por hora. Deliberadamente separada de last_seen: el latido prueba que la pestaña sigue abierta, esto prueba que una persona hizo algo en ella. Confundirlos convertiría una pestaña olvidada en un usuario activo.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "revoked_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Revocada el",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "revoked_by": {
+      "type": "string",
+      "title": "Revocada por",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    }
+  },
+  "required": ["user_id", "device_id"],
+  "rls": {
+    // Escritura sólo por rol de servicio: nada de esto lo escribe el cliente.
+    "create": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } },
+    // Lectura: las DOS condiciones a la vez. La parroquia sola dejaría a
+    // cualquier miembro leer los dispositivos de sus compañeros; el usuario
+    // solo perdería el aislamiento por inquilino que el resto del esquema
+    // mantiene. La rama de rol de servicio es obligatoria (ver
+    // scripts/lib/entity-rls-rules.mjs): sin ella, asServiceRole.filter()
+    // devuelve cero filas y las funciones fallan en silencio.
+    "read": {
+      "$or": [
+        {
+          "$and": [
+            { "data.parish_id": "{{user.data.parish_id}}" },
+            { "data.user_id": "{{user.id}}" }
+          ]
+        },
+        { "user_condition": { "role": "admin" } }
+      ]
+    }
+  }
+}

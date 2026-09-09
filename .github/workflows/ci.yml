@@ -33,6 +33,16 @@ jobs:
       - name: Validate entity RLS
         run: npm run validate:rls
 
+      # Bloqueante, y por el mismo motivo que el de arriba: el catálogo de
+      # permisos vive en tres copias que Base44 obliga a duplicar (una función
+      # no puede importar de src/ ni de otra función), y hasta 2026-09-08 la
+      # única garantía de que no derivaran era un comentario. Mission Control ya
+      # perdió esa apuesta con licenseCatalog — rumbo llevó `view_only`
+      # desplegado un mes sin que el panel lo ofreciera. Ver
+      # tests/unit/permissionRegistry.test.js.
+      - name: Unit tests
+        run: npm run test:unit
+
       # Informational only: this project's tsc + @types/react setup already
       # reports pre-existing errors on main (loose JSX typing in the shadcn
       # UI components), so it isn't a reliable pass/fail gate yet. Surfaced
@@ -63,3 +73,30 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+  # El helper de firma del puente es TypeScript de Deno, así que ni eslint ni
+  # `node --test` lo tocan: hasta 2026-09-08 recibía su primer type-check al
+  # DESPLEGAR. Su prueba (base44/functions/_acaciaSign.test.ts, copia byte a byte
+  # de shared/bridge/ en jospabloh/acacia-app-standard salvo la ruta del import)
+  # fija el mismo vector que la mitad Node de Mission Control fija en
+  # api/_lib/ingestSign.test.js. Dos implementaciones de HMAC en dos runtimes
+  # solo siguen siendo iguales si algo lo afirma, y una divergencia no da error:
+  # devuelve `bad signature` en cada llamada, que parece un secreto mal puesto y
+  # no lo es.
+  #
+  # Job aparte del build a propósito: un rojo aquí es del puente, no de la app.
+  # Sin red ni permisos — la prueba no importa nada externo y solo usa WebCrypto.
+  bridge-signing:
+    name: Bridge signing helper (Deno)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Test the signing helper
+        run: deno test base44/functions/_acaciaSign.test.ts

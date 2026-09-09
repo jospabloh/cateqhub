@@ -7,6 +7,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { PermissionProvider } from '@/lib/PermissionContext';
 import { ThemeProvider } from '@/lib/ThemeContext';
+import SessionControl from '@/components/SessionControl';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
@@ -115,6 +116,11 @@ function App() {
             </Router>
             <Toaster />
             <ThemeSwitcher />
+            {/* Módulo 20: aviso de inactividad y cierre duro. Se monta una sola
+                vez y alto en el árbol, dentro de AuthProvider —lo necesita para
+                saber si hay sesión— y fuera del Router, porque los diálogos no
+                dependen de la ruta. */}
+            <SessionControl />
           </QueryClientProvider>
         </PermissionProvider>
       </AuthProvider>
