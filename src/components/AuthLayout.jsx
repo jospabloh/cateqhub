@@ -35,8 +35,28 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
       </div>
 
       {/* Panel de formulario */}
-      <div className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-20">
-        <div className="w-full max-w-sm mx-auto">
+      {/* Dos cosas, y las dos hacen falta juntas.
+          
+          `pb-28` en móvil reserva la banda del selector de tema, que es fixed
+          en la esquina inferior derecha y en pantallas estrechas se despliega a
+          lo ancho: la pista de tres ranuras barre el borde inferior entero, así
+          que cualquier cosa centrada ahí abajo queda debajo de ella. Medido en
+          /login a 390x667: el selector ocupa y 611-651 y el enlace "Conoce
+          CateqHub" y 619-633, y elementFromPoint devolvía el svg del selector.
+
+          `my-auto` en el bloque de dentro, en vez de `justify-center` en el
+          contenedor, es lo que hace que ese padding sirva de algo. Con
+          `justify-center`, un contenido más alto que la pantalla desborda por
+          los DOS extremos y el padding del contenedor se va fuera de la vista —
+          por eso el primer intento de reservar la banda no cambió nada. Con
+          `my-auto` los márgenes automáticos se colapsan cuando no sobra sitio:
+          centra si cabe, se alinea arriba si no, y el hueco de abajo se
+          respeta al hacer scroll.
+
+          Lo encontró la quinta afirmación del smoke el día que se le añadieron
+          las rutas públicas al config — que es exactamente para lo que está. */}
+      <div className="flex flex-col px-6 pt-12 pb-28 sm:px-12 sm:pb-12 lg:px-20">
+        <div className="w-full max-w-sm mx-auto my-auto">
           <div className="md:hidden flex items-center gap-2.5 mb-10">
             <Logo className="w-8 h-8" />
             <span className="font-heading font-semibold tracking-tight">CateqHub</span>

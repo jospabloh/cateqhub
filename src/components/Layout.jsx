@@ -59,6 +59,17 @@ const navItems = [
 export default function Layout() {
   const { user } = useAuth();
   const location = useLocation();
+
+  // El selector de tema se levanta en móvil sólo donde hay barra inferior, y
+  // esa barra la dibuja este componente. La clase vive en <body> porque el
+  // ThemeSwitcher se monta en la raíz de App.jsx, fuera de este árbol: una
+  // custom property puesta aquí no le llegaría por la cascada. Ver el bloque
+  // del selector en src/index.css.
+  useEffect(() => {
+    document.body.classList.add("has-bottom-nav");
+    return () => document.body.classList.remove("has-bottom-nav");
+  }, []);
+
   const [parish, setParish] = useState(null);
   const status = useLicenseStatus(parish);
 
