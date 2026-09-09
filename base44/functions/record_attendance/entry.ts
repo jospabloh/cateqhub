@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
     const parish = await sr.entities.Parish.get(me.parish_id).catch(() => null);
     if (!parish) return Response.json({ error: 'No se pudo verificar tu parroquia, intenta de nuevo' }, { status: 500 });
-    if (parish.plan === 'premium' && parish.license_status && parish.license_status !== 'active') {
+    if (parish.license_status && parish.license_status !== 'active') {
       return Response.json({ error: 'Tu período de prueba o pago está pendiente', code: 'license_not_active' }, { status: 403 });
     }
 

@@ -1,42 +1,37 @@
 import { useMemo } from "react";
 
-// Plan Gratis, permanente: hasta FREE_PLAN_CHILD_CAP niños activos, con
-// asistencia por QR, alta de parroquia/grupos/niños y reportes — sin
-// vencimiento. Tutores/mensajería/tareas/pulseras son exclusivos de Premium.
-// Duplicado en base44/functions/create_child/entry.ts (los functions de
-// Base44 no pueden importar de src/) — si cambia, cambia también ahí.
-export const FREE_PLAN_CHILD_CAP = 50;
-
-// Toda parroquia nueva arranca en plan="premium" con una prueba de 30 días
-// (premium_period_end_at), con acceso completo a TODA la app sin el tope de
-// niños del plan Gratis. `plan` solo se escribe con rol de servicio (Mission
-// Control o el panel de Base44) — un admin de parroquia no puede activarse
-// el plan a sí mismo.
+// CateqHub es UN producto con precio por volumen, no dos planes con funciones
+// partidas. Hasta el 2026-09-09 existía un plan="free" permanente (núcleo
+// completo hasta 50 niños activos, sin Tutores/mensajería/tareas/pulseras) al
+// que Mission Control bajaba a las parroquias pequeñas cuya prueba vencía.
+// Ese plan no era un producto que ACACIA vendiera: la tabla de precios pública
+// empezaba en 51 niños, así que una parroquia de 50 o menos no tenía forma de
+// pagar. Se eliminó — el precio arranca en el primer niño y todo va incluido.
 //
-// `license_status` (solo relevante si plan=premium) sigue el ciclo:
-// active → read_only → access_denied → deletion_eligible si el período
-// (prueba o pago) vence sin renovarse y la parroquia tiene MÁS de
-// FREE_PLAN_CHILD_CAP niños activos (si tiene menos, Mission Control la baja
-// directo a plan="free" sin pasar por este ciclo — ver
-// licenseLifecycle.js en el repo hermano acacia-mission-control). Este ciclo
-// restringe TODA la app (no solo Tutores) mientras dura.
+// Con eso el app queda además alineado con el módulo 1 del estándar del
+// portafolio, que define exactamente cuatro estados
+// (trial | active | view_only | suspended) y no contempla ninguno gratuito;
+// `plan="free"` era la desviación.
 //
-// plan="free" es un estado permanente y normal (no una penalización): el
-// núcleo (asistencia, niños, grupos, reportes) sigue de lectura Y escritura
-// hasta el tope de niños; solo Tutores/mensajería/tareas/pulseras no
-// aplican. Se llega aquí por default vía la prueba vencida (≤50 niños) o el
-// borrado automático de datos Premium tras deletion_eligible (>50 niños que
-// luego bajaron de tope) — en ambos casos el resultado es el mismo Plan
-// Gratis funcional, nunca una app bloqueada.
+// Toda parroquia nueva arranca con una prueba de 30 días
+// (`premium_period_end_at`). `license_status` sigue el ciclo unificado del
+// portafolio si ese período vence sin renovarse:
+// active → read_only → access_denied → deletion_eligible (8/15/30/45 días
+// acumulados, iguales para los 7 apps — ver licenseControl.js en
+// acacia-mission-control). Ese ciclo restringe TODA la app, no un subconjunto
+// de funciones.
+//
+// `plan` sobrevive como campo porque Mission Control lo escribe y lo lee, pero
+// ya no decide funciones: lo único que gatea el acceso es `license_status`.
+// Un campo ausente resuelve a "active", que es lo correcto para la parroquia
+// demo (creada antes de que estos campos existieran) y para cualquier
+// parroquia futura creada antes de un campo nuevo.
 export function getLicenseStatus(parish) {
-  const isPremium = parish?.plan === "premium";
-  const status = isPremium ? (parish?.license_status || "active") : "active";
+  const status = parish?.license_status || "active";
   return {
-    tier: isPremium ? "premium" : "free",
-    isPremium,
     status,
-    isReadOnly: isPremium && status !== "active",
-    isAccessDenied: isPremium && (status === "access_denied" || status === "deletion_eligible"),
+    isReadOnly: status !== "active",
+    isAccessDenied: status === "access_denied" || status === "deletion_eligible",
     exportConfirmed: !!parish?.export_confirmed_at,
     trialEndsAt: parish?.premium_period_end_at || null,
   };
@@ -45,12 +40,10 @@ export function getLicenseStatus(parish) {
 export function useLicenseStatus(parish) {
   return useMemo(
     () => getLicenseStatus(parish),
-    [parish?.id, parish?.plan, parish?.license_status, parish?.export_confirmed_at, parish?.premium_period_end_at]
+    [parish?.id, parish?.license_status, parish?.export_confirmed_at, parish?.premium_period_end_at]
   );
 }
 
-// Alias de compatibilidad — mismo shape que antes (tier/isPremium), más los
-// campos nuevos. No romper mientras se termina de migrar cada consumidor.
 export const getPremiumStatus = getLicenseStatus;
 export const usePremiumStatus = useLicenseStatus;
 
@@ -63,8 +56,14 @@ export const usePremiumStatus = useLicenseStatus;
 // esto solo decide qué tramo se le muestra/registra a cada parroquia.
 export const IMPLEMENTATION_TIERS = [
   { value: "hasta_150", max: 150, price: 1490, label: "Hasta 150 niños activos" },
-  { value: "151_350", max: 350, price: 2490, label: "151 a 350 niños activos" },
-  { value: "351_mas", max: Infinity, price: 3990, label: "351+ niños activos o diócesis" },
+  // Los `value` son llaves opacas y NO se renombran: son el enum desplegado de
+  // Parish.implementation_requested_tier (["hasta_150","151_350","351_mas"]).
+  // Cambiarlos exigiría un `deploy:entities`, que es destructivo, para ganar
+  // cero — lo que el usuario ve es el label, y lo que decide el tramo es `max`.
+  // Las fronteras sí se movieron a 150/500 el 2026-09-09 para coincidir con la
+  // tabla de suscripción.
+  { value: "151_350", max: 500, price: 2490, label: "151 a 500 niños activos" },
+  { value: "351_mas", max: Infinity, price: 3990, label: "501+ niños activos o diócesis" },
 ];
 
 export function implementationTierFor(activeChildren) {

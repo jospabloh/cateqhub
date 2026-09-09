@@ -334,6 +334,100 @@ lectura de código y del esquema desplegado — bastante para descartar los defe
 estructurales, insuficiente para afirmar que el motor evalúa cada regla como se
 lee.
 
+### Resultado — 2026-09-09, contra el esquema desplegado (12 entidades)
+
+Segunda pasada. La disparó el deploy de ese día, que añadió `Session` y
+`Membership` (10 → 12 entidades) y `session`, `memberships` y
+`purge_stale_sessions` (15 → 18 funciones). Leída del esquema **vivo**
+(`list_entity_schemas`), no de los `.jsonc`.
+
+**No se encontró ningún cruce entre parroquias.** Las 10 entidades con alcance
+de inquilino siguen acotadas por `data.parish_id == {{user.data.parish_id}}` en
+las cuatro operaciones, y el arreglo de `Parish.delete` de 2026-08-18 sigue
+desplegado.
+
+**Las dos entidades nuevas, que son las que importaban:**
+
+- `Membership.read` = `$or[{data.user_id: "{{user.id}}"}, role:admin]`. Va por
+  **usuario, no por parroquia**, y tiene que ser así: el selector debe nombrar
+  parroquias en las que la persona todavía no está activa. No es un hueco —
+  `parish_name` es una copia guardada en la fila **propia**, así que no puede
+  nombrar una parroquia ajena. Crear/editar/borrar son `role:admin`, o sea sólo
+  funciones de servicio.
+- `Session.read` = `$or[$and[parish_id, user_id], role:admin]` — las **dos**
+  condiciones. Un compañero no ve los nombres de tus dispositivos, que son dato
+  personal. Al salir de la parroquia tus filas viejas dejan de ser legibles para
+  ti y el reaper las cierra a las 48 h. Escrituras, sólo servicio.
+
+#### Hallazgo 1 — un administrador de parroquia BLOQUEADO en producción
+
+No es una fuga entre inquilinos; es lo contrario, y es peor de lo que suena
+porque está pasando ahora.
+
+`Child`, `Attendance`, `Group`, `Guardian` y `ChildGuardian` exigen en su `read`,
+además del `parish_id`:
+
+    $or[ parish_plan:"free", parish_license_status:"active",
+         parish_license_status:"read_only" ]
+
+Eso se lee del **espejo** en `User` (`parish_plan`/`parish_license_status`),
+porque la RLS de Base44 no puede consultar otra fila. Y una consulta a los
+usuarios de producción (2026-09-09) devuelve **dos cuentas, ninguna con esos dos
+campos**:
+
+| correo | role | parish_role | parish_plan | parish_license_status |
+|---|---|---|---|---|
+| h.josepablo@gmail.com | `admin` | admin | *ausente* | *ausente* |
+| cesar@domsot.com.mx | `user` | admin | *ausente* | *ausente* |
+
+Un campo ausente **no iguala a nada**, así que no matchea ninguna de las tres
+ramas. La primera cuenta se salva por la rama `role:admin` de plataforma del
+`$or` exterior. **La segunda no.** `cesar@domsot.com.mx` es administrador de la
+única parroquia en producción y no puede leer un solo niño, grupo ni registro de
+asistencia por el SDK — que es como los leen `Children.jsx` y `Reports.jsx`.
+
+`backfill_parish_license_mirror` existe exactamente para esto y su propia
+descripción de campo lo advierte («debe correr inmediatamente después de
+desplegar este esquema»). No corrió sobre esa cuenta, o corrió antes de que
+existiera.
+
+**El arreglo NO es estampar `free`**, que dejó de existir en la 1.10.0: es
+`parish_license_status: "active"`, que matchea la segunda rama. Correr
+`backfill_parish_license_mirror` después de desplegar la 1.10.0, no antes.
+
+Vale la pena nombrar por qué la pasada anterior no lo vio: la del 2026-08-23
+verificó la **forma** de las reglas y dio por buena la existencia del espejo.
+Esta consultó los datos. Una regla correcta sobre un campo que nadie escribió
+es una regla que niega todo.
+
+#### Hallazgo 2 — la RLS desplegada todavía nombra el plan gratuito
+
+`Guardian.update` y `ChildGuardian.update` siguen exigiendo
+`parish_plan == "premium"`, y los cinco `read` de arriba siguen ofreciendo la
+rama `parish_plan == "free"`. La 1.10.0 quitó el candado equivalente del lado de
+las **funciones** (`add_guardian`), pero no el de la RLS.
+
+Hoy es invisible porque toda escritura pasa por funciones con `asServiceRole`,
+que se saltan la RLS. Pero deja el esquema desplegado diciendo algo que el
+producto ya no dice, y la rama `"free"` es ahora una condición muerta que el
+próximo lector va a creer viva. Se arregla en el siguiente `deploy:entities`
+—destructivo, así que no se hace suelto— junto con las descripciones de
+`Parish.plan` y `Parish.license_status`, que todavía explican en prosa el tope
+de 50 niños y la bajada automática a `free`.
+
+#### Lo que sigue anotado de la pasada anterior, sin cambio
+
+`Parish.update` se lo concede a cualquier miembro de la parroquia (los campos de
+licencia están bloqueados uno a uno, que es la mitad que importa), y
+`list_parish_users` devuelve el correo de todos los miembros a cualquier
+miembro. Los dos son módulo 3, dentro del inquilino, no módulo 14.
+
+#### No verificado
+
+Una sesión autenticada como `catequist` de una segunda parroquia — sigue sin
+haber una segunda parroquia. Todo lo de arriba es lectura del esquema desplegado
+y una consulta a los datos de producción.
+
 ## Módulo 15 — el puente con Mission Control: una llave por app (2026-08-23)
 
 `INGEST_HMAC_SECRET` es **un solo valor compartido por todo el portafolio**, así
@@ -491,9 +585,13 @@ a live query proved it; the dated audit under them says with what evidence.
       against the DEPLOYED site, wired to `.github/workflows/smoke.yml`.
       → Cerrado 2026-09-08. `routes` cubre login, registro, recuperación y un
       404. El spec compartido sigue byte a byte idéntico al canónico.
-- [ ] Module 14 — Multi-tenant isolation audit: dated, evidenced, and repeated
+- [x] Module 14 — Multi-tenant isolation audit: dated, evidenced, and repeated
       whenever an entity, a function or a role is added.
-      → **VENCIDA desde el 2026-09-09.** La pasada del 2026-08-23 cubre 10
+      → Rehecha el 2026-09-09 contra las 12 entidades desplegadas. Sin cruce
+      entre parroquias. DOS hallazgos, ninguno de aislamiento: un administrador
+      de parroquia bloqueado en producción por el espejo sin backfill, y la RLS
+      desplegada que todavía nombra el plan gratuito. Detalle arriba.
+      → (histórico) **VENCIDA desde el 2026-09-09.** La pasada del 2026-08-23 cubre 10
       entidades y 15 funciones. El deploy de ese día subió `Session` y
       `Membership` (12 entidades) y `session`, `memberships` y
       `purge_stale_sessions` (18 funciones) — que es literalmente el
@@ -633,11 +731,10 @@ incoherencia de presentación entre el app y el panel.
 (auditoría vencida), 16 y 20 (los dos por `CRON_SECRET`, que no existe), y 18
 (el cambio de inquilino corre; el alta cross-parroquia espera una decisión).
 Ninguno de los cuatro está abierto por código sin escribir.
-Last multi-tenant isolation audit: 2026-08-23 — ver "Módulo 14" arriba.
-**VENCIDA**: el deploy del 2026-09-09 subió dos entidades (`Session`,
-`Membership`) y tres funciones (`session`, `memberships`,
-`purge_stale_sessions`), que es el disparador del módulo. Ya hay esquema
-desplegado; falta correrla contra él.
+Last multi-tenant isolation audit: **2026-09-09**, contra las 12 entidades del
+esquema desplegado — ver "Resultado — 2026-09-09" bajo el módulo 14. Sin cruce
+entre parroquias; dos hallazgos que no son de aislamiento, uno de ellos un
+bloqueo vivo en producción.
 
 ## Auditoría contra el estándar — 2026-09-08
 

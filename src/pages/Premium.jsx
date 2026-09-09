@@ -3,7 +3,6 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import {
   useLicenseStatus,
-  FREE_PLAN_CHILD_CAP,
   IMPLEMENTATION_TIERS,
   implementationTierFor,
   SUPPORT_ADDON_MONTHLY_MXN,
@@ -22,35 +21,31 @@ function waLink(text) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
 }
 
-const FREE_FEATURES = [
+// Un solo producto: no hay lista "gratis" y lista "premium" porque no hay dos
+// planes que comparar. Ver src/lib/premium.js.
+const INCLUDED_FEATURES = [
   "Registro de asistencia por código QR",
   "Alta de parroquia, grupos/libros y niños",
   "Reportes de asistencia por fecha y grupo/libro",
   "Faltas acumuladas por niño",
-];
-
-const PREMIUM_FEATURES = [
   "Tutores y autorización de recogida",
   "Mensajería a tutores por correo",
   "Tareas de catequesis y seguimiento de entregas",
   "Impresión de pulseras y gafetes físicos",
 ];
 
-// Precio mensual Premium por nivel de niños activos — mismos tramos que la
-// tabla pública en acaciaco-site (apps/cateqhub.html) y el comentario de
+// Precio mensual por nivel de niños activos — mismos tramos que la tabla
+// pública en acaciaco-site (apps/cateqhub.html) y que el comentario de
 // referencia en licenseControl.js (acacia-mission-control). Si cambian los
-// tramos o precios, cambia también ahí. 451-650 se acotó a precio fijo
-// (2026-07-28, primer cliente de ese tamaño pidió cotización) siguiendo el
-// mismo incremento de $150/100 niños de los tramos anteriores; 651+ (o
-// diócesis multi-parroquia) se mantiene a cotizar.
+// tramos o precios, cambia también ahí.
+//
+// El 2026-09-09 pasaron de 7 tramos a 3 y el primero arranca en 1 niño, no en
+// 51: antes una parroquia de 50 o menos no tenía precio porque caía en el plan
+// gratuito, que dejó de existir.
 const PREMIUM_TIERS = [
-  { min: 51, max: 150, price: 500 },
-  { min: 151, max: 250, price: 650 },
-  { min: 251, max: 350, price: 800 },
-  { min: 351, max: 450, price: 950 },
-  { min: 451, max: 550, price: 1100 },
-  { min: 551, max: 650, price: 1250 },
-  { min: 651, max: Infinity, price: null },
+  { min: 1, max: 150, price: 500 },
+  { min: 151, max: 500, price: 900 },
+  { min: 501, max: Infinity, price: null },
 ];
 
 function tierFor(activeChildren) {
@@ -196,7 +191,7 @@ export default function Premium() {
           Planes y precios
         </h1>
         <p className="text-muted-foreground text-sm">
-          El plan Gratis es permanente, hasta {FREE_PLAN_CHILD_CAP} niños activos. Al dar de alta tu parroquia obtienes 30 días de Premium completo sin costo.
+          Un solo plan con todo incluido. Al dar de alta tu parroquia obtienes 30 días sin costo; después, el precio depende de cuántos niños activos tengas.
         </p>
       </div>
 
@@ -208,7 +203,7 @@ export default function Premium() {
               <p className="font-medium">Acceso denegado por falta de pago</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              Tu parroquia supera los {FREE_PLAN_CHILD_CAP} niños del plan Gratis y tu período de prueba o pago Premium venció sin renovarse. Toda la app quedó pausada: escanear, niños, grupos/libros, reportes y Tutores. Puedes descargar los datos de Tutores que registraste antes de que se eliminen — el resto de la información (niños, grupos, asistencia) no se borra, solo queda inaccesible hasta reactivar el plan.
+              Tu período de prueba o pago venció sin renovarse. Toda la app quedó pausada: escanear, niños, grupos/libros, reportes y Tutores. Puedes descargar los datos de Tutores que registraste antes de que se eliminen — el resto de la información (niños, grupos, asistencia) no se borra, solo queda inaccesible hasta reactivar la suscripción.
             </p>
             {exportError && <p className="text-sm text-destructive">{exportError}</p>}
             <Button onClick={handleExport} disabled={exporting}>
@@ -235,24 +230,16 @@ export default function Premium() {
         </Card>
       ) : (
         <>
-          {status.tier === "free" && (
-            <div className="flex items-center gap-2 text-sm rounded-lg border border-border bg-muted px-4 py-3">
-              <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span>
-                Tu parroquia está en el plan Gratis{activeChildren != null ? ` (${activeChildren}/${FREE_PLAN_CHILD_CAP} niños activos)` : ""}. Asistencia, niños, grupos/libros y reportes siguen funcionando sin vencimiento; para Tutores, mensajería, tareas y pulseras activa Premium.
-              </span>
-            </div>
-          )}
-          {status.tier === "premium" && status.status === "active" && (
+          {status.status === "active" && (
             <div className="flex items-center gap-2 text-sm rounded-lg border border-moss/30 bg-moss/10 px-4 py-3">
               <Check className="w-4 h-4 text-moss shrink-0" />
               <span>
-                Tu parroquia tiene acceso Premium activo
+                Tu parroquia tiene acceso activo
                 {trialEndLabel ? ` — vigente hasta el ${trialEndLabel}${trialDaysLeft != null && trialDaysLeft >= 0 ? ` (${trialDaysLeft} ${trialDaysLeft === 1 ? "día" : "días"})` : ""}.` : "."}
               </span>
             </div>
           )}
-          {status.isPremium && status.isReadOnly && (
+          {status.isReadOnly && !status.isAccessDenied && (
             <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-amber-800 dark:text-amber-300 space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="w-4 h-4 shrink-0" />
@@ -265,33 +252,16 @@ export default function Premium() {
             </div>
           )}
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="pt-6 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium">Gratis</p>
-                  <span className="text-sm text-muted-foreground">hasta {FREE_PLAN_CHILD_CAP} niños activos</span>
-                </div>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  {FREE_FEATURES.map((f) => (
-                    <li key={f} className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-moss shrink-0 mt-0.5" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-xs text-muted-foreground">$0, sin vencimiento.</p>
-              </CardContent>
-            </Card>
+          <div className="grid gap-4">
             <Card className="border-primary/30">
               <CardContent className="pt-6 space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="font-medium">Premium</p>
+                  <p className="font-medium">CateqHub</p>
                   <span className="text-sm text-muted-foreground">30 días gratis, luego desde $500 MXN/mes</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Incluye todo lo del plan Gratis, más:</p>
+                <p className="text-xs text-muted-foreground">Todo incluido:</p>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  {PREMIUM_FEATURES.map((f) => (
+                  {INCLUDED_FEATURES.map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                       {f}
@@ -309,7 +279,7 @@ export default function Premium() {
                     <tbody>
                       {PREMIUM_TIERS.map((t) => (
                         <tr key={t.min} className={tier === t ? "text-foreground font-medium" : ""}>
-                          <td className="py-1 pr-2">{t.max === Infinity ? `${t.min}+` : `${t.min}-${t.max}`}</td>
+                          <td className="py-1 pr-2">{t.max === Infinity ? `${t.min}+` : t.min === 1 ? `Hasta ${t.max}` : `${t.min}-${t.max}`}</td>
                           <td className="py-1">{t.price ? `$${t.price} MXN` : "Contáctanos"}</td>
                         </tr>
                       ))}
@@ -373,9 +343,7 @@ export default function Premium() {
                 <CardContent className="pt-5 space-y-1">
                   <p className="text-sm font-medium">Incluido en tu plan</p>
                   <p className="text-sm text-muted-foreground">
-                    {status.tier === "premium"
-                      ? "Ticket con prioridad hasta Alta — respuesta en horas hábiles."
-                      : "Ticket con prioridad hasta Baja — respuesta por correo, mejor esfuerzo."}
+                    Ticket con prioridad hasta Alta — respuesta en horas hábiles.
                   </p>
                 </CardContent>
               </Card>

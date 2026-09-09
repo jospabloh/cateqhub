@@ -244,9 +244,8 @@ export default function ChildDetail() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 Tutores
-                {!status.isPremium && <Badge variant="outline" className="font-normal text-[10px]">Premium</Badge>}
               </CardTitle>
-              {status.isPremium && !status.isReadOnly && can("tutores", "agregar") ? (
+              {!status.isReadOnly && can("tutores", "agregar") ? (
                 <Button size="sm" variant="ghost" onClick={() => setOpenG(true)}><Plus className="w-4 h-4 mr-1" />Agregar</Button>
               ) : (
                 <Button
@@ -254,9 +253,7 @@ export default function ChildDetail() {
                   variant="ghost"
                   disabled
                   title={
-                    !status.isPremium
-                      ? "Disponible con el plan Premium"
-                      : status.isReadOnly
+                    status.isReadOnly
                       ? "Pausado por falta de pago"
                       : "Tu parroquia desactivó este permiso para catequistas"
                   }
@@ -268,18 +265,12 @@ export default function ChildDetail() {
             <CardContent className="space-y-3">
               {status.isAccessDenied ? (
                 <p className="text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">
-                  El acceso a Tutores está bloqueado por falta de pago del plan Premium.{" "}
-                  <Link to="/premium" className="underline">Ver plan Premium</Link>
+                  El acceso a Tutores está bloqueado por falta de pago.{" "}
+                  <Link to="/premium" className="underline">Ver mi suscripción</Link>
                 </p>
               ) : (
                 <>
-                  {!status.isPremium && (
-                    <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
-                      Agregar tutores requiere el plan Premium activo.{" "}
-                      <Link to="/premium" className="text-primary hover:underline">Ver plan Premium</Link>
-                    </p>
-                  )}
-                  {status.isPremium && status.isReadOnly && !status.isAccessDenied && (
+                  {status.isReadOnly && !status.isAccessDenied && (
                     <p className="text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 rounded-md px-3 py-2">
                       Tu período de prueba o pago está vencido — puedes ver los tutores registrados, pero no agregar ni editar.
                     </p>

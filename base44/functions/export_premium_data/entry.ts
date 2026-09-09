@@ -30,9 +30,14 @@ Deno.serve(async (req) => {
 
     const sr = base44.asServiceRole;
     const parish = await sr.entities.Parish.get(me.parish_id);
-    if (!parish || parish.plan !== 'premium') {
-      return Response.json({ error: 'Tu parroquia no tiene el plan Premium' }, { status: 400 });
+    if (!parish) {
+      return Response.json({ error: 'No se pudo verificar tu parroquia, intenta de nuevo' }, { status: 500 });
     }
+    // Sin gate de plan a propósito: esta exportación es justamente el
+    // salvavidas de la parroquia cuyo acceso quedó restringido por falta de
+    // pago (ver Premium.jsx, estado access_denied). Exigirle un plan activo
+    // para sacar sus datos sería negarle la salida en el único momento en que
+    // la necesita.
 
     const [guardians, childGuardians] = await Promise.all([
       sr.entities.Guardian.filter({ parish_id: me.parish_id }),

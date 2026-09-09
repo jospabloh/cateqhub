@@ -7,10 +7,20 @@
 // (módulo 6 del estándar). Antes eran cuatro ediciones manuales garantizadas
 // por un comentario, y así se perdió la 1.8.0 entera de CHANGELOG.md.
 // tests/unit/release.test.js afirma los invariantes después.
-export const APP_VERSION = "1.9.11";
+export const APP_VERSION = "1.10.0";
 export const RELEASE_DATE = "2026-09-09";
 
 export const CHANGELOG = [
+  {
+    version: "1.10.0",
+    date: "2026-09-09",
+    changes: [
+      "CateqHub pasa a ser un solo producto con precio por volumen. El plan Gratis (hasta 50 niños activos, sin tutores/mensajería/tareas/pulseras) deja de existir: no era un producto que ACACIA vendiera —la tabla de precios pública empezaba en 51 niños, así que una parroquia de 50 o menos no tenía forma de pagar— y era además la desviación que impedía cumplir el módulo 1 del estándar del portafolio, que define exactamente cuatro estados y ninguno gratuito.",
+      "Todo va incluido para todas las parroquias: tutores y autorización de recogida, mensajería a tutores, tareas de catecismo y diseño de pulseras/gafetes dejan de estar bloqueados. Desaparece también el tope de 50 niños activos, tanto en el alta como en la reactivación.",
+      "Los precios pasan de 7 tramos a 3, y el primero arranca en el primer niño: hasta 150 niños $500 MXN al mes, de 151 a 500 $900 MXN, de 501 en adelante a cotizar. Los tramos del servicio de implementación se realinean a las mismas fronteras sin cambiar de precio.",
+      "Si el período de prueba o de pago vence sin renovarse, ahora aplica el mismo ciclo a toda parroquia sin importar su tamaño: solo lectura, después acceso restringido, con exportación de los datos de Tutores antes de cualquier eliminación. Antes, una parroquia de 50 niños o menos bajaba al plan Gratis y nunca entraba a ese ciclo.",
+    ],
+  },
   {
     version: "1.9.11",
     date: "2026-09-09",

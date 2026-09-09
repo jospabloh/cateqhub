@@ -80,15 +80,9 @@ export default function Dashboard() {
         <p className="text-muted-foreground">{parish?.name || "Tu parroquia"} · {isParishAdmin(user) ? "Administrador" : "Catequista"}</p>
       </div>
 
-      {isParishAdmin(user) && status.tier === "free" && (
+      {isParishAdmin(user) && status.status === "active" && status.trialEndsAt && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm rounded-lg border border-border bg-muted px-4 py-3">
-          <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground shrink-0" />Tu parroquia está en el plan Gratis.</span>
-          <Link to="/premium" className="text-primary font-medium hover:underline shrink-0">Ver plan Premium</Link>
-        </div>
-      )}
-      {isParishAdmin(user) && status.tier === "premium" && status.status === "active" && status.trialEndsAt && (
-        <div className="flex flex-wrap items-center justify-between gap-2 text-sm rounded-lg border border-border bg-muted px-4 py-3">
-          <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground shrink-0" />Tu parroquia tiene acceso Premium activo.</span>
+          <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground shrink-0" />Tu parroquia tiene acceso activo.</span>
           <Link to="/premium" className="text-primary font-medium hover:underline shrink-0">Ver detalles</Link>
         </div>
       )}
