@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { QrCode, Users, ClipboardList, ScanLine, Home, Church, LogOut, UserCog, Sparkles, ShieldCheck, BookOpen, LifeBuoy, Info, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isParishAdmin, parishRoleLabel } from "@/lib/roles";
+import ParishSwitcher from "@/components/ParishSwitcher";
 import { useLicenseStatus } from "@/lib/premium";
 import Logo from "@/components/Logo";
 import LicenseBanner from "@/components/LicenseBanner";
@@ -120,6 +121,12 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
+        {/* Módulo 18: sólo se dibuja si el usuario pertenece a más de una
+            parroquia — el propio componente devuelve null si no. Va encima de
+            "Cerrar sesión" porque es de la misma familia (cosas de la cuenta,
+            no de la navegación) y porque separarlo del pie lo dejaría flotando
+            entre secciones de nav. */}
+        <ParishSwitcher />
         <div className="p-3 border-t border-sidebar-border space-y-0.5">
           <button onClick={handleLogout} className="w-full flex items-center gap-3 pl-3 pr-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground/65 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors">
             <LogOut className="w-4 h-4" /> Cerrar sesión

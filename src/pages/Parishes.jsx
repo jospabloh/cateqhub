@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DATA_PROCESSING_ACCEPTANCE_TEXT } from "@/lib/legal";
 import { useToast } from "@/components/ui/use-toast";
-import { Church, Check, Download, AlertTriangle } from "lucide-react";
+import { Church, Check, Download, AlertTriangle, UserCheck } from "lucide-react";
 
 export default function Parishes() {
   const { user, checkUserAuth } = useAuth();
@@ -27,6 +27,9 @@ export default function Parishes() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [requestingDelete, setRequestingDelete] = useState(false);
   const [deleteRequested, setDeleteRequested] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [successor, setSuccessor] = useState("");
+  const [transferring, setTransferring] = useState(false);
 
   const load = async () => {
     if (!user?.parish_id) return;
@@ -36,6 +39,46 @@ export default function Parishes() {
     setContact(p?.admin_contact || "");
   };
   useEffect(() => { load(); }, [user?.parish_id]);
+
+  // Los posibles sucesores salen de list_parish_users (rol de servicio, acotado
+  // a la propia parroquia), no de una consulta del cliente: el backend vuelve a
+  // comprobar la pertenencia de todos modos, pero ofrecer sólo miembros reales
+  // evita un 403 que el usuario no sabría interpretar.
+  useEffect(() => {
+    if (!user?.parish_id) return;
+    base44.functions
+      .invoke("list_parish_users", {})
+      .then((r) => setMembers((r.data?.users || []).filter((u) => u.email !== user.email)))
+      .catch(() => setMembers([]));
+  }, [user?.parish_id, user?.email]);
+
+  // Módulo 7: transferir la administración. Es la salida del último
+  // administrador — sin esto, "salir de la parroquia" (en /acerca-de) le
+  // responde 409 'last_admin' y se queda encerrado. El backend promueve al
+  // sucesor ANTES de degradar al llamante, así que un fallo a medias deja dos
+  // administradores, nunca cero.
+  const handleTransfer = async () => {
+    if (!successor) return;
+    setTransferring(true);
+    try {
+      const res = await base44.functions.invoke("assign_parish_user", {
+        action: "transfer_admin",
+        email: successor,
+      });
+      if (res.data?.transferred) {
+        toast({ title: "Administración transferida", description: `${successor} ahora administra la parroquia. Tú quedaste como catequista.` });
+        // Recarga entera: el propio rol acaba de cambiar y la navegación, los
+        // permisos y esta misma página dependen de él.
+        window.location.href = "/";
+        return;
+      }
+      toast({ title: "No se pudo transferir", description: res.data?.error || "Intenta de nuevo", variant: "destructive" });
+    } catch (e) {
+      toast({ title: "No se pudo transferir", description: e.message, variant: "destructive" });
+    } finally {
+      setTransferring(false);
+    }
+  };
 
   if (!isParishAdmin(user)) return <RestrictedNotice />;
 
@@ -188,6 +231,40 @@ export default function Parishes() {
         <Card className="border-destructive/40">
           <CardHeader><CardTitle className="text-base flex items-center gap-2 text-destructive"><AlertTriangle className="w-4 h-4" />Zona de peligro</CardTitle></CardHeader>
           <CardContent className="space-y-3">
+            <div className="space-y-2 pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-muted-foreground shrink-0" />
+                <p className="font-medium text-sm">Transferir la administración</p>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Otro miembro pasa a ser administrador y tú quedas como catequista. Es lo que tienes que hacer antes de salir si eres el único administrador.
+              </p>
+              {members.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No hay otros miembros en la parroquia todavía. Invita a alguien desde <span className="text-foreground font-medium">Usuarios</span> primero.
+                </p>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <select
+                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={successor}
+                    onChange={(e) => setSuccessor(e.target.value)}
+                    aria-label="Miembro que recibirá la administración"
+                  >
+                    <option value="">Elige a quién…</option>
+                    {members.map((m) => (
+                      <option key={m.id} value={m.email}>
+                        {m.full_name ? `${m.full_name} — ${m.email}` : m.email}
+                      </option>
+                    ))}
+                  </select>
+                  <Button variant="outline" onClick={handleTransfer} disabled={!successor || transferring}>
+                    {transferring ? "Transfiriendo…" : "Transferir"}
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <p className="text-sm text-muted-foreground">
               Eliminar la parroquia es permanente. Enviamos tu solicitud a soporte para verificar tu identidad y limpiar los datos antes de proceder — no es un borrado instantáneo.
             </p>

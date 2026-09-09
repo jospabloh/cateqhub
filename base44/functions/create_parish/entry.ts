@@ -5,11 +5,57 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 // duplica a propósito. Súbelo en el mismo commit que el de src/lib/legal.js.
 const DATA_PROCESSING_TERMS_VERSION = '2026-07-27';
 
+// Módulo 18: Membership registra TODAS las parroquias a las que pertenece una
+// cuenta; User.parish_id sigue siendo la única en la que está actuando ahora.
+// Los dos se escriben juntos, aquí, porque una fila que no se mantiene es peor
+// que no tener la entidad: el selector ofrecería parroquias de las que ya
+// salió.
+async function upsertMembership(sr, user, parish, parish_role: string) {
+  const rows = await sr.entities.Membership.filter({ user_id: user.id }).catch(() => []);
+  const existing = (rows || []).find((m) => m.parish_id === parish.id);
+  const patch = {
+    email: user.email || '',
+    parish_name: parish.name || '',
+    parish_role,
+    active: true,
+  };
+  if (existing) return sr.entities.Membership.update(existing.id, patch);
+  return sr.entities.Membership.create({ user_id: user.id, parish_id: parish.id, ...patch });
+}
+
+// Salir o ser removido NO borra la fila: se marca inactiva. Saber que alguien
+// estuvo sirve para reincorporarlo, y un borrado real perdería ese rastro.
+async function deactivateMembership(sr, userId: string, parishId: string) {
+  const rows = await sr.entities.Membership.filter({ user_id: userId }).catch(() => []);
+  for (const m of rows || []) {
+    if (m.parish_id === parishId && m.active !== false) {
+      await sr.entities.Membership.update(m.id, { active: false }).catch(() => {});
+    }
+  }
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const me = await base44.auth.me();
-    if (!me) return Response.json({ error: 'No autorizado' }, { status: 401 });
+    // Módulo 22 del estándar. `auth.me()` sirve para IDENTIDAD (quién llama),
+    // nunca para los campos server-authoritative que deciden una escritura:
+    // parish_id, parish_role y role sólo los escribe una función de servicio, y
+    // la vista de la sesión está cacheada — puede discrepar de lo persistido.
+    // En rumbo eso hizo que switchTenant devolviera ok:true saltándose la
+    // escritura durante días, y ese fallo no da error: da un éxito falso.
+    //
+    // Aquí no hay ningún diff-then-skip, pero sí el caso del punto 3 del
+    // módulo: de `me.parish_id` cuelga el ACOTAMIENTO de toda la operación, y
+    // una lectura rancia ahí no se salta una escritura — la dirige contra la
+    // parroquia equivocada.
+    //
+    // Falla cerrado: si no se puede releer la cuenta, se aborta. Volver a la
+    // vista cacheada como respaldo sería reintroducir exactamente el problema.
+    const session = await base44.auth.me();
+    if (!session) return Response.json({ error: 'No autorizado' }, { status: 401 });
+    const stored = await base44.asServiceRole.entities.User.filter({ id: session.id }).catch(() => null);
+    const me = stored?.[0];
+    if (!me) return Response.json({ error: 'No se pudo verificar tu cuenta, intenta de nuevo' }, { status: 500 });
 
     // parish_id solo se puede escribir con rol de servicio (ver User.jsonc) — esta
     // función es el único camino para que un usuario nuevo reclame su primera
@@ -59,6 +105,7 @@ Deno.serve(async (req) => {
       parish_license_status: 'active',
       parish_support_priority_addon: false,
     });
+    await upsertMembership(sr, me, parish, 'admin');
 
     return Response.json({ parish });
   } catch (error) {

@@ -193,6 +193,46 @@ export function collectRlsErrors(entitiesDir) {
     const hasParishId = schema.properties && "parish_id" in schema.properties;
     const adminGated = rls.read &&
       JSON.stringify(rls.read) === '{"user_condition":{"role":"admin"}}';
+
+    // Entidades cuya lectura va, A PROPÓSITO, por usuario y no por parroquia.
+    // Hoy sólo Membership (módulo 18 del estándar): su razón de ser es dejar
+    // que alguien liste las parroquias en las que NO está activo ahora, para
+    // poder cambiarse. Filtrar su lectura por {{user.data.parish_id}} —lo que
+    // esta función exige a todas las demás— la volvería inútil: sólo se vería
+    // la membresía de la parroquia en la que ya estás.
+    //
+    // La excepción NO afloja el aislamiento, lo cambia de eje, y eso se
+    // comprueba abajo: se EXIGE que la lectura vaya contra {{user.id}}. Sin
+    // esa comprobación, esta lista sería una puerta para saltarse el check
+    // entero poniendo una entidad nueva dentro.
+    const USER_SCOPED_READ = ["Membership"];
+    if (hasParishId && rls.read && !adminGated && USER_SCOPED_READ.includes(entity)) {
+      const readJson = JSON.stringify(rls.read);
+      if (!readJson.includes('"data.user_id":"{{user.id}}"')) {
+        errors.push(
+          `${entity} [read]: está en USER_SCOPED_READ, así que su lectura debe ` +
+            `ir por {"data.user_id":"{{user.id}}"} en vez de por parroquia. ` +
+            `Sin eso no está acotada por nada.`,
+        );
+      }
+      if (!readJson.includes('"user_condition":{"role":"admin"}')) {
+        errors.push(
+          `${entity} [read]: le falta la rama de rol de servicio, igual que a ` +
+            `las tenant-scoped — asServiceRole.filter() devolvería cero filas.`,
+        );
+      }
+      for (const op of ["create", "update", "delete"]) {
+        if (!(op in rls) || !JSON.stringify(rls[op]).includes('"user_condition":{"role":"admin"}')) {
+          errors.push(
+            `${entity} [${op}]: debe existir e incluir ` +
+              `{"user_condition":{"role":"admin"}} — se escribe sólo desde funciones de servicio.`,
+          );
+        }
+      }
+      tenantScoped++;
+      continue;
+    }
+
     if (hasParishId && rls.read && !adminGated) {
       tenantScoped++;
       const readJson = JSON.stringify(rls.read);
