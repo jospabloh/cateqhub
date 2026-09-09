@@ -52,7 +52,7 @@ No hay tope de niños: puedes dar de alta a todos los de tu parroquia. El númer
     id: "gafetes-lote",
     category: "Niños y grupos/libros",
     title: "Imprimir gafetes QR de varios niños a la vez",
-    keywords: ["gafete", "gafetes", "imprimir", "qr", "lote", "hoja", "pdf", "pulsera"],
+    keywords: ["gafete", "gafetes", "imprimir", "qr", "lote", "hoja", "pdf"],
     content: `Ve a "Niños", selecciona a los niños que necesitas (casilla junto a cada nombre) y usa "Imprimir gafetes". Se arma una hoja carta con hasta 9 tarjetas QR, con navegación entre páginas si seleccionaste más.
 
 Desde ahí puedes imprimir directamente o descargar la hoja como PNG, SVG o PDF — el PDF incluye todas las páginas si seleccionaste más de 9 niños. Igual que el gafete individual, cada tarjeta lleva el nombre del niño y el código QR con guías de corte.`,
@@ -111,7 +111,9 @@ Tutores viene incluido, como todo lo demás. Toda parroquia nueva arranca con 30
     category: "Tutores y Premium",
     title: "Precio, prueba de 30 días y licencia",
     keywords: ["premium", "licencia", "plan", "precio", "pago", "prueba", "trial", "suscripción", "tramo"],
-    content: `CateqHub es un solo plan con todo incluido: asistencia por QR, alta de parroquia/grupos/niños, reportes, tutores, mensajería, tareas de catecismo y pulseras/etiquetas. El precio depende solo del número de niños activos de tu parroquia: hasta 150, $500 MXN al mes; de 151 a 500, $900 MXN; de 501 en adelante, contáctanos.
+    content: `CateqHub es un solo plan con todo incluido: asistencia por QR, alta de parroquia/grupos/niños, reportes, tutores y autorización de recogida, y gafetes imprimibles con QR. El precio depende solo del número de niños activos de tu parroquia: hasta 150, $500 MXN al mes; de 151 a 500, $900 MXN; de 501 en adelante, contáctanos.
+
+Mensajería a tutores, tareas de catecismo y pulseras aparecen en el tablero como vista previa: todavía no están construidas y no se cobran aparte cuando lo estén — entran en el mismo plan.
 
 Toda parroquia nueva arranca automáticamente con 30 días sin costo y sin tarjeta. Si el período de prueba (o de pago, una vez activada la suscripción) vence sin renovarse, la app entra en solo lectura y después en acceso restringido, hasta reactivar. Los datos de niños, grupos y asistencia nunca se eliminan por falta de pago; solo los de Tutores, y solo tras haber podido exportarlos.
 
