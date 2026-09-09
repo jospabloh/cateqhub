@@ -418,7 +418,7 @@ a live query proved it; the dated audit under them says with what evidence.
       desplegado el 2026-09-08). Sigue sin ping en tiempo real al crear tenant
       — hueco de TODO el portafolio, ninguna app lo tiene y MC no tiene el
       endpoint.
-- [ ] Module 2 — Roles: app role model declared in one file, mapped onto the
+- [x] Module 2 — Roles: app role model declared in one file, mapped onto the
       backend's built-in role field; Mission Control operator roles
       (owner/admin/viewer) are a separate layer, never conflated. Only a
       tenant's own admin can promote a member to admin or demote a fellow
@@ -426,10 +426,10 @@ a live query proved it; the dated audit under them says with what evidence.
       leave zero admins). Joining an EXISTING tenant is by invite code
       (request → admin approves) or emailed invite (admin-initiated,
       pre-approved) — never an open self-serve join.
-      → Cerrado 2026-09-08. `wouldLeaveNoAdmin` es UN gate compartido por
-      quitar y degradar. Cubre las tres rutas por las que alguien deja de ser
-      administrador, contando siempre contra `target.parish_id` (el registro
-      almacenado).
+      → Cerrado 2026-09-08, CORRIENDO desde el 2026-09-09.
+      `wouldLeaveNoAdmin` es UN gate compartido por quitar y degradar. Cubre
+      las tres rutas por las que alguien deja de ser administrador, contando
+      siempre contra `target.parish_id` (el registro almacenado).
 - [x] Module 3 — Granular permissions: one client registry file + server-side
       re-check on every write path (permission key, in the same precedence
       order as the client), gated behind billing_status too. No entity is
@@ -455,7 +455,7 @@ a live query proved it; the dated audit under them says with what evidence.
       → Cerrado 2026-09-08. `npm run release` escribe los cuatro sitios de una
       vez y se niega a correr sin notas o con una versión ya usada.
       tests/unit/release.test.js fija los invariantes.
-- [ ] Module 7 — Account & danger zone: member management gated by Module 3,
+- [x] Module 7 — Account & danger zone: member management gated by Module 3,
       data export, irreversible delete with a real confirmation step.
       Danger zone covers BOTH scopes, not just one: "delete my account"
       (leave the tenant) is separate from "delete the tenant" (every
@@ -463,21 +463,23 @@ a live query proved it; the dated audit under them says with what evidence.
       approved member and promote a member to tenant admin — all three
       re-derive actor and target from the tenant's own stored membership,
       never from the request body.
-      → Cerrado 2026-09-08. `action:'leave'` (en /acerca-de, la única pantalla
-      que alcanza cualquier miembro) y `action:'transfer_admin'` (en el danger
-      zone de /parroquia).
+      → Cerrado 2026-09-08, CORRIENDO desde el 2026-09-09. `action:'leave'`
+      (en /acerca-de, la única pantalla que alcanza cualquier miembro) y
+      `action:'transfer_admin'` (en el danger zone de /parroquia).
 - [x] Module 8 — Support/mejoras: entry point writes to this app first, then
       syncs into Mission Control's tickets/leads bodega. No parallel triage UI.
       EVERY place a ticket is born (support page AND the danger zone's deletion
       request) notifies Mission Control in real time.
 - [x] Module 9 — acaciaco-site: this app has a page under apps/ (or freeware/),
       using styles/base.css tokens, dark-theme correct.
-- [ ] Module 10 — Login page: a real in-app screen, on-brand, real
+- [x] Module 10 — Login page: a real in-app screen, on-brand, real
       error/suspended/view_only states, links to trial and support,
       dark-theme correct. Every social button shown corresponds to a
       provider actually enabled on the Base44 app.
-      → Cerrado 2026-09-08. Enlaces a /soporte y a /apps/cateqhub de
-      acaciaco.com.mx, verificados renderizando el build en claro y oscuro.
+      → Cerrado 2026-09-08, CORRIENDO desde el 2026-09-09. Enlaces a /soporte
+      y a /apps/cateqhub de acaciaco.com.mx, verificados renderizando el build
+      en claro y oscuro, y después contra el sitio servido por la corrida 23
+      del smoke.
 - [x] Module 11 — Deploy discipline: `base44.app.json` + `npm run deploy`
       (refuses `--app-id`), `deploy:site` for the frontend, `deploy:entities`
       behind a typed confirmation, and `validate:functions` in lint keeping
@@ -489,8 +491,14 @@ a live query proved it; the dated audit under them says with what evidence.
       against the DEPLOYED site, wired to `.github/workflows/smoke.yml`.
       → Cerrado 2026-09-08. `routes` cubre login, registro, recuperación y un
       404. El spec compartido sigue byte a byte idéntico al canónico.
-- [x] Module 14 — Multi-tenant isolation audit: dated, evidenced, and repeated
+- [ ] Module 14 — Multi-tenant isolation audit: dated, evidenced, and repeated
       whenever an entity, a function or a role is added.
+      → **VENCIDA desde el 2026-09-09.** La pasada del 2026-08-23 cubre 10
+      entidades y 15 funciones. El deploy de ese día subió `Session` y
+      `Membership` (12 entidades) y `session`, `memberships` y
+      `purge_stale_sessions` (18 funciones) — que es literalmente el
+      disparador que este módulo define. Rehacerla contra el esquema
+      DESPLEGADO; ahora sí existe uno que leer.
 - [x] Module 15 — Bridge to Mission Control: `shared/bridge/acaciaSign.ts`
       copied in unchanged plus its test at the functions ROOT, and outbound
       signing on the DERIVED key.
@@ -501,55 +509,70 @@ a live query proved it; the dated audit under them says with what evidence.
 - [ ] Module 16 — Secrets: every guard built on one FAILS CLOSED when the
       value is missing, and that branch has a test. Each value has been READ
       BACK from the panel or proven by a call that only succeeds if it is right.
-      → Cerrado 2026-09-08. `ACACIA_APP_SLUG` ausente devuelve su propio 500
-      con su nombre, como `INGEST_HMAC_SECRET`. `CRON_SECRET` (nuevo, módulo 20)
-      falla cerrado con 503.
+      → Las dos guardias están DESPLEGADAS y fallan cerrado: `ACACIA_APP_SLUG`
+      ausente devuelve su propio 500 con su nombre, como `INGEST_HMAC_SECRET`,
+      y `CRON_SECRET` (nuevo, módulo 20) responde 503. Lo que falta es la otra
+      mitad del módulo, que es la que cuesta: **`CRON_SECRET` no existe en los
+      secrets de la app.** La guardia funciona —503, nunca 200— pero
+      `purge_stale_sessions` no corre, y el módulo pide que cada valor se haya
+      leído de vuelta del panel o probado con una llamada que sólo tiene éxito
+      si es correcto. Ese es el único punto abierto aquí.
 - [x] Module 17 — Mission Control side: row in `apps`, an adapter, and entries
       in `licenseControl.js`, `ticketControl.js`, `messaging.js` plus the client
       catalogue mirror. Then PROVE the data path.
 - [ ] Module 18 — Multi-tenant account switching AND joining, on a first-class
       `Membership` entity.
-      → Escrito 2026-09-08, NO DESPLEGADO. Entidad `Membership` (lectura por
-      {{user.id}}, no por parroquia), función `memberships` (list/switch con
-      backfill perezoso), y selector en la barra lateral. PENDIENTE DE
-      DECISIÓN: el alta cross-parroquia — ver abajo.
+      → **DESPLEGADO el 2026-09-09**, y a medias a propósito. Entidad
+      `Membership` (lectura por {{user.id}}, no por parroquia), función
+      `memberships` (list/switch con backfill perezoso) y selector en la barra
+      lateral: el CAMBIO de inquilino corre. El ALTA cross-parroquia no, y no
+      es un olvido — sigue PENDIENTE DE DECISIÓN (ver abajo). Media casilla no
+      es casilla: se queda en `[ ]` hasta que el alta exista.
 - [x] Module 19 — Lock survives debugging: every security-relevant RLS/field
       lock states its rationale AND which operation it governs in its own
       field description.
 - [ ] Module 20 — Session control: client-side idle warning + hard logout
       (`shared/session/`), a per-device Session with the active/passive
       model, and a server-side reap job at 48h.
-      → Escrito 2026-09-08, NO DESPLEGADO. Los cuatro archivos de
-      `shared/session/` byte a byte, entidad `Session`, router `session` y
-      `purge_stale_sessions` con guardia de `CRON_SECRET` que falla cerrado.
+      → **DESPLEGADO el 2026-09-09, y el reaper NO CORRE.** Los cuatro
+      archivos de `shared/session/` byte a byte, entidad `Session`, router
+      `session` y `purge_stale_sessions` están arriba. Pero
+      `purge_stale_sessions` responde **503 a todo** mientras `CRON_SECRET` no
+      exista en los secrets, y además no hay automatización que lo llame. O
+      sea: el aviso de inactividad y el heartbeat sí corren; la cosecha a 48 h
+      no. En una app que guarda CURP y datos de menores, eso es la mitad que
+      importa.
 - [x] Module 21 — About screen: user manual, changelog, version line in sync
       with package.json, contact + ACACIA acknowledgment card.
-- [ ] Module 22 — Server-authoritative diffing: any backend function that
+- [x] Module 22 — Server-authoritative diffing: any backend function that
       compares a server-authoritative custom field against a target value to
       decide whether to write it does a FRESH read via `asServiceRole` first.
-      → Cerrado 2026-09-08. Las funciones con sesión releen al llamante con
-      `asServiceRole`; `session` es la identidad, `me` el registro almacenado.
-      tests/unit/freshCallerRead.test.js exige el bloque literal en todas.
+      → Cerrado 2026-09-08, CORRIENDO desde el 2026-09-09. Las funciones con
+      sesión releen al llamante con `asServiceRole`; `session` es la identidad,
+      `me` el registro almacenado. tests/unit/freshCallerRead.test.js exige el
+      bloque literal en todas.
 - [x] Module 23 — Nav survives reload: the nav's active item is derived from
       the current route on every render.
 
-### Lo que falta desplegar (2026-09-08)
+### Estado del despliegue — 2026-09-09
 
-Los 23 módulos están escritos y en `main` desde el PR #57. **Nada de eso corre
-todavía.** Falta, en este orden:
+**Los 23 módulos ya no están sólo escritos: están arriba.** El 2026-09-09 se
+corrieron `deploy:entities` (12 entidades, `Session` y `Membership` incluidas),
+`deploy` (18 funciones) y `deploy:site` con `--build`. La corrida 23 del smoke
+contra el sitio servido pasa las cinco afirmaciones.
 
-1. `npm run deploy:entities` — DESTRUCTIVO, pide escribir "CateqHub". Añade
-   `Session` y `Membership`. Sin esto, `session`, `purge_stale_sessions` y
-   `memberships` fallan contra entidades que no existen.
-2. **`CRON_SECRET` en los secrets de la app, ANTES de programar el reaper.**
-   Sin él `purge_stale_sessions` responde 503 y no corre — dirección segura,
-   pero sigue siendo una caída silenciosa, y es el error que flowfin documenta
-   en el sentido contrario.
-3. `npm run deploy` — las funciones (3 nuevas, 4 modificadas).
-4. `npm run deploy:site` — el frontend (login, /acerca-de, danger zone,
-   selector de parroquia, control de sesión).
-5. Verificar por **contenido**, no por hash, y correr `npm run test:smoke`
-   desde Actions.
+Lo que sigue SIN CORRER, y es una sola cosa con dos mitades:
+
+1. **`CRON_SECRET` no existe en los secrets de la app.** Sin él,
+   `purge_stale_sessions` responde **503 a todo**. Falla en la dirección
+   segura —nunca 200, que es el error que Mission Control cometió al revés con
+   sus cuatro crons abiertos— pero sigue siendo una función desplegada que no
+   corre. Mantiene abiertos los módulos 16 y 20.
+2. **No hay automatización que llame al reaper.** Aunque exista el secreto, algo
+   tiene que invocarlo a diario con `Authorization: Bearer <CRON_SECRET>`. Si
+   las automatizaciones de Base44 no admiten cabeceras, el reaper no puede
+   autenticarse contra su propia guardia y hace falta un disparador externo
+   (un workflow de GitHub Actions con el secreto en los secrets del repo).
 
 Dos decisiones que NO son mías y bloquean cerrar dos módulos del todo:
 
@@ -571,21 +594,50 @@ Dos decisiones que NO son mías y bloquean cerrar dos módulos del todo:
   añadir la membresía y dejar que se cambie ella. Es una decisión de producto
   con consecuencia de seguridad.
 
-**El módulo 14 hay que rehacerlo.** Se añadieron dos entidades (`Session`,
-`Membership`) y tres funciones (`session`, `purge_stale_sessions`,
-`memberships`), que es exactamente el disparador que ese módulo define. La
-pasada del 2026-08-23 cubre 10 entidades y 15 funciones; hoy son 12 y 18. Hay
-que correrla contra el esquema DESPLEGADO, después del deploy, no antes.
+**El módulo 14 está vencido desde ese mismo deploy.** Se añadieron dos entidades
+y tres funciones, que es exactamente su disparador. La pasada del 2026-08-23
+cubre 10 entidades y 15 funciones; hoy son 12 y 18. Ahora sí hay esquema
+desplegado contra el que correrla — hace falta el MCP de Base44 autorizado en la
+sesión, porque leer los `.jsonc` del repo es justo lo que ese módulo prohíbe.
+
+### El día que el smoke mintió — 2026-09-09
+
+Vale la pena por la forma, no por el bug. El arreglo del selector de tema se
+mergeó, se corrió `deploy:site`, y el smoke de producción volvió a fallar
+**byte a byte igual** que antes: misma línea, mismo ancho, mismo elemento.
+
+La tentación era volver a mirar el arreglo. La señal decía lo contrario: un
+fallo idéntico después de un deploy significa que no cambió nada. Y no había
+cambiado — `npx base44 site deploy` preguntaba si construir, el script no pasaba
+`--build`, y se subió un `dist/` viejo. Ver "Deploy" arriba.
+
+Dos cosas que sirven para la próxima:
+
+- **Un fallo que no se mueve tras un cambio es evidencia sobre el canal, no
+  sobre el arreglo.** Si el arreglo fuera insuficiente, fallaría en otro sitio o
+  con otro elemento, no exactamente igual.
+- **Desde el sandbox no se alcanza el sitio** (el proxy deniega el CONNECT a
+  `cateqhub.acaciaco.com.mx`), así que la verificación local tiene que ser un
+  SUPERCONJUNTO de lo que mide el smoke, no una muestra: aquí fueron 6 anchos ×
+  5 rutas × 2 estados × 2 posiciones de scroll = 120 combinaciones, contra las
+  24 del smoke. Con eso, cuando prod falla y local no, la diferencia sólo puede
+  estar en qué se sirve.
 
 Last audited against the standard: 2026-09-08 — primera pasada completa de los
-23 módulos. 13 conformes, 6 parciales, 4 ausentes; detalle abajo. El hallazgo 1
-se **corrigió el mismo día**: afirmaba un fallo abierto de licencia que no
-existe (un `plan` ausente resuelve a Plan Gratis en toda la app). Lo que queda
-ahí es una incoherencia de presentación entre el app y el panel.
+23 módulos; el detalle de esa pasada está abajo. El hallazgo 1 se **corrigió el
+mismo día**: afirmaba un fallo abierto de licencia que no existe (un `plan`
+ausente resuelve a Plan Gratis en toda la app). Lo que queda ahí es una
+incoherencia de presentación entre el app y el panel.
+
+**Cuenta al 2026-09-09, después del deploy: 19 CORRIENDO, 4 abiertos** — 14
+(auditoría vencida), 16 y 20 (los dos por `CRON_SECRET`, que no existe), y 18
+(el cambio de inquilino corre; el alta cross-parroquia espera una decisión).
+Ninguno de los cuatro está abierto por código sin escribir.
 Last multi-tenant isolation audit: 2026-08-23 — ver "Módulo 14" arriba.
-**VENCIDA**: el PR #57 añadió dos entidades y tres funciones, que es el
-disparador del módulo. Rehacerla contra el esquema desplegado, después del
-deploy.
+**VENCIDA**: el deploy del 2026-09-09 subió dos entidades (`Session`,
+`Membership`) y tres funciones (`session`, `memberships`,
+`purge_stale_sessions`), que es el disparador del módulo. Ya hay esquema
+desplegado; falta correrla contra él.
 
 ## Auditoría contra el estándar — 2026-09-08
 
