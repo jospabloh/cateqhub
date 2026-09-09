@@ -2,6 +2,13 @@
 
 Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appConfig.js` (consumida por la página "Acerca de" dentro de la app); este archivo es la versión en prosa.
 
+## 1.10.1 — 2026-09-09
+
+- Corrección a la 1.10.0. Esa entrada decía que «mensajería a tutores, tareas de catecismo y diseño de pulseras/gafetes dejan de estar bloqueados». Es falso en tres de los cuatro términos: mensajería, tareas y pulseras no estaban bloqueadas — no existen. No tienen ruta, ni componente, ni entidad que las guarde. Lo único que sí se desbloqueó fue Tutores.
+- Las tres se quitan de la lista de funciones incluidas de la pantalla de suscripción y del manual. Siguen en el tablero como vista previa bloqueada, que es donde el app ya las nombraba correctamente: el comentario de PremiumLockedPanel dice literalmente «funciones premium que aún no existen». El producto se contradecía a sí mismo en dos pantallas, y la página pública las vendía dentro de un plan de pago.
+- Lo que la app hace hoy, y es lo que queda anunciado: asistencia por código QR, alta de parroquia/grupos/niños, reportes por fecha y grupo, faltas acumuladas por niño, tutores con autorización de recogida, y gafetes imprimibles con QR (individuales o en hoja de hasta 9, con descarga en PNG, SVG o PDF).
+- El tablero deja de llamarlas «Próximamente en Premium»: ya no hay un plan Premium del que dependan, así que dicen «Todavía no está disponible» bajo el encabezado «En camino». Cuando existan entrarán en el mismo plan, sin costo aparte.
+
 ## 1.10.0 — 2026-09-09
 
 - CateqHub pasa a ser un solo producto con precio por volumen. El plan Gratis (hasta 50 niños activos, sin tutores/mensajería/tareas/pulseras) deja de existir: no era un producto que ACACIA vendiera —la tabla de precios pública empezaba en 51 niños, así que una parroquia de 50 o menos no tenía forma de pagar— y era además la desviación que impedía cumplir el módulo 1 del estándar del portafolio, que define exactamente cuatro estados y ninguno gratuito.

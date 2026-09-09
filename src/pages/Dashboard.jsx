@@ -152,11 +152,11 @@ export default function Dashboard() {
 
       {isParishAdmin(user) && (
         <div>
-          <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Funciones premium</h3>
+          <h3 className="font-semibold mb-3 text-sm text-muted-foreground">En camino</h3>
           <div className="grid gap-3 sm:grid-cols-3">
-            <PremiumLockedPanel icon={MessageCircle} title="Mensajería a tutores" description="Recordatorios por WhatsApp o correo. Próximamente en Premium." />
-            <PremiumLockedPanel icon={ListChecks} title="Tareas de catecismo" description="Asigna tareas y da seguimiento a las entregas. Próximamente en Premium." />
-            <PremiumLockedPanel icon={Tag} title="Pulseras y etiquetas" description="Identificación física para grupos/libros grandes. Próximamente en Premium." />
+            <PremiumLockedPanel icon={MessageCircle} title="Mensajería a tutores" description="Recordatorios por WhatsApp o correo. Todavía no está disponible." />
+            <PremiumLockedPanel icon={ListChecks} title="Tareas de catecismo" description="Asigna tareas y da seguimiento a las entregas. Todavía no está disponible." />
+            <PremiumLockedPanel icon={Tag} title="Pulseras y etiquetas" description="Identificación física para grupos/libros grandes. Todavía no está disponible." />
           </div>
         </div>
       )}
