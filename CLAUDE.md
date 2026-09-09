@@ -607,14 +607,19 @@ a live query proved it; the dated audit under them says with what evidence.
 - [ ] Module 16 — Secrets: every guard built on one FAILS CLOSED when the
       value is missing, and that branch has a test. Each value has been READ
       BACK from the panel or proven by a call that only succeeds if it is right.
-      → Las dos guardias están DESPLEGADAS y fallan cerrado: `ACACIA_APP_SLUG`
-      ausente devuelve su propio 500 con su nombre, como `INGEST_HMAC_SECRET`,
-      y `CRON_SECRET` (nuevo, módulo 20) responde 503. Lo que falta es la otra
-      mitad del módulo, que es la que cuesta: **`CRON_SECRET` no existe en los
-      secrets de la app.** La guardia funciona —503, nunca 200— pero
-      `purge_stale_sessions` no corre, y el módulo pide que cada valor se haya
-      leído de vuelta del panel o probado con una llamada que sólo tiene éxito
-      si es correcto. Ese es el único punto abierto aquí.
+      → Las tres guardias están DESPLEGADAS y fallan cerrado: `ACACIA_APP_SLUG`
+      ausente devuelve su propio 500 con su nombre, igual que
+      `INGEST_HMAC_SECRET`, y `CRON_SECRET` responde 503. Los tres valores
+      están puestos en los secrets de la app (`CRON_SECRET` desde el
+      2026-09-09).
+      **Lo que falta es la prueba, que es la mitad cara del módulo.**
+      `INGEST_HMAC_SECRET` y `ACACIA_APP_SLUG` sí están probados: la
+      sincronización diaria es una llamada que sólo tiene éxito si valen lo que
+      deben. `CRON_SECRET` no — nada lo ha ejercido todavía, porque no hay
+      quien llame al reaper (ver módulo 20). La primera invocación autenticada
+      que devuelva 200 en vez de 503 es lo que cierra esta casilla; hasta
+      entonces «está puesto» es una afirmación sin evidencia, que es
+      exactamente lo que este módulo existe para no aceptar.
 - [x] Module 17 — Mission Control side: row in `apps`, an adapter, and entries
       in `licenseControl.js`, `ticketControl.js`, `messaging.js` plus the client
       catalogue mirror. Then PROVE the data path.
@@ -632,14 +637,21 @@ a live query proved it; the dated audit under them says with what evidence.
 - [ ] Module 20 — Session control: client-side idle warning + hard logout
       (`shared/session/`), a per-device Session with the active/passive
       model, and a server-side reap job at 48h.
-      → **DESPLEGADO el 2026-09-09, y el reaper NO CORRE.** Los cuatro
+      → **DESPLEGADO el 2026-09-09, y el reaper SIGUE SIN CORRER.** Los cuatro
       archivos de `shared/session/` byte a byte, entidad `Session`, router
-      `session` y `purge_stale_sessions` están arriba. Pero
-      `purge_stale_sessions` responde **503 a todo** mientras `CRON_SECRET` no
-      exista en los secrets, y además no hay automatización que lo llame. O
-      sea: el aviso de inactividad y el heartbeat sí corren; la cosecha a 48 h
-      no. En una app que guarda CURP y datos de menores, eso es la mitad que
-      importa.
+      `session` y `purge_stale_sessions` están arriba, y `CRON_SECRET` ya está
+      en los secrets de la app. Falta la última pieza y es la que hace el
+      trabajo: **nadie invoca la función.** Algo tiene que llamarla a diario
+      con `Authorization: Bearer <CRON_SECRET>`.
+      Si las automatizaciones de Base44 no admiten cabeceras propias, el reaper
+      no puede autenticarse contra su propia guardia y hace falta un disparador
+      externo. La URL no se puede deducir del repo: Mission Control invoca por
+      el SDK (`client.functions.invoke` en `api/_lib/appBridge.js`), no por URL
+      cruda, así que hay que leerla del panel antes de cablear cualquier
+      workflow — adivinarla es cómo se despliega contra la app equivocada.
+      Mientras tanto: el aviso de inactividad y el heartbeat sí corren; la
+      cosecha a 48 h no. En una app que guarda CURP y datos de menores, esa es
+      la mitad que importa.
 - [x] Module 21 — About screen: user manual, changelog, version line in sync
       with package.json, contact + ACACIA acknowledgment card.
 - [x] Module 22 — Server-authoritative diffing: any backend function that
@@ -659,18 +671,16 @@ corrieron `deploy:entities` (12 entidades, `Session` y `Membership` incluidas),
 `deploy` (18 funciones) y `deploy:site` con `--build`. La corrida 23 del smoke
 contra el sitio servido pasa las cinco afirmaciones.
 
-Lo que sigue SIN CORRER, y es una sola cosa con dos mitades:
+Lo que sigue SIN CORRER, y ya es **una sola cosa**: `CRON_SECRET` se puso en
+los secrets de la app el 2026-09-09, así que lo único que falta es **quién
+llame al reaper**. Algo tiene que invocar `purge_stale_sessions` a diario con
+`Authorization: Bearer <CRON_SECRET>`; hasta entonces la función está
+desplegada, falla cerrado, y no corre nunca.
 
-1. **`CRON_SECRET` no existe en los secrets de la app.** Sin él,
-   `purge_stale_sessions` responde **503 a todo**. Falla en la dirección
-   segura —nunca 200, que es el error que Mission Control cometió al revés con
-   sus cuatro crons abiertos— pero sigue siendo una función desplegada que no
-   corre. Mantiene abiertos los módulos 16 y 20.
-2. **No hay automatización que llame al reaper.** Aunque exista el secreto, algo
-   tiene que invocarlo a diario con `Authorization: Bearer <CRON_SECRET>`. Si
-   las automatizaciones de Base44 no admiten cabeceras, el reaper no puede
-   autenticarse contra su propia guardia y hace falta un disparador externo
-   (un workflow de GitHub Actions con el secreto en los secrets del repo).
+Esa misma invocación es lo que cierra las dos casillas: el módulo 20 porque la
+cosecha a 48 h empieza a pasar, y el módulo 16 porque un 200 en vez de un 503 es
+la prueba de que el secreto vale lo que debe — el módulo no acepta «está
+puesto» sin una llamada que lo demuestre.
 
 Dos decisiones que NO son mías y bloquean cerrar dos módulos del todo:
 
@@ -727,10 +737,12 @@ mismo día**: afirmaba un fallo abierto de licencia que no existe (un `plan`
 ausente resuelve a Plan Gratis en toda la app). Lo que queda ahí es una
 incoherencia de presentación entre el app y el panel.
 
-**Cuenta al 2026-09-09, después del deploy: 19 CORRIENDO, 4 abiertos** — 14
-(auditoría vencida), 16 y 20 (los dos por `CRON_SECRET`, que no existe), y 18
-(el cambio de inquilino corre; el alta cross-parroquia espera una decisión).
-Ninguno de los cuatro está abierto por código sin escribir.
+**Cuenta al 2026-09-09, al cierre del día: 20 CORRIENDO, 3 abiertos** — 16 y 20
+(los dos por la misma causa: nadie invoca el reaper, y esa invocación es a la
+vez lo que lo hace correr y la prueba de que `CRON_SECRET` vale lo que debe) y
+18 (el cambio de inquilino corre; el alta cross-parroquia espera una decisión).
+El módulo 14 se cerró ese mismo día contra el esquema desplegado. Ninguno de los
+tres está abierto por código sin escribir.
 Last multi-tenant isolation audit: **2026-09-09**, contra las 12 entidades del
 esquema desplegado — ver "Resultado — 2026-09-09" bajo el módulo 14. Sin cruce
 entre parroquias; dos hallazgos que no son de aislamiento, uno de ellos un
