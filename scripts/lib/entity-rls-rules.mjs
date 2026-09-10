@@ -195,17 +195,14 @@ export function collectRlsErrors(entitiesDir) {
       JSON.stringify(rls.read) === '{"user_condition":{"role":"admin"}}';
 
     // Entidades cuya lectura va, A PROPÓSITO, por usuario y no por parroquia.
-    // Hoy sólo Membership (módulo 18 del estándar): su razón de ser es dejar
-    // que alguien liste las parroquias en las que NO está activo ahora, para
-    // poder cambiarse. Filtrar su lectura por {{user.data.parish_id}} —lo que
-    // esta función exige a todas las demás— la volvería inútil: sólo se vería
-    // la membresía de la parroquia en la que ya estás.
+    // Hoy la lista está VACÍA: la única que estuvo aquí fue `Membership`, del
+    // módulo 18 (varias parroquias por cuenta), retirado el 2026-09-10.
     //
-    // La excepción NO afloja el aislamiento, lo cambia de eje, y eso se
+    // Una excepción aquí NO afloja el aislamiento, lo cambia de eje, y eso se
     // comprueba abajo: se EXIGE que la lectura vaya contra {{user.id}}. Sin
     // esa comprobación, esta lista sería una puerta para saltarse el check
     // entero poniendo una entidad nueva dentro.
-    const USER_SCOPED_READ = ["Membership"];
+    const USER_SCOPED_READ = [];
     if (hasParishId && rls.read && !adminGated && USER_SCOPED_READ.includes(entity)) {
       const readJson = JSON.stringify(rls.read);
       if (!readJson.includes('"data.user_id":"{{user.id}}"')) {
