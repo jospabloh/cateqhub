@@ -292,7 +292,7 @@ export default function Premium() {
                     </tbody>
                   </table>
                 </div>
-                <p className="text-xs text-muted-foreground">Pago anual disponible con 2 meses gratis. ¿Diócesis con varias parroquias? Precio preferencial — contáctanos.</p>
+                <p className="text-xs text-muted-foreground">Pago anual disponible con 2 meses gratis.</p>
                 <p className="text-xs text-muted-foreground">Todos los tramos Premium incluyen soporte con prioridad hasta <strong>Alta</strong> (respuesta en horas hábiles) — ver Soporte abajo.</p>
               </CardContent>
             </Card>

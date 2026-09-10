@@ -7,10 +7,18 @@
 // (módulo 6 del estándar). Antes eran cuatro ediciones manuales garantizadas
 // por un comentario, y así se perdió la 1.8.0 entera de CHANGELOG.md.
 // tests/unit/release.test.js afirma los invariantes después.
-export const APP_VERSION = "1.10.1";
-export const RELEASE_DATE = "2026-09-09";
+export const APP_VERSION = "1.10.2";
+export const RELEASE_DATE = "2026-09-10";
 
 export const CHANGELOG = [
+  {
+    version: "1.10.2",
+    date: "2026-09-10",
+    changes: [
+      "Se quita la oferta de licenciamiento multi-parroquia para diócesis, de la pantalla de suscripción y del tramo de implementación asistida. Una diócesis puede tener varias parroquias en CateqHub, pero una misma persona no puede pertenecer a dos: assign_parish_user rechaza dar de alta a quien ya está en otra. Mientras eso siga así, el coordinador de una diócesis necesita una cuenta de correo por parroquia, y ofrecer un precio preferencial por algo que no se puede operar es venderlo antes de construirlo.",
+      "El tramo de implementación asistida deja de llamarse «501+ niños activos o diócesis» y pasa a «501 o más niños activos», que es lo único que ese tramo mide de verdad.",
+    ],
+  },
   {
     version: "1.10.1",
     date: "2026-09-09",
