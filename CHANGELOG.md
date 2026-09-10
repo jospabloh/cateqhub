@@ -2,6 +2,11 @@
 
 Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appConfig.js` (consumida por la página "Acerca de" dentro de la app); este archivo es la versión en prosa.
 
+## 1.10.2 — 2026-09-10
+
+- Se quita la oferta de licenciamiento multi-parroquia para diócesis, de la pantalla de suscripción y del tramo de implementación asistida. Una diócesis puede tener varias parroquias en CateqHub, pero una misma persona no puede pertenecer a dos: assign_parish_user rechaza dar de alta a quien ya está en otra. Mientras eso siga así, el coordinador de una diócesis necesita una cuenta de correo por parroquia, y ofrecer un precio preferencial por algo que no se puede operar es venderlo antes de construirlo.
+- El tramo de implementación asistida deja de llamarse «501+ niños activos o diócesis» y pasa a «501 o más niños activos», que es lo único que ese tramo mide de verdad.
+
 ## 1.10.1 — 2026-09-09
 
 - Corrección a la 1.10.0. Esa entrada decía que «mensajería a tutores, tareas de catecismo y diseño de pulseras/gafetes dejan de estar bloqueados». Es falso en tres de los cuatro términos: mensajería, tareas y pulseras no estaban bloqueadas — no existen. No tienen ruta, ni componente, ni entidad que las guarde. Lo único que sí se desbloqueó fue Tutores.

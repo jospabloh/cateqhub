@@ -63,7 +63,7 @@ export const IMPLEMENTATION_TIERS = [
   // Las fronteras sí se movieron a 150/500 el 2026-09-09 para coincidir con la
   // tabla de suscripción.
   { value: "151_350", max: 500, price: 2490, label: "151 a 500 niños activos" },
-  { value: "351_mas", max: Infinity, price: 3990, label: "501+ niños activos o diócesis" },
+  { value: "351_mas", max: Infinity, price: 3990, label: "501 o más niños activos" },
 ];
 
 export function implementationTierFor(activeChildren) {
