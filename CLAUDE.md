@@ -587,7 +587,8 @@ a live query proved it; the dated audit under them says with what evidence.
       404. El spec compartido sigue byte a byte idéntico al canónico.
 - [x] Module 14 — Multi-tenant isolation audit: dated, evidenced, and repeated
       whenever an entity, a function or a role is added.
-      → Rehecha el 2026-09-09 contra las 12 entidades desplegadas. Sin cruce
+      → Rehecha el 2026-09-09 contra las 12 entidades desplegadas (hoy son 11
+      en el repo: `Membership` se retiró el 2026-09-10). Sin cruce
       entre parroquias. DOS hallazgos, ninguno de aislamiento: un administrador
       de parroquia bloqueado en producción por el espejo sin backfill, y la RLS
       desplegada que todavía nombra el plan gratuito. Detalle arriba.
@@ -623,14 +624,14 @@ a live query proved it; the dated audit under them says with what evidence.
 - [x] Module 17 — Mission Control side: row in `apps`, an adapter, and entries
       in `licenseControl.js`, `ticketControl.js`, `messaging.js` plus the client
       catalogue mirror. Then PROVE the data path.
-- [ ] Module 18 — Multi-tenant account switching AND joining, on a first-class
-      `Membership` entity.
-      → **DESPLEGADO el 2026-09-09**, y a medias a propósito. Entidad
-      `Membership` (lectura por {{user.id}}, no por parroquia), función
-      `memberships` (list/switch con backfill perezoso) y selector en la barra
-      lateral: el CAMBIO de inquilino corre. El ALTA cross-parroquia no, y no
-      es un olvido — sigue PENDIENTE DE DECISIÓN (ver abajo). Media casilla no
-      es casilla: se queda en `[ ]` hasta que el alta exista.
+- [ ] Module 18 — Multi-tenant account switching AND joining.
+      → **RETIRADO el 2026-09-10, y esta casilla ya no se va a marcar.** La
+      entidad `Membership`, la función `memberships` y el `ParishSwitcher` se
+      borraron: una cuenta pertenece a una sola parroquia. La mitad que
+      corría (el cambio) se fue con la mitad que nunca existió (el alta
+      cross-parroquia, que este archivo dejaba como decisión pendiente). Ver
+      la sección al final. La decisión de producto que bloqueaba el alta ya no
+      hace falta tomarla.
 - [x] Module 19 — Lock survives debugging: every security-relevant RLS/field
       lock states its rationale AND which operation it governs in its own
       field description.
@@ -1030,3 +1031,46 @@ sesión abierta en un dispositivo prestado no caduca nunca por sí sola.
   producción para auditar tiene su propio costo.
 - **Cualquier pantalla autenticada.** Sin sesión de Base44 en este entorno, igual
   que en las pasadas anteriores.
+
+## Retirado: el selector de parroquia (módulo 18) — 2026-09-10
+
+**Una cuenta pertenece a una sola parroquia.** `User.parish_id` es la
+pertenencia, y toda la RLS de las 10 entidades con inquilino compara contra
+`{{user.data.parish_id}}`. La entidad `Membership`, la función `memberships`
+(`list`/`switch`) y `src/components/ParishSwitcher.jsx` se borraron.
+
+Este módulo llevaba desde el 2026-09-09 **a medias a propósito**: el cambio de
+parroquia corría, el alta cross-parroquia no, y este archivo la dejaba anotada
+como una decisión de producto con consecuencia de seguridad —si un alta ajena
+debía MOVER el puntero activo o sólo añadir la membresía—. **Esa decisión ya no
+hay que tomarla.** `assign_parish_user` sigue rechazando dar de alta a quien ya
+pertenece a otra parroquia, que es exactamente lo correcto ahora: sin selector,
+mover el puntero dejaría la parroquia anterior inalcanzable.
+
+Lo que cambió alrededor:
+
+- `create_parish` y `assign_parish_user` pierden `upsertMembership` /
+  `deactivateMembership`. Escribir el `User` (o dejarlo en `DETACHED`) vuelve a
+  ser toda la operación: no hay segunda fila que pueda quedar desincronizada.
+- `scripts/lib/entity-rls-rules.mjs`: `USER_SCOPED_READ` queda **vacía**.
+  `Membership` era su única entrada. La comprobación que exige `{{user.id}}` a
+  cualquier cosa que se meta ahí se queda tal cual — es lo que impide que esa
+  lista se use para saltarse el check por parroquia.
+- `validate:rls` pasa de 12 a **11 entidades, 10 con inquilino**.
+
+### Pendiente a mano: borrar `Membership` del esquema desplegado
+
+Sólo `npm run deploy:entities` la borra, y **va a fallar tal cual está**: al
+2026-09-10 hay **1 fila viva** (`6aa1ae5aeaca45cfe078d5ac`,
+`h.josepablo@gmail.com` en "Parroquia San Testing"). Base44 rechaza borrar una
+entidad con registros y el push es **todo-o-nada** — el mismo fallo dejó a
+rumbo sin desplegar ninguna de sus 27 entidades. Borra la fila primero.
+
+Mientras siga desplegada no hace daño: no queda un lector ni un escritor en el
+repo.
+
+**Verificado:** `npm run lint` (eslint + `validate:functions` 17/40),
+`npm run validate:rls` (11 entidades, 10 con inquilino), `npm run test:unit`
+(45/45) y `npm run build` — todos limpios. `deno check` sobre
+`assign_parish_user` y `create_parish`: **15 errores preexistentes → 5**,
+ninguno nuevo. **No verificado:** el deploy ni una sesión de navegador.

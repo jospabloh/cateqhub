@@ -5,34 +5,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 // duplica a propósito. Súbelo en el mismo commit que el de src/lib/legal.js.
 const DATA_PROCESSING_TERMS_VERSION = '2026-07-27';
 
-// Módulo 18: Membership registra TODAS las parroquias a las que pertenece una
-// cuenta; User.parish_id sigue siendo la única en la que está actuando ahora.
-// Los dos se escriben juntos, aquí, porque una fila que no se mantiene es peor
-// que no tener la entidad: el selector ofrecería parroquias de las que ya
-// salió.
-async function upsertMembership(sr, user, parish, parish_role: string) {
-  const rows = await sr.entities.Membership.filter({ user_id: user.id }).catch(() => []);
-  const existing = (rows || []).find((m) => m.parish_id === parish.id);
-  const patch = {
-    email: user.email || '',
-    parish_name: parish.name || '',
-    parish_role,
-    active: true,
-  };
-  if (existing) return sr.entities.Membership.update(existing.id, patch);
-  return sr.entities.Membership.create({ user_id: user.id, parish_id: parish.id, ...patch });
-}
-
-// Salir o ser removido NO borra la fila: se marca inactiva. Saber que alguien
-// estuvo sirve para reincorporarlo, y un borrado real perdería ese rastro.
-async function deactivateMembership(sr, userId: string, parishId: string) {
-  const rows = await sr.entities.Membership.filter({ user_id: userId }).catch(() => []);
-  for (const m of rows || []) {
-    if (m.parish_id === parishId && m.active !== false) {
-      await sr.entities.Membership.update(m.id, { active: false }).catch(() => {});
-    }
-  }
-}
 
 Deno.serve(async (req) => {
   try {
@@ -105,7 +77,6 @@ Deno.serve(async (req) => {
       parish_license_status: 'active',
       parish_support_priority_addon: false,
     });
-    await upsertMembership(sr, me, parish, 'admin');
 
     return Response.json({ parish });
   } catch (error) {
