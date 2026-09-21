@@ -7,10 +7,17 @@
 // (módulo 6 del estándar). Antes eran cuatro ediciones manuales garantizadas
 // por un comentario, y así se perdió la 1.8.0 entera de CHANGELOG.md.
 // tests/unit/release.test.js afirma los invariantes después.
-export const APP_VERSION = "1.10.2";
-export const RELEASE_DATE = "2026-09-10";
+export const APP_VERSION = "1.10.3";
+export const RELEASE_DATE = "2026-09-21";
 
 export const CHANGELOG = [
+  {
+    version: "1.10.3",
+    date: "2026-09-21",
+    changes: [
+      "Auditoría rutinaria: dependencia vulnerable corregida. `npm audit` reportó `js-yaml` (alta, GHSA-2883-xcg3-v3hh: `maxTotalMergeKeys` no limita el uso de CPU con fuentes de merge vacías) — es dependencia transitiva de ESLint (herramienta de desarrollo, no llega al bundle ni al servidor), corregida sin cambios de comportamiento vía `npm audit fix` (4.3.1 → 4.3.2). `react-router`/`react-router-dom` (moderada, redirección abierta) sigue como riesgo aceptado sin cambio — la corrección real requiere la migración mayor 6→7, fuera de alcance de una rutina automatizada, como en cada auditoría desde la 1.9.3. Se corrió el conjunto completo de verificaciones: `npm run lint` (incl. `validate:functions`, 17/40 endpoints), `npm run validate:rls` (11 entidades, 10 con alcance de parroquia, limpio), `npm run test:unit` (45/45), `npm run build` + `verify-build`, y `e2e/smoke.spec.js` (8/8, corrido localmente contra el preview build). Sin cambios de esquema ni de función desde la pasada del módulo 14 del 2026-09-10 (`git log --since=2026-09-10 -- base44/` vacío), así que ese módulo no vence todavía por su propio disparador (entidad/función/rol nuevos). Revisión de secretos: ningún `.env*\\' comiteado, sin secretos embebidos. Revisión de PII en logs: `console.error` de `export_parish_data` sólo registra el nombre de la entidad y el mensaje de error, no datos. No verificado en esta pasada (mismo criterio de honestidad de siempre): esquema RLS **desplegado** vs. el del repo (sin MCP de Base44 en este entorno — el chequeo estático de `validate:rls` sí corrió), `npm run test:smoke` contra el sitio servido (el proxy de salida no alcanza esos dominios), y cualquier pantalla autenticada (sin sesión Base44 real). El reaper de sesiones a 48h (módulo 20) y su prueba de `CRON_SECRET` (módulo 16) siguen sin quien los invoque — pendiente de leer la URL de la función en el panel de Base44, que este entorno no tiene; no es un hallazgo nuevo, sigue igual que el 2026-09-09.",
+    ],
+  },
   {
     version: "1.10.2",
     date: "2026-09-10",
