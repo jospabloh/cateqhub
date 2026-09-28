@@ -7,10 +7,17 @@
 // (módulo 6 del estándar). Antes eran cuatro ediciones manuales garantizadas
 // por un comentario, y así se perdió la 1.8.0 entera de CHANGELOG.md.
 // tests/unit/release.test.js afirma los invariantes después.
-export const APP_VERSION = "1.10.3";
-export const RELEASE_DATE = "2026-09-21";
+export const APP_VERSION = "1.10.4";
+export const RELEASE_DATE = "2026-09-28";
 
 export const CHANGELOG = [
+  {
+    version: "1.10.4",
+    date: "2026-09-28",
+    changes: [
+      "Auditoría rutinaria: sin hallazgos nuevos. npm audit — 0 críticas/altas/bajas; 2 moderadas, ambas react-router/react-router-dom, ya documentado como riesgo aceptado desde 1.9.3 (requiere migración mayor 6→7, fuera de alcance de una rutina automatizada). Verificaciones corridas y limpias: npm run lint (ESLint + validate:functions, 17/40 endpoints), npm run validate:rls (11 entidades, 10 con alcance de parroquia), npm run test:unit (45/45), npm run build + verify-build, e2e/smoke.spec.js vía Playwright (8/8, corrido localmente contra el preview build). Sin cambios de esquema ni de función desde la pasada del módulo 14 del 2026-09-10 (git log --since=2026-09-10 -- base44/ vacío salvo esta propia rutina), así que ese módulo no vence todavía por su propio disparador. Revisión de secretos: ningún .env* comiteado, sin secretos embebidos. Revisión de PII en logs: sin cambios frente a la pasada anterior. No verificado en esta pasada, mismo motivo que siempre: esquema RLS desplegado vs. el del repo (sin MCP de Base44 en este entorno), npm run test:smoke contra el sitio servido (el proxy de salida no alcanza esos dominios), y cualquier pantalla autenticada (sin sesión Base44 real). El reaper de sesiones a 48h (módulo 20) y su prueba de fallo-cerrado de CRON_SECRET (módulo 16) siguen sin quien los invoque, pendiente de leer la URL de la función en el panel de Base44 — no es un hallazgo nuevo, sigue igual que el 2026-09-09.",
+    ],
+  },
   {
     version: "1.10.3",
     date: "2026-09-21",
