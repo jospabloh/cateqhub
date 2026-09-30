@@ -1,4 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import {
+  checkRequestDecision,
+  generateJoinCode,
+  normalizeJoinCode,
+  resolveApprovalRole,
+} from './joinRequests.ts';
 
 // DEFAULTS/computeFlags deben reflejar exactamente
 // sync_catequist_permissions/entry.ts (que a su vez refleja
@@ -71,6 +77,73 @@ async function wouldLeaveNoAdmin(sr: ServiceRole, parish_id: string, targetId: s
   return (admins || []).filter((u) => u.id !== targetId).length === 0;
 }
 
+type Sr = ReturnType<typeof createClientFromRequest>['asServiceRole'];
+
+// Lo que se escribe en un User al meterlo a una parroquia: parish_id/parish_role
+// más el espejo de licencia y las banderas de permisos. Lo comparten los DOS
+// caminos que dan acceso —el alta directa del administrador y la aprobación de
+// una solicitud— porque son la misma escritura; dos copias se separan.
+//
+// Espejar plan/license_status vigentes de la parroquia — Guardian/ChildGuardian
+// RLS los lee de aquí (Base44 RLS no puede hacer lookup a Parish). Falla
+// cerrado a propósito: el llamante ya leyó la parroquia y aborta si no pudo, en
+// vez de asumir los valores más permisivos.
+async function membershipPatch(
+  sr: Sr,
+  parish: { id: string; plan?: string; license_status?: string; support_priority_addon?: boolean },
+  parish_role: string,
+  group_id: string | undefined,
+) {
+  let permFlags = {};
+  if (parish_role === 'catequist') {
+    const profiles = await sr.entities.PermissionProfile.filter({ parish_id: parish.id, role_key: 'catequist' });
+    const effective = { ...DEFAULTS, ...(profiles?.[0]?.permissions || {}) };
+    permFlags = computeFlags(effective);
+  }
+  return {
+    parish_id: parish.id,
+    group_id,
+    parish_role,
+    parish_plan: parish.plan ?? 'free',
+    parish_license_status: parish.license_status ?? 'active',
+    parish_support_priority_addon: parish.support_priority_addon ?? false,
+    ...permFlags,
+  };
+}
+
+// Cierra las solicitudes pendientes de alguien que acaba de entrar a una
+// parroquia por otro camino (alta directa del administrador): las de ESA
+// parroquia quedan aprobadas —ya tiene acceso, y el administrador lo decidió—
+// y las de otra se cancelan, porque una cuenta sólo pertenece a una. Best
+// effort: el acceso ya se otorgó y una solicitud colgada no lo revierte.
+async function settlePendingRequests(sr: Sr, userId: string, parishId: string, decidedBy: string, role: string) {
+  try {
+    const pending = await sr.entities.JoinRequest.filter({ user_id: userId, status: 'pending' });
+    for (const r of pending || []) {
+      const same = r.parish_id === parishId;
+      await sr.entities.JoinRequest.update(r.id, same
+        ? { status: 'approved', decided_by: decidedBy, decided_at: new Date().toISOString(), parish_role_assigned: role }
+        : { status: 'cancelled', decided_by: decidedBy, decided_at: new Date().toISOString() });
+    }
+  } catch (e) {
+    console.error('settlePendingRequests failed', e);
+  }
+}
+
+const randomBytes = (n: number) => crypto.getRandomValues(new Uint8Array(n));
+
+const safeRequest = (r: Record<string, unknown>) => ({
+  id: r.id,
+  parish_id: r.parish_id,
+  parish_name: r.parish_name,
+  user_id: r.user_id,
+  user_email: r.user_email,
+  user_name: r.user_name,
+  status: r.status,
+  reject_reason: r.reject_reason,
+  created_date: r.created_date,
+});
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -124,9 +197,164 @@ Deno.serve(async (req) => {
       return Response.json({ left: true });
     }
 
+    // ── Unirse con código: una SOLICITUD, no acceso ──────────────────────────
+    //
+    // El código de la parroquia sólo abre una solicitud PENDIENTE. Mientras
+    // esté pendiente la persona no tiene parish_id, así que la RLS (que compara
+    // contra él) no le enseña ningún dato. El acceso se otorga únicamente en
+    // `approve_request`, con un administrador de esa parroquia eligiendo el rol.
+    // Por eso estas tres acciones van antes del gate de administración —quien
+    // las usa todavía no es de ninguna parroquia— y NINGUNA escribe el User.
+    if (body.action === 'join') {
+      if (me.parish_id) {
+        return Response.json({ error: 'Ya perteneces a una parroquia', code: 'already_in_parish' }, { status: 409 });
+      }
+      const code = normalizeJoinCode(body.code);
+      if (!code) {
+        return Response.json({ error: 'Escribe el código completo (8 caracteres, por ejemplo ABCD-EFGH)', code: 'invalid_code' }, { status: 400 });
+      }
+      const sr = base44.asServiceRole;
+      const parish = (await sr.entities.Parish.filter({ join_code: code }))?.[0];
+      // Inexistente, mal escrito o de una parroquia dada de baja: mismo mensaje,
+      // para que el endpoint no confirme qué códigos existen.
+      if (!parish || parish.active === false) {
+        return Response.json({ error: 'Código no válido. Pídele a tu administrador que te lo confirme.', code: 'invalid_code' }, { status: 404 });
+      }
+      const pending = (await sr.entities.JoinRequest.filter({ user_id: me.id, status: 'pending' }))?.[0];
+      if (pending) {
+        if (pending.parish_id === parish.id) {
+          return Response.json({ request: safeRequest(pending), existing: true });
+        }
+        return Response.json({
+          error: 'Ya tienes una solicitud pendiente en otra parroquia. Cancélala antes de pedir acceso a esta.',
+          code: 'pending_elsewhere',
+        }, { status: 409 });
+      }
+      // NOTE: the pending-request check above and this create are not atomic.
+      // Base44 has no unique constraint to enforce "one pending request per
+      // user", so two simultaneous `join` calls can both pass the check and
+      // create two pending rows. Accepted: approving either one moves the user
+      // in, and approve_request cancels the rest (see the requester's other
+      // pending requests). Do not try to fix it with more reads; it needs a
+      // platform-level constraint.
+      const created = await sr.entities.JoinRequest.create({
+        parish_id: parish.id,
+        parish_name: parish.name || '',
+        user_id: me.id,
+        user_email: (me.email || '').toLowerCase(),
+        user_name: me.full_name || '',
+        status: 'pending',
+      });
+      return Response.json({ request: safeRequest(created) });
+    }
+
+    // La pantalla "Solicitud enviada, esperando aprobación" lee esto, no un
+    // estado local de React: así sobrevive a recargar y a cambiar de dispositivo.
+    if (body.action === 'join_status') {
+      if (me.parish_id) return Response.json({ joined: true });
+      const latest = (await base44.asServiceRole.entities.JoinRequest.filter({ user_id: me.id }, '-created_date', 1))?.[0];
+      return Response.json({ joined: false, request: latest ? safeRequest(latest) : null });
+    }
+
+    if (body.action === 'cancel_join_request') {
+      const sr = base44.asServiceRole;
+      const pending = (await sr.entities.JoinRequest.filter({ user_id: me.id, status: 'pending' }))?.[0];
+      if (!pending) return Response.json({ cancelled: false });
+      await sr.entities.JoinRequest.update(pending.id, { status: 'cancelled', decided_at: new Date().toISOString() });
+      return Response.json({ cancelled: true });
+    }
+
     const canManage = me.parish_role === 'admin' || isPlatformAdmin;
     if (!canManage) {
       return Response.json({ error: 'Solo un administrador de parroquia puede asignar usuarios' }, { status: 403 });
+    }
+
+    // ── Solicitudes y código de la parroquia (sólo administradores) ─────────
+    //
+    // La parroquia sale de la cuenta ALMACENADA del administrador; el cuerpo
+    // sólo puede nombrar otra si quien llama es admin de plataforma.
+    if (body.action === 'join_code' || body.action === 'list_join_requests'
+        || body.action === 'approve_request' || body.action === 'reject_request') {
+      const sr = base44.asServiceRole;
+
+      if (body.action === 'join_code') {
+        const pid = isPlatformAdmin && body.parish_id ? body.parish_id : me.parish_id;
+        if (!pid) return Response.json({ error: 'No tienes parroquia asignada' }, { status: 400 });
+        const parish = await sr.entities.Parish.get(pid).catch(() => null);
+        if (!parish) return Response.json({ error: 'No se pudo leer la parroquia, intenta de nuevo' }, { status: 500 });
+        if (parish.join_code && body.regenerate !== true) return Response.json({ join_code: parish.join_code });
+        // Único entre parroquias: si choca (improbable con 31^8), se reintenta.
+        let code = '';
+        for (let i = 0; i < 5 && !code; i++) {
+          const candidate = generateJoinCode(randomBytes);
+          const clash = await sr.entities.Parish.filter({ join_code: candidate });
+          if (!clash?.length) code = candidate;
+        }
+        if (!code) return Response.json({ error: 'No se pudo generar el código, intenta de nuevo' }, { status: 500 });
+        await sr.entities.Parish.update(pid, { join_code: code });
+        return Response.json({ join_code: code, regenerated: !!parish.join_code });
+      }
+
+      if (body.action === 'list_join_requests') {
+        const pid = isPlatformAdmin && body.parish_id ? body.parish_id : me.parish_id;
+        if (!pid) return Response.json({ error: 'No tienes parroquia asignada' }, { status: 400 });
+        const pending = await sr.entities.JoinRequest.filter({ parish_id: pid, status: 'pending' });
+        return Response.json({ requests: (pending || []).map(safeRequest) });
+      }
+
+      // approve_request / reject_request: se relee la solicitud GUARDADA y se
+      // valida contra la parroquia del administrador; nada del cuerpo decide a
+      // quién ni a qué parroquia.
+      const request = (await sr.entities.JoinRequest.filter({ id: String(body.request_id || '') }))?.[0];
+      const gate = checkRequestDecision(request, { parishId: me.parish_id, isPlatformAdmin });
+      if (!gate.ok) return Response.json({ error: gate.error, code: gate.code }, { status: gate.status });
+      const decidedAt = new Date().toISOString();
+
+      if (body.action === 'reject_request') {
+        const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 300) : '';
+        await sr.entities.JoinRequest.update(request.id, {
+          status: 'rejected', decided_by: me.email, decided_at: decidedAt, reject_reason: reason,
+        });
+        return Response.json({ rejected: true });
+      }
+
+      // approve_request. El rol lo ELIGE el administrador, de la lista blanca.
+      const role = resolveApprovalRole(body.parish_role);
+      if (!role) {
+        return Response.json({ error: 'Elige el rol del usuario: administrador o catequista', code: 'invalid_role' }, { status: 400 });
+      }
+      const applicant = (await sr.entities.User.filter({ id: request.user_id }))?.[0];
+      if (!applicant) return Response.json({ error: 'La cuenta que pidió acceso ya no existe' }, { status: 404 });
+      // Una cuenta sólo pertenece a una parroquia. Si entre la solicitud y la
+      // aprobación ya entró a otra (o creó la suya), no se mueve: la solicitud
+      // se cierra y se le dice al administrador.
+      if (applicant.parish_id) {
+        await sr.entities.JoinRequest.update(request.id, { status: 'cancelled', decided_by: me.email, decided_at: decidedAt });
+        return Response.json({
+          error: applicant.parish_id === request.parish_id
+            ? 'Esta persona ya pertenece a tu parroquia'
+            : 'Esta persona ya pertenece a otra parroquia, así que la solicitud se cerró',
+          code: 'already_in_parish',
+        }, { status: 409 });
+      }
+      const parish = await sr.entities.Parish.get(request.parish_id).catch(() => null);
+      if (!parish) return Response.json({ error: 'No se pudo leer la parroquia para aprobar, intenta de nuevo' }, { status: 500 });
+      let groupId: string | undefined;
+      if (role === 'catequist' && body.group_id) {
+        const group = await sr.entities.Group.get(String(body.group_id)).catch(() => null);
+        if (!group || group.parish_id !== parish.id) {
+          return Response.json({ error: 'Ese grupo/libro no pertenece a tu parroquia' }, { status: 400 });
+        }
+        groupId = group.id;
+      }
+      // El acceso se otorga PRIMERO; si cerrar la solicitud falla después, el
+      // usuario ya está dentro y una pendiente colgada no lo revierte
+      // (settlePendingRequests la cierra en el siguiente alta o edición).
+      await sr.entities.User.update(applicant.id, await membershipPatch(sr, parish, role, groupId));
+      await sr.entities.JoinRequest.update(request.id, {
+        status: 'approved', decided_by: me.email, decided_at: decidedAt, parish_role_assigned: role,
+      }).catch((e: unknown) => console.error('approve: no se pudo cerrar la solicitud', e));
+      return Response.json({ approved: true, user: { id: applicant.id, email: applicant.email, parish_role: role, group_id: groupId } });
     }
 
     const email = (body.email || '').trim().toLowerCase();
@@ -275,22 +503,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No se pudo leer la parroquia para asignar el usuario, intenta de nuevo' }, { status: 500 });
     }
 
-    let permFlags = {};
-    if (parish_role === 'catequist') {
-      const profiles = await sr.entities.PermissionProfile.filter({ parish_id, role_key: 'catequist' });
-      const effective = { ...DEFAULTS, ...(profiles?.[0]?.permissions || {}) };
-      permFlags = computeFlags(effective);
-    }
-
-    await sr.entities.User.update(target.id, {
-      parish_id,
-      group_id,
-      parish_role,
-      parish_plan: targetParish.plan ?? 'free',
-      parish_license_status: targetParish.license_status ?? 'active',
-      parish_support_priority_addon: targetParish.support_priority_addon ?? false,
-      ...permFlags,
-    });
+    await sr.entities.User.update(target.id, await membershipPatch(sr, targetParish, parish_role, group_id));
+    // El alta del administrador es pre-aprobada: si esta persona tenía una
+    // solicitud pendiente, queda resuelta.
+    await settlePendingRequests(sr, target.id, parish_id, me.email, parish_role);
 
     return Response.json({
       found: true,

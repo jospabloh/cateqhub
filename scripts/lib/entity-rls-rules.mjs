@@ -33,6 +33,7 @@ const BUILTIN_ENTITY_FIELDS = new Set([
 ]);
 const BUILTIN_USER_VARS = new Set(["id", "email", "role"]);
 const LOGICAL_OPERATORS = new Set(["$or", "$and", "$nor", "$not"]);
+const SERVICE_ONLY_ENTITIES = ["JoinRequest"];
 
 /** Strip // and block comments so JSONC parses as JSON. */
 export function parseJsonc(text) {
@@ -178,6 +179,23 @@ export function collectRlsErrors(entitiesDir) {
     }
     const rls = schema.rls;
     if (!rls) continue;
+
+    // Entidades que sólo tocan funciones de servicio. JoinRequest guarda las
+    // solicitudes de unirse a una parroquia: si alguna operación admitiera algo
+    // más que el rol de servicio, un usuario podría crearse una solicitud ya
+    // "approved" o leer las de otra parroquia. Se exige EXACTAMENTE la regla
+    // solo-admin en las cuatro operaciones.
+    if (SERVICE_ONLY_ENTITIES.includes(entity)) {
+      for (const op of ["create", "read", "update", "delete"]) {
+        if (JSON.stringify(rls[op]) !== '{"user_condition":{"role":"admin"}}') {
+          errors.push(
+            `${entity} [${op}]: debe ser exactamente {"user_condition":{"role":"admin"}} ` +
+              `(sólo funciones de servicio); las solicitudes de acceso no se leen ni se ` +
+              `escriben desde el cliente.`,
+          );
+        }
+      }
+    }
 
     for (const op of ["create", "read", "update", "delete"]) {
       if (!(op in rls)) continue;
