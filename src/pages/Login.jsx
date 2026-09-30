@@ -7,22 +7,31 @@ import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import VerifyEmailStep from "@/components/VerifyEmailStep";
+import { needsEmailVerification } from "@/lib/authErrors";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      await base44.auth.loginViaEmailPassword(email, password);
+      await base44.auth.loginViaEmailPassword(email.trim(), password);
       window.location.href = "/";
     } catch (err) {
-      setError(err.message || "Correo o contraseña inválidos");
+      // Cuenta creada pero nunca verificada: no es una contraseña mala. Se abre
+      // el paso del código (con reenvío) en vez del error crudo en inglés.
+      if (needsEmailVerification(err)) {
+        setVerifying(true);
+      } else {
+        setError(err.message || "Correo o contraseña inválidos");
+      }
     } finally {
       setLoading(false);
     }
@@ -31,6 +40,14 @@ export default function Login() {
   const handleGoogle = () => {
     base44.auth.loginWithProvider("google", "/");
   };
+
+  if (verifying) {
+    return (
+      <AuthLayout icon={Mail} title="Verifica tu correo" subtitle="Tu cuenta aún no está activada">
+        <VerifyEmailStep email={email.trim()} password={password} onCancel={() => setVerifying(false)} />
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout

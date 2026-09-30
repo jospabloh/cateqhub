@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { UserCog, Plus, Send, UserCheck, UserX } from "lucide-react";
+import { UserCog, Plus, Send, UserCheck, UserX, KeyRound, Copy, RefreshCw, Inbox } from "lucide-react";
 
 export default function Users() {
   const { user } = useAuth();
@@ -29,6 +29,13 @@ export default function Users() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [removing, setRemoving] = useState(null);
+  const [joinCode, setJoinCode] = useState("");
+  const [requests, setRequests] = useState([]);
+  // Rol/grupo elegidos por solicitud (id -> {role, group_id}). Sin valor por
+  // defecto de rol "invisible": el select arranca en catequista pero es visible
+  // y el administrador lo confirma al pulsar Aprobar.
+  const [decisions, setDecisions] = useState({});
+  const [deciding, setDeciding] = useState(null);
 
   const load = async () => {
     if (!user?.parish_id) return;
@@ -48,6 +55,64 @@ export default function Users() {
     }
   };
   useEffect(() => { load(); }, [user]);
+
+  // Código de la parroquia y solicitudes de acceso pendientes. Van por la
+  // función (rol de servicio, acotada a la parroquia del administrador): la
+  // entidad JoinRequest no se lee desde el cliente.
+  const loadJoin = async () => {
+    if (!user?.parish_id) return;
+    try {
+      const [c, r] = await Promise.all([
+        base44.functions.invoke("assign_parish_user", { action: "join_code" }),
+        base44.functions.invoke("assign_parish_user", { action: "list_join_requests" }),
+      ]);
+      setJoinCode(c.data?.join_code || "");
+      setRequests(r.data?.requests || []);
+    } catch (e) {
+      toast({ title: "No se pudieron cargar las solicitudes", description: e?.response?.data?.error || e.message, variant: "destructive" });
+    }
+  };
+  useEffect(() => { loadJoin(); }, [user?.parish_id]);
+
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(joinCode);
+      toast({ title: "Código copiado", description: joinCode });
+    } catch {
+      toast({ title: "No se pudo copiar", description: "Selecciónalo y cópialo a mano.", variant: "destructive" });
+    }
+  };
+
+  const regenerateCode = async () => {
+    if (!window.confirm("¿Generar un código nuevo? El anterior dejará de funcionar. Las solicitudes ya enviadas no se pierden.")) return;
+    try {
+      const res = await base44.functions.invoke("assign_parish_user", { action: "join_code", regenerate: true });
+      setJoinCode(res.data?.join_code || "");
+      toast({ title: "Código nuevo generado" });
+    } catch (e) {
+      toast({ title: "No se pudo generar el código", description: e?.response?.data?.error || e.message, variant: "destructive" });
+    }
+  };
+
+  const decisionOf = (id) => decisions[id] || { role: "catequist", group_id: "" };
+  const setDecision = (id, patch) => setDecisions((d) => ({ ...d, [id]: { ...decisionOf(id), ...patch } }));
+
+  const decide = async (req, approve) => {
+    const d = decisionOf(req.id);
+    setDeciding(req.id);
+    try {
+      await base44.functions.invoke("assign_parish_user", approve
+        ? { action: "approve_request", request_id: req.id, parish_role: d.role, group_id: d.role === "catequist" ? d.group_id : "" }
+        : { action: "reject_request", request_id: req.id });
+      toast({ title: approve ? "Solicitud aprobada" : "Solicitud rechazada", description: req.user_email });
+      await Promise.all([loadJoin(), approve ? load() : Promise.resolve()]);
+    } catch (e) {
+      toast({ title: approve ? "No se pudo aprobar" : "No se pudo rechazar", description: e?.response?.data?.error || e.message, variant: "destructive" });
+      loadJoin();
+    } finally {
+      setDeciding(null);
+    }
+  };
 
   const assignToParish = async (email, groupId, parishRole) => {
     const res = await base44.functions.invoke("assign_parish_user", {
@@ -158,6 +223,63 @@ export default function Users() {
           <Button variant="outline" onClick={() => setAssignOpen(true)}><UserCheck className="w-4 h-4 mr-2" />Asignar</Button>
         </div>
       </div>
+
+      <Card>
+        <CardContent className="pt-5 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="font-medium flex items-center gap-2"><KeyRound className="w-4 h-4 text-gold" />Código para unirse</p>
+              <p className="text-xs text-muted-foreground">Compártelo con quien deba entrar. El código sólo abre una solicitud: tú la apruebas y eliges su rol.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="rounded-md border border-border bg-muted px-3 py-1.5 font-mono tracking-widest text-sm">{joinCode || "…"}</code>
+              <Button size="sm" variant="outline" onClick={copyCode} disabled={!joinCode}><Copy className="w-4 h-4 mr-1" />Copiar</Button>
+              <Button size="sm" variant="ghost" onClick={regenerateCode} disabled={!joinCode} title="Generar un código nuevo"><RefreshCw className="w-4 h-4" /></Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {requests.length > 0 && (
+        <Card className="border-gold/40">
+          <CardContent className="pt-5 space-y-3">
+            <p className="font-medium flex items-center gap-2"><Inbox className="w-4 h-4 text-gold" />Solicitudes de acceso ({requests.length})</p>
+            {requests.map((r) => {
+              const d = decisionOf(r.id);
+              return (
+                <div key={r.id} className="rounded-md border border-border p-3 space-y-2">
+                  <div>
+                    <p className="font-medium text-sm">{r.user_name || r.user_email}</p>
+                    {r.user_name && <p className="text-xs text-muted-foreground">{r.user_email}</p>}
+                  </div>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Rol al aprobar</Label>
+                      <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" value={d.role} onChange={(e) => setDecision(r.id, { role: e.target.value })}>
+                        <option value="catequist">Catequista</option>
+                        <option value="admin">Administrador de parroquia</option>
+                      </select>
+                    </div>
+                    {d.role === "catequist" && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Grupo/Libro</Label>
+                        <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" value={d.group_id} onChange={(e) => setDecision(r.id, { group_id: e.target.value })}>
+                          <option value="">Sin grupo/libro</option>
+                          {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    <div className="flex gap-2 ml-auto">
+                      <Button size="sm" onClick={() => decide(r, true)} disabled={deciding === r.id}>Aprobar</Button>
+                      <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => decide(r, false)} disabled={deciding === r.id}>Rechazar</Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {initialLoading ? (
         <div className="grid gap-3">
