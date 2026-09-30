@@ -5,8 +5,7 @@
     "parish_id": {
       "type": "string",
       "title": "Parroquia a la que pide unirse",
-      "description": "Parroquia dueña del código que usó la persona. NO da acceso por sí sola: el acceso (User.parish_id/parish_role) sólo lo escribe assign_parish_user al APROBAR, con un administrador de esa parroquia eligiendo el rol. Lo fija la función `join` desde el código, nunca el cliente.",
-      "x-ref": "Parish"
+      "description": "Parroquia dueña del código que usó la persona. NO da acceso por sí sola: el acceso (User.parish_id/parish_role) sólo lo escribe assign_parish_user al APROBAR, con un administrador de esa parroquia eligiendo el rol. Lo fija la función `join` desde el código, nunca el cliente."
     },
     "parish_name": { "type": "string", "title": "Nombre de la parroquia (copia)" },
     "user_id": {
