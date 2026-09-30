@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAuth } from "@/lib/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +16,6 @@ import { useToast } from "@/components/ui/use-toast";
 // lee del servidor (join_status) y no de un estado local: sobrevive a recargar,
 // a cerrar la pestaña y a cambiar de dispositivo.
 export default function JoinParish() {
-  const { checkUserAuth } = useAuth();
   const { toast } = useToast();
   const [code, setCode] = useState("");
   const [request, setRequest] = useState(null);
@@ -29,10 +27,18 @@ export default function JoinParish() {
     try {
       const res = await base44.functions.invoke("assign_parish_user", { action: "join_status" });
       if (res.data?.joined) {
-        // Aprobada mientras estaba aquí: se vuelve a leer la cuenta y el
-        // Dashboard pasa solo a la parroquia.
-        await checkUserAuth();
-        return;
+        // Aprobada mientras estaba aquí. checkUserAuth()/auth.me() puede
+        // devolver una vista vieja del usuario (sin parish_id todavía), así que
+        // no basta con volver a leerla: se recarga la app completa para que la
+        // sesión relea el registro guardado y el Dashboard pase a la parroquia.
+        // Una sola vez por sesión: si el registro aún no refleja la aprobación,
+        // no se entra en un bucle de recargas.
+        let already = false;
+        try { already = sessionStorage.getItem("cq-join-reloaded") === "1"; sessionStorage.setItem("cq-join-reloaded", "1"); } catch { /* sin storage: se recarga igual una vez por montaje */ }
+        if (!already) {
+          window.location.assign("/");
+          return;
+        }
       }
       setRequest(res.data?.request || null);
     } catch {
@@ -40,7 +46,7 @@ export default function JoinParish() {
     } finally {
       setLoading(false);
     }
-  }, [checkUserAuth]);
+  }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
 

@@ -230,6 +230,13 @@ Deno.serve(async (req) => {
           code: 'pending_elsewhere',
         }, { status: 409 });
       }
+      // NOTE: the pending-request check above and this create are not atomic.
+      // Base44 has no unique constraint to enforce "one pending request per
+      // user", so two simultaneous `join` calls can both pass the check and
+      // create two pending rows. Accepted: approving either one moves the user
+      // in, and approve_request cancels the rest (see the requester's other
+      // pending requests). Do not try to fix it with more reads; it needs a
+      // platform-level constraint.
       const created = await sr.entities.JoinRequest.create({
         parish_id: parish.id,
         parish_name: parish.name || '',

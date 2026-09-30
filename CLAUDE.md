@@ -1186,3 +1186,16 @@ Ahora:
 3. `npm run deploy:site` (con `--build`).
 4. Probar con dos cuentas: registrarse y verificar código; pedir acceso; aprobar
    como administrador eligiendo rol; confirmar que la pendiente no ve datos.
+
+### Seguimiento de la revisión de Codex (2026-09-30)
+
+`JoinParish.jsx`: cuando `join_status` dice `joined`, `checkUserAuth()`/`auth.me()`
+puede devolver una vista vieja del usuario, así que ahora se recarga la app completa
+(`window.location.assign("/")`) para que la sesión relea el registro guardado; se
+hace una sola vez por sesión (`sessionStorage`) para no entrar en un bucle si el
+registro aún no refleja la aprobación. En `assign_parish_user` la creación de la
+solicitud pendiente queda documentada como no atómica: Base44 no tiene restricción
+única, dos `join` simultáneos pueden crear dos filas pendientes y es aceptado
+(aprobar una cancela las demás); sin cambio de código. Verificado: `lint`, `build`,
+`validate:rls` (12/10), `test:unit` (62) y `deno test` del puente (10). No verificado
+en navegador ni contra Base44.
