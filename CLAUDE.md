@@ -1199,3 +1199,31 @@ solicitud pendiente queda documentada como no atómica: Base44 no tiene restricc
 (aprobar una cancela las demás); sin cambio de código. Verificado: `lint`, `build`,
 `validate:rls` (12/10), `test:unit` (62) y `deno test` del puente (10). No verificado
 en navegador ni contra Base44.
+
+### Verificación en vivo del 2026-10-01: sandbox de Base44 divergido y `Parish` ilegible para su dueño
+
+QA en vivo (cuentas nuevas) encontró que lo del 2026-09-30 no funcionaba aunque
+GitHub `main` ya lo traía. Dos causas, ambas de despliegue/RLS, no de lógica:
+
+1. **El sandbox de Base44 (`/app`) estaba divergido de `main`**: 4 commits locales
+   ("External agent changes" de esquema + "Update base44 packages") nunca llegaron
+   a GitHub, así que `POST .../github/sync` respondía `synced:true` pero no
+   fusionaba y el deploy publicaba código viejo (sitio sin `JoinParish`, lista de
+   archivos con `Membership`/`ParishSwitcher`). Arreglo: `git merge origin/main -X
+   theirs` en `/app` (vía `run_command`; el árbol quedó idéntico a `main`), luego
+   `POST .../deploy`. Regla: tras `sync`, comprobar `git status` en `/app` ("ahead/
+   behind/diverged") y que el sitio servido contenga lo nuevo; no fiarse de `synced`.
+   Las funciones sí se habían desplegado de `main`; el sitio, no.
+2. **`Parish` devolvía `[]` a su propio dueño**: una regla RLS que compara el `id`
+   de la entidad con `{{user.data.parish_id}}` no empareja. Se añadió
+   `Parish.tenant_id` (copia en texto del id, candado `rls.write` sólo admin) y
+   las reglas `read`/`update` ganaron la rama `{"data.tenant_id":
+   "{{user.data.parish_id}}"}` (se conservan la del `id` y la de admin; `delete`
+   sin cambios). `create_parish` fija `tenant_id` con rol de servicio dentro del
+   try y borra la parroquia si algo falla. Backfill aditivo `tenant_id=id` en las
+   parroquias con miembros reales.
+
+Regla de oro: **lee el tenant como el DUEÑO de una parroquia recién creada** y
+**comprueba por comportamiento tras el deploy** (una acción nueva sin permiso
+devuelve el error propio de la acción, no la lógica vieja); un `Parish` vacío o un
+nombre en blanco en la pantalla Parroquia es el síntoma.

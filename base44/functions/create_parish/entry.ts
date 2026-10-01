@@ -70,13 +70,23 @@ Deno.serve(async (req) => {
       data_processing_accepted_by: me.email,
       data_processing_terms_version: DATA_PROCESSING_TERMS_VERSION,
     });
-    await sr.entities.User.update(me.id, {
-      parish_id: parish.id,
-      parish_role: 'admin',
-      parish_plan: 'premium',
-      parish_license_status: 'active',
-      parish_support_priority_addon: false,
-    });
+    // tenant_id = copia en texto del id: la RLS de Parish lee por `data.tenant_id`
+    // porque una regla sobre el `id` de la entidad devuelve vacío al dueño. Si
+    // algo falla después de crear la fila, se borra para no dejar un huérfano.
+    try {
+      await sr.entities.Parish.update(parish.id, { tenant_id: parish.id });
+      parish.tenant_id = parish.id;
+      await sr.entities.User.update(me.id, {
+        parish_id: parish.id,
+        parish_role: 'admin',
+        parish_plan: 'premium',
+        parish_license_status: 'active',
+        parish_support_priority_addon: false,
+      });
+    } catch (err) {
+      await sr.entities.Parish.delete(parish.id).catch(() => {});
+      throw err;
+    }
 
     return Response.json({ parish });
   } catch (error) {
