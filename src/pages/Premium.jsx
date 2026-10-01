@@ -23,15 +23,21 @@ function waLink(text) {
 
 // Un solo producto: no hay lista "gratis" y lista "premium" porque no hay dos
 // planes que comparar. Ver src/lib/premium.js.
+//
+// SÓLO va aquí lo que la app hace HOY. Hasta el 2026-09-09 esta lista incluía
+// mensajería a tutores, tareas de catequesis y pulseras — las tres sin ruta,
+// sin componente y sin entidad que las guarde. El propio PremiumLockedPanel del
+// Dashboard las nombra como "funciones premium que aún no existen", así que el
+// producto se contradecía a sí mismo en dos pantallas y cobraba por ellas.
+// Cuando alguna exista, se añade aquí; mientras tanto vive en el Dashboard como
+// vista previa bloqueada, que es donde una promesa sin código no engaña a nadie.
 const INCLUDED_FEATURES = [
   "Registro de asistencia por código QR",
   "Alta de parroquia, grupos/libros y niños",
   "Reportes de asistencia por fecha y grupo/libro",
   "Faltas acumuladas por niño",
   "Tutores y autorización de recogida",
-  "Mensajería a tutores por correo",
-  "Tareas de catequesis y seguimiento de entregas",
-  "Impresión de pulseras y gafetes físicos",
+  "Gafetes imprimibles con QR, individuales o en hoja",
 ];
 
 // Precio mensual por nivel de niños activos — mismos tramos que la tabla
@@ -286,7 +292,7 @@ export default function Premium() {
                     </tbody>
                   </table>
                 </div>
-                <p className="text-xs text-muted-foreground">Pago anual disponible con 2 meses gratis. ¿Diócesis con varias parroquias? Precio preferencial — contáctanos.</p>
+                <p className="text-xs text-muted-foreground">Pago anual disponible con 2 meses gratis.</p>
                 <p className="text-xs text-muted-foreground">Todos los tramos Premium incluyen soporte con prioridad hasta <strong>Alta</strong> (respuesta en horas hábiles) — ver Soporte abajo.</p>
               </CardContent>
             </Card>

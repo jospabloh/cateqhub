@@ -1,88 +1,37 @@
 {
   "name": "JoinRequest",
+  "type": "object",
   "properties": {
-    "decided_at": {
-      "format": "date-time",
-      "title": "Cu\u00e1ndo se resolvi\u00f3",
-      "type": "string"
-    },
-    "decided_by": {
-      "title": "Qui\u00e9n resolvi\u00f3 (correo)",
-      "type": "string"
-    },
     "parish_id": {
-      "description": "Parroquia due\u00f1a del c\u00f3digo que us\u00f3 la persona. NO da acceso por s\u00ed sola: el acceso (User.parish_id/parish_role) s\u00f3lo lo escribe assign_parish_user al APROBAR, con un administrador de esa parroquia eligiendo el rol. Lo fija la funci\u00f3n `join` desde el c\u00f3digo, nunca el cliente.",
+      "type": "string",
       "title": "Parroquia a la que pide unirse",
-      "type": "string"
+      "description": "Parroquia dueña del código que usó la persona. NO da acceso por sí sola: el acceso (User.parish_id/parish_role) sólo lo escribe assign_parish_user al APROBAR, con un administrador de esa parroquia eligiendo el rol. Lo fija la función `join` desde el código, nunca el cliente."
     },
-    "parish_name": {
-      "title": "Nombre de la parroquia (copia)",
-      "type": "string"
-    },
-    "parish_role_assigned": {
-      "enum": [
-        "admin",
-        "catequist"
-      ],
-      "title": "Rol con el que se aprob\u00f3",
-      "type": "string"
-    },
-    "reject_reason": {
-      "title": "Motivo del rechazo (opcional)",
-      "type": "string"
-    },
-    "status": {
-      "default": "pending",
-      "description": "pending = esperando al administrador (la persona no ve datos); approved/rejected = decisi\u00f3n del administrador; cancelled = la retir\u00f3 la persona o dej\u00f3 de aplicar (ya entr\u00f3 a otra parroquia).",
-      "enum": [
-        "pending",
-        "approved",
-        "rejected",
-        "cancelled"
-      ],
-      "title": "Estado",
-      "type": "string"
-    },
-    "user_email": {
-      "title": "Correo de quien pide acceso",
-      "type": "string"
-    },
+    "parish_name": { "type": "string", "title": "Nombre de la parroquia (copia)" },
     "user_id": {
-      "description": "id del User, tomado de la sesi\u00f3n por la funci\u00f3n `join`. Al aprobar se relee ese User: la aprobaci\u00f3n nunca usa un id que mande el cliente.",
+      "type": "string",
       "title": "Cuenta que pide acceso",
-      "type": "string"
+      "description": "id del User, tomado de la sesión por la función `join`. Al aprobar se relee ese User: la aprobación nunca usa un id que mande el cliente."
     },
-    "user_name": {
-      "title": "Nombre de quien pide acceso",
-      "type": "string"
-    }
+    "user_email": { "type": "string", "title": "Correo de quien pide acceso" },
+    "user_name": { "type": "string", "title": "Nombre de quien pide acceso" },
+    "status": {
+      "type": "string",
+      "title": "Estado",
+      "enum": ["pending", "approved", "rejected", "cancelled"],
+      "default": "pending",
+      "description": "pending = esperando al administrador (la persona no ve datos); approved/rejected = decisión del administrador; cancelled = la retiró la persona o dejó de aplicar (ya entró a otra parroquia)."
+    },
+    "parish_role_assigned": { "type": "string", "title": "Rol con el que se aprobó", "enum": ["admin", "catequist"] },
+    "decided_by": { "type": "string", "title": "Quién resolvió (correo)" },
+    "decided_at": { "type": "string", "format": "date-time", "title": "Cuándo se resolvió" },
+    "reject_reason": { "type": "string", "title": "Motivo del rechazo (opcional)" }
   },
-  "required": [
-    "parish_id",
-    "user_id",
-    "status"
-  ],
+  "required": ["parish_id", "user_id", "status"],
   "rls": {
-    "create": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "read": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "update": {
-      "user_condition": {
-        "role": "admin"
-      }
-    }
-  },
-  "type": "object"
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
 }

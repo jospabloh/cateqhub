@@ -80,7 +80,10 @@ export default function Parishes() {
     }
   };
 
-  if (!isParishAdmin(user)) return <RestrictedNotice />;
+  // Quien todavía no tiene parroquia entra aquí para crear la suya (create_parish
+  // lo deja como administrador de ESA parroquia y de ninguna otra). Con parroquia,
+  // sólo los administradores.
+  if (user?.parish_id && !isParishAdmin(user)) return <RestrictedNotice />;
 
   // Descargar mis datos — módulo 7 (cuenta y zona de peligro).
   const handleExport = async () => {

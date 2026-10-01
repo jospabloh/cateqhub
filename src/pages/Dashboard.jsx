@@ -6,9 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePremiumStatus } from "@/lib/premium";
+import JoinParish from "@/components/JoinParish";
 import PremiumLockedPanel from "@/components/PremiumLockedPanel";
 import ProgressRing from "@/components/ProgressRing";
-import { ScanLine, Users, ClipboardList, Church, AlertCircle, Clock, MessageCircle, ListChecks, Tag } from "lucide-react";
+import { ScanLine, Users, ClipboardList, Church, Clock, MessageCircle, ListChecks, Tag } from "lucide-react";
 import { isParishAdmin } from "@/lib/roles";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -48,30 +49,10 @@ export default function Dashboard() {
     return () => { cancelled = true; };
   }, [parishId]);
 
-  if (!parishId) {
-    return (
-      <div className="max-w-md mx-auto mt-10">
-        <Card>
-          <CardContent className="pt-6 text-center space-y-4">
-            <div className="w-12 h-12 mx-auto rounded-full bg-gold/15 grid place-items-center">
-              <AlertCircle className="w-6 h-6 text-gold" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold">Configura tu parroquia</h2>
-              <p className="text-muted-foreground text-sm mt-1">
-                Aún no tienes una parroquia asignada. {isParishAdmin(user) ? "Crea una y asígnala a tu cuenta para empezar." : "Contacta al administrador para que te asigne una."}
-              </p>
-            </div>
-            {isParishAdmin(user) && (
-              <Button asChild>
-                <Link to="/parroquia">Ir a configuración</Link>
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Sin parroquia: crear la suya o pedir acceso con un código (ver JoinParish).
+  // Antes esto decía "contacta al administrador" y a un usuario nuevo —que no es
+  // administrador de nada— no le ofrecía ningún camino para entrar.
+  if (!parishId) return <JoinParish />;
 
   return (
     <div className="space-y-6">
@@ -152,11 +133,11 @@ export default function Dashboard() {
 
       {isParishAdmin(user) && (
         <div>
-          <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Funciones premium</h3>
+          <h3 className="font-semibold mb-3 text-sm text-muted-foreground">En camino</h3>
           <div className="grid gap-3 sm:grid-cols-3">
-            <PremiumLockedPanel icon={MessageCircle} title="Mensajería a tutores" description="Recordatorios por WhatsApp o correo. Próximamente en Premium." />
-            <PremiumLockedPanel icon={ListChecks} title="Tareas de catecismo" description="Asigna tareas y da seguimiento a las entregas. Próximamente en Premium." />
-            <PremiumLockedPanel icon={Tag} title="Pulseras y etiquetas" description="Identificación física para grupos/libros grandes. Próximamente en Premium." />
+            <PremiumLockedPanel icon={MessageCircle} title="Mensajería a tutores" description="Recordatorios por WhatsApp o correo. Todavía no está disponible." />
+            <PremiumLockedPanel icon={ListChecks} title="Tareas de catecismo" description="Asigna tareas y da seguimiento a las entregas. Todavía no está disponible." />
+            <PremiumLockedPanel icon={Tag} title="Pulseras y etiquetas" description="Identificación física para grupos/libros grandes. Todavía no está disponible." />
           </div>
         </div>
       )}

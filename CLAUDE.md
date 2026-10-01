@@ -587,7 +587,8 @@ a live query proved it; the dated audit under them says with what evidence.
       404. El spec compartido sigue byte a byte idéntico al canónico.
 - [x] Module 14 — Multi-tenant isolation audit: dated, evidenced, and repeated
       whenever an entity, a function or a role is added.
-      → Rehecha el 2026-09-09 contra las 12 entidades desplegadas. Sin cruce
+      → Rehecha el 2026-09-09 contra las 12 entidades desplegadas (hoy son 11
+      en el repo: `Membership` se retiró el 2026-09-10). Sin cruce
       entre parroquias. DOS hallazgos, ninguno de aislamiento: un administrador
       de parroquia bloqueado en producción por el espejo sin backfill, y la RLS
       desplegada que todavía nombra el plan gratuito. Detalle arriba.
@@ -623,14 +624,14 @@ a live query proved it; the dated audit under them says with what evidence.
 - [x] Module 17 — Mission Control side: row in `apps`, an adapter, and entries
       in `licenseControl.js`, `ticketControl.js`, `messaging.js` plus the client
       catalogue mirror. Then PROVE the data path.
-- [ ] Module 18 — Multi-tenant account switching AND joining, on a first-class
-      `Membership` entity.
-      → **DESPLEGADO el 2026-09-09**, y a medias a propósito. Entidad
-      `Membership` (lectura por {{user.id}}, no por parroquia), función
-      `memberships` (list/switch con backfill perezoso) y selector en la barra
-      lateral: el CAMBIO de inquilino corre. El ALTA cross-parroquia no, y no
-      es un olvido — sigue PENDIENTE DE DECISIÓN (ver abajo). Media casilla no
-      es casilla: se queda en `[ ]` hasta que el alta exista.
+- [ ] Module 18 — Multi-tenant account switching AND joining.
+      → **RETIRADO el 2026-09-10, y esta casilla ya no se va a marcar.** La
+      entidad `Membership`, la función `memberships` y el `ParishSwitcher` se
+      borraron: una cuenta pertenece a una sola parroquia. La mitad que
+      corría (el cambio) se fue con la mitad que nunca existió (el alta
+      cross-parroquia, que este archivo dejaba como decisión pendiente). Ver
+      la sección al final. La decisión de producto que bloqueaba el alta ya no
+      hace falta tomarla.
 - [x] Module 19 — Lock survives debugging: every security-relevant RLS/field
       lock states its rationale AND which operation it governs in its own
       field description.
@@ -1030,3 +1031,171 @@ sesión abierta en un dispositivo prestado no caduca nunca por sí sola.
   producción para auditar tiene su propio costo.
 - **Cualquier pantalla autenticada.** Sin sesión de Base44 en este entorno, igual
   que en las pasadas anteriores.
+
+## Retirado: el selector de parroquia (módulo 18) — 2026-09-10
+
+**Una cuenta pertenece a una sola parroquia.** `User.parish_id` es la
+pertenencia, y toda la RLS de las 10 entidades con inquilino compara contra
+`{{user.data.parish_id}}`. La entidad `Membership`, la función `memberships`
+(`list`/`switch`) y `src/components/ParishSwitcher.jsx` se borraron.
+
+Este módulo llevaba desde el 2026-09-09 **a medias a propósito**: el cambio de
+parroquia corría, el alta cross-parroquia no, y este archivo la dejaba anotada
+como una decisión de producto con consecuencia de seguridad —si un alta ajena
+debía MOVER el puntero activo o sólo añadir la membresía—. **Esa decisión ya no
+hay que tomarla.** `assign_parish_user` sigue rechazando dar de alta a quien ya
+pertenece a otra parroquia, que es exactamente lo correcto ahora: sin selector,
+mover el puntero dejaría la parroquia anterior inalcanzable.
+
+Lo que cambió alrededor:
+
+- `create_parish` y `assign_parish_user` pierden `upsertMembership` /
+  `deactivateMembership`. Escribir el `User` (o dejarlo en `DETACHED`) vuelve a
+  ser toda la operación: no hay segunda fila que pueda quedar desincronizada.
+- `scripts/lib/entity-rls-rules.mjs`: `USER_SCOPED_READ` queda **vacía**.
+  `Membership` era su única entrada. La comprobación que exige `{{user.id}}` a
+  cualquier cosa que se meta ahí se queda tal cual — es lo que impide que esa
+  lista se use para saltarse el check por parroquia.
+- `validate:rls` pasa de 12 a **11 entidades, 10 con inquilino**.
+
+### Pendiente a mano: borrar `Membership` del esquema desplegado
+
+Sólo `npm run deploy:entities` la borra, y **va a fallar tal cual está**: al
+2026-09-10 hay **1 fila viva** (`6aa1ae5aeaca45cfe078d5ac`,
+`h.josepablo@gmail.com` en "Parroquia San Testing"). Base44 rechaza borrar una
+entidad con registros y el push es **todo-o-nada** — el mismo fallo dejó a
+rumbo sin desplegar ninguna de sus 27 entidades. Borra la fila primero.
+
+Mientras siga desplegada no hace daño: no queda un lector ni un escritor en el
+repo.
+
+**Verificado:** `npm run lint` (eslint + `validate:functions` 17/40),
+`npm run validate:rls` (11 entidades, 10 con inquilino), `npm run test:unit`
+(45/45) y `npm run build` — todos limpios. `deno check` sobre
+`assign_parish_user` y `create_parish`: **15 errores preexistentes → 5**,
+ninguno nuevo. **No verificado:** el deploy ni una sesión de navegador.
+
+## Verificación de correo por código y unirse a una parroquia por solicitud (2026-09-30)
+
+Dos cambios, disparados por un cliente de stockflow que se registró, recibió el
+código y la app nunca le mostró dónde escribirlo (stockflow PR #412), y por
+revisar CateqHub contra el contrato de tenant del portafolio.
+
+### A. Código de verificación (OTP)
+
+- **`src/components/VerifyEmailStep.jsx`** es el único paso "escribe el código":
+  `verifyOtp` → login automático con la contraseña ya escrita → `/`; si ese login
+  falla, `/login` (la cuenta ya quedó verificada). Trae reenviar y "Usar otro
+  correo". Lo usan Register y Login; antes vivía sólo dentro de Register.
+- **`src/lib/authErrors.js`**: `needsEmailVerification` (regex sobre el mensaje:
+  la plataforma no manda un código estable), y mensajes en español para verificar
+  y reenviar (un 429 se distingue de "código inválido"). Probado en
+  `tests/unit/authErrors.test.js`.
+- **Login**: si `loginViaEmailPassword` falla por correo sin verificar abre el
+  paso del código; cualquier otro error conserva su mensaje. Register ya tenía
+  pantalla de código; ahora usa el mismo componente y recorta el correo.
+- **No** se reenvía código automáticamente al abrirlo desde Login (igual que
+  stockflow): el botón está a la vista.
+
+### B. Tenant (Parish), roles y unirse por código
+
+**Lo que ya cumplía** (releído en código, no reescrito): `create_parish` deja al
+creador como `parish_role: 'admin'` de su parroquia y rechaza a quien ya tiene
+una; `Parish.create` es sólo servicio; `parish_id`/`parish_role`/`group_id` y los
+espejos llevan `rls.write` de plataforma; todas las funciones releen el `User`
+almacenado (módulo 22) y derivan la parroquia de ahí; los rechazos de "ya
+pertenece a otra parroquia" y el candado de último administrador siguen.
+
+**Lo que NO cumplía:** no existía "unirse con código" (sólo el alta por correo del
+administrador), y un usuario nuevo no tenía cómo crear su parroquia: el Dashboard
+le decía "contacta al administrador" y `/parroquia` estaba cerrada a quien no es
+`isParishAdmin`.
+
+Ahora:
+- **Código**: `Parish.join_code` (`ABCD-EFGH`, sin caracteres ambiguos), con
+  candado de escritura de servicio. Se genera perezosamente al pedirlo un
+  administrador (`assign_parish_user` acción `join_code`, `regenerate` lo
+  cambia). Los miembros de la parroquia pueden leerlo (Parish.read); da igual: sólo
+  abre una solicitud.
+- **`JoinRequest`** (entidad nueva): las cuatro operaciones son
+  `{"user_condition":{"role":"admin"}}`; nada se lee ni se escribe desde el
+  cliente. `validate:rls` lo exige (`SERVICE_ONLY_ENTITIES`, probado en
+  `tests/unit/serviceOnlyEntities.test.js`). Estados
+  `pending|approved|rejected|cancelled`.
+- **Todo va como acciones de `assign_parish_user`** (sigue 17/40 funciones):
+  `join`, `join_status`, `cancel_join_request` (van antes del gate de admin, como
+  `leave`; ninguna escribe el `User`), y `join_code`, `list_join_requests`,
+  `approve_request`, `reject_request` (después del gate). `join` sólo crea la
+  solicitud (una prueba lo fija leyendo el archivo).
+- **Aprobar**: relee la solicitud guardada (`checkRequestDecision`: ajena e
+  inexistente responden igual 404; ya resuelta 409), el rol lo **elige** el
+  administrador y se valida contra la lista blanca `catequist|admin` (sin valor
+  por defecto; nunca rol de plataforma), relee al solicitante (si ya tiene
+  parroquia no se mueve: se cierra la solicitud y 409), el grupo debe ser de la
+  misma parroquia. Recién entonces se escribe `parish_id/parish_role` (helper
+  `membershipPatch`, compartido con el alta directa). Un admin de plataforma puede
+  resolver de cualquier parroquia.
+- **Alta directa por correo** (`assign_parish_user` normal): sigue pre-aprobada y
+  además cierra las solicitudes pendientes de esa persona (la de esa parroquia
+  aprobada, las demás canceladas).
+- **Caminos que escriben `parish_id/parish_role`**, revisados: `create_parish`
+  (sólo sin parroquia), `assign_parish_user` (alta admin, aprobar, quitar, salir,
+  transferir), `seed_test_parish` (sólo plataforma), y `backfill/migrate/sync/
+  acaciaControl` sólo tocan espejos de licencia y `perm_*`. Ninguno salta la
+  aprobación por código.
+- **UI**: `JoinParish` (Dashboard sin parroquia) ofrece código o crear parroquia;
+  "Solicitud enviada" viene de `join_status`, así que sobrevive a recargar.
+  `/parroquia` deja entrar a quien no tiene parroquia (crear). `Users` muestra el
+  código (copiar/regenerar) y las solicitudes con selector de rol y grupo.
+- Lógica pura en `base44/functions/assign_parish_user/joinRequests.ts`, probada
+  con `node --test` (`tests/unit/joinRequests.test.js`).
+
+### Verificado
+
+`npm run lint` (17/40), `npm run build`, `npm run validate:rls` (12 entidades),
+`npm run test:unit` (62/62), `deno lint` (18 avisos, los mismos que `main`) y
+`deno check` de `assign_parish_user` (mismos 4 errores que `main`: tipos del SDK).
+
+### NO verificado
+
+- Ningún `entry.ts` contra Base44 (importa `npm:@base44/sdk`): las acciones nuevas
+  se leyeron y su lógica pura está probada, pero no se ejecutaron.
+- Que `filter(query, '-created_date', 1)` acepte orden y límite en el runtime, ni
+  que `crypto.getRandomValues` esté disponible (debería, es Deno).
+- Los textos que devuelve la plataforma al verificar/login sin verificar: la regex
+  de `needsEmailVerification` y los 429 se infirieron del patrón de stockflow.
+- Un flujo real: registrarse con OTP, pedir acceso con código, aprobar con rol.
+  Tampoco una sesión de un segundo usuario/parroquia (RLS de `JoinRequest`).
+- No hay límite de intentos al probar códigos (31^8 combinaciones, y aun acertando
+  sólo se abre una solicitud que un administrador debe aprobar).
+- El invite de `Users.jsx` sigue llamando `base44.users.inviteUser`; en rumbo se
+  encontró que ese endpoint de plataforma no sirve para usuarios finales. No se
+  tocó aquí (fuera de alcance); si "Invitar" falla, el alta por código es la vía.
+
+### Orden de despliegue (nada se desplegó desde esta sesión)
+
+1. **Entidades primero** (`npm run deploy:entities`, destructivo: pide escribir
+   `CateqHub`): `JoinRequest` nueva y `Parish.join_code`. Si las funciones salen
+   antes, `join` falla al crear y `join_code` se descarta en silencio. Releer el
+   esquema desplegado (`list_entity_schemas`) y comprobar las 4 reglas de
+   `JoinRequest` y el candado de `join_code`.
+2. `npm run deploy` (`assign_parish_user`). `functions deploy` puede decir
+   `unchanged` si sólo cambia `handlers/`; aquí cambia `entry.ts`. Comprobar por
+   comportamiento: `{"action":"join_status"}` con sesión debe responder JSON, no
+   `unknown action`.
+3. `npm run deploy:site` (con `--build`).
+4. Probar con dos cuentas: registrarse y verificar código; pedir acceso; aprobar
+   como administrador eligiendo rol; confirmar que la pendiente no ve datos.
+
+### Seguimiento de la revisión de Codex (2026-09-30)
+
+`JoinParish.jsx`: cuando `join_status` dice `joined`, `checkUserAuth()`/`auth.me()`
+puede devolver una vista vieja del usuario, así que ahora se recarga la app completa
+(`window.location.assign("/")`) para que la sesión relea el registro guardado; se
+hace una sola vez por sesión (`sessionStorage`) para no entrar en un bucle si el
+registro aún no refleja la aprobación. En `assign_parish_user` la creación de la
+solicitud pendiente queda documentada como no atómica: Base44 no tiene restricción
+única, dos `join` simultáneos pueden crear dos filas pendientes y es aceptado
+(aprobar una cancela las demás); sin cambio de código. Verificado: `lint`, `build`,
+`validate:rls` (12/10), `test:unit` (62) y `deno test` del puente (10). No verificado
+en navegador ni contra Base44.

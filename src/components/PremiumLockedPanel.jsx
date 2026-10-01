@@ -1,9 +1,16 @@
 import { Link } from "react-router-dom";
 import { Lock } from "lucide-react";
 
-// Vista previa "bloqueada pero visible" para funciones premium que aún no
-// existen (mensajería, tareas, pulseras): un mockup abstracto detrás y, encima,
-// el candado + la explicación. Nunca se presenta como si funcionara.
+// Vista previa "bloqueada pero visible" para funciones que aún NO EXISTEN
+// (mensajería, tareas, pulseras): un mockup abstracto detrás y, encima, el
+// candado + la explicación. Nunca se presenta como si funcionara.
+//
+// Esta lista es la fuente de verdad sobre lo que no está construido. El
+// 2026-09-09 las tres estaban además anunciadas como incluidas en Premium.jsx,
+// en el manual y en la página pública — el producto se contradecía a sí mismo
+// y cobraba por ellas. Si añades un panel aquí, comprueba que la función no
+// aparezca en INCLUDED_FEATURES de Premium.jsx; si la construyes, quita el
+// panel y añádela allá.
 export default function PremiumLockedPanel({ icon: Icon, title, description }) {
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card min-h-[156px]">
@@ -23,7 +30,7 @@ export default function PremiumLockedPanel({ icon: Icon, title, description }) {
         <p className="font-medium text-sm leading-tight">{title}</p>
         <p className="text-xs text-muted-foreground leading-snug">{description}</p>
         <Link to="/premium" className="text-xs font-medium text-primary hover:underline mt-1">
-          Ver plan Premium
+          Ver mi suscripción
         </Link>
       </div>
     </div>
