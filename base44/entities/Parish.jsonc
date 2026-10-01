@@ -1,138 +1,28 @@
 {
   "name": "Parish",
-  "type": "object",
   "properties": {
-    "name": {
-      "type": "string",
-      "title": "Nombre"
-    },
-    "admin_contact": {
-      "type": "string",
-      "title": "Contacto del administrador"
+    "access_denied_since": {
+      "format": "date-time",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      },
+      "title": "Desde cu\u00e1ndo se deneg\u00f3 el acceso",
+      "type": "string"
     },
     "active": {
-      "type": "boolean",
       "default": true,
-      "title": "Activa"
+      "title": "Activa",
+      "type": "boolean"
     },
-    "join_code": {
-      "type": "string",
-      "title": "Código para unirse",
-      "description": "Código (ABCD-EFGH) que un catequista escribe para PEDIR acceso. No da acceso: crea una solicitud pendiente que un administrador aprueba o rechaza (JoinRequest). Sólo lo escribe assign_parish_user (acción join_code, rol de servicio); sin este candado, la RLS de update de Parish deja a cualquier administrador de la parroquia fijar un código a mano. Los miembros de la parroquia pueden leerlo.",
-      "rls": { "write": { "user_condition": { "role": "admin" } } }
-    },
-    "plan": {
-      "type": "string",
-      "title": "Plan",
-      "description": "Nivel de suscripci\u00f3n. \"free\" es un plan permanente y normal (no una penalizaci\u00f3n): n\u00facleo completo (asistencia QR, alta de parroquia/grupos/ni\u00f1os, reportes) sin vencimiento, con tope de 50 ni\u00f1os activos (FREE_PLAN_CHILD_CAP en src/lib/premium.js) y sin Tutores/mensajer\u00eda/tareas/pulseras. Toda parroquia nueva arranca en \"premium\" con una prueba gratuita de 30 d\u00edas (ver premium_period_end_at), con acceso completo y sin el tope de ni\u00f1os. Si ese per\u00edodo (prueba o pago) vence sin renovarse: con \u226450 ni\u00f1os activos, Mission Control baja la parroquia directo a \"free\" (sin fricci\u00f3n); con m\u00e1s de 50, entra al ciclo de license_status (ver abajo) hasta que se pague el nivel Premium que le toque. Se activa/reactiva desde Mission Control (rol de servicio) o el panel de Base44 \u2014 un admin de parroquia puede verlo pero no cambiarlo por s\u00ed mismo.",
-      "enum": [
-        "free",
-        "premium"
-      ],
-      "default": "premium",
-      "rls": {
-        "write": {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      }
-    },
-    "license_status": {
-      "type": "string",
-      "title": "Estado de licencia",
-      "description": "Solo aplica mientras plan=premium Y la parroquia tiene m\u00e1s de 50 ni\u00f1os activos al vencer su per\u00edodo (si tiene 50 o menos, Mission Control la baja directo a plan=\"free\" sin pasar por este ciclo). Ciclo: active \u2192 read_only \u2192 access_denied \u2192 deletion_eligible si el per\u00edodo (premium_period_end_at) vence sin renovarse \u2014 aplica a TODA la app (n\u00facleo incluido), no solo a Tutores, mientras dura. Escrito exclusivamente por Mission Control (rol de servicio) v\u00eda el puente acaciaControl \u2014 nunca a mano desde el panel de Base44, porque el espejo en User (parish_license_status) quedar\u00eda desincronizado.",
-      "enum": [
-        "active",
-        "read_only",
-        "access_denied",
-        "deletion_eligible"
-      ],
-      "default": "active",
-      "rls": {
-        "write": {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      }
-    },
-    "premium_period_end_at": {
-      "type": "string",
-      "title": "Fin del periodo vigente (prueba o pago)",
-      "description": "Al crear la parroquia se estampa a 30 d\u00edas (prueba gratuita). Al confirmarse un pago, Mission Control lo recorre. El cron license-lifecycle usa esta fecha para decidir, al vencer: baja directa a plan=\"free\" (\u226450 ni\u00f1os activos) o el ciclo active \u2192 read_only \u2192 access_denied \u2192 deletion_eligible (>50).",
-      "format": "date-time",
-      "rls": {
-        "write": {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      }
-    },
-    "read_only_since": {
-      "type": "string",
-      "title": "Desde cu\u00e1ndo est\u00e1 en solo lectura",
-      "format": "date-time",
-      "rls": {
-        "write": {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      }
-    },
-    "access_denied_since": {
-      "type": "string",
-      "title": "Desde cu\u00e1ndo se deneg\u00f3 el acceso",
-      "format": "date-time",
-      "rls": {
-        "write": {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      }
-    },
-    "deletion_eligible_since": {
-      "type": "string",
-      "title": "Desde cu\u00e1ndo es candidata a borrado",
-      "format": "date-time",
-      "rls": {
-        "write": {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      }
-    },
-    "export_confirmed_at": {
-      "type": "string",
-      "title": "Exportaci\u00f3n de datos Premium confirmada",
-      "description": "Se escribe \u00fanicamente desde la funci\u00f3n confirm_premium_export (rol de servicio) \u2014 nunca editable directo, para que no se pueda falsificar la confirmaci\u00f3n.",
-      "format": "date-time",
-      "rls": {
-        "write": {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      }
-    },
-    "export_confirmed_by": {
-      "type": "string",
-      "title": "Qui\u00e9n confirm\u00f3 la exportaci\u00f3n (correo)",
-      "rls": {
-        "write": {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      }
+    "admin_contact": {
+      "title": "Contacto del administrador",
+      "type": "string"
     },
     "data_processing_accepted_at": {
-      "type": "string",
-      "title": "Aviso de manejo de datos sensibles aceptado",
       "description": "Se estampa una sola vez, al crear la parroquia, desde create_parish (rol de servicio). Es evidencia de cumplimiento LFPDPPP \u2014 sin este candado de escritura, la RLS de update de Parish (m\u00e1s abajo) permite a cualquier admin de esa parroquia reescribir su propio registro de consentimiento a mano.",
       "format": "date-time",
       "rls": {
@@ -141,67 +31,33 @@
             "role": "admin"
           }
         }
-      }
+      },
+      "title": "Aviso de manejo de datos sensibles aceptado",
+      "type": "string"
     },
     "data_processing_accepted_by": {
-      "type": "string",
-      "title": "Qui\u00e9n acept\u00f3 el aviso (correo)",
       "rls": {
         "write": {
           "user_condition": {
             "role": "admin"
           }
         }
-      }
+      },
+      "title": "Qui\u00e9n acept\u00f3 el aviso (correo)",
+      "type": "string"
     },
     "data_processing_terms_version": {
-      "type": "string",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      },
       "title": "Versi\u00f3n del aviso aceptado",
-      "rls": {
-        "write": {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      }
+      "type": "string"
     },
-    "implementation_requested_at": {
-      "type": "string",
-      "title": "Implementaci\u00f3n asistida solicitada",
-      "description": "Autoservicio: cualquier admin de la parroquia puede estampar esto desde Premium.jsx al pedir la implementaci\u00f3n asistida (pago \u00fanico, ver implementation_requested_tier). Es solo una se\u00f1al de inter\u00e9s, no activa nada \u2014 ACACIA confirma el pago por WhatsApp/factura y reci\u00e9n entonces marca implementation_status=\"completed\" (rol de servicio, v\u00eda Mission Control). Sin rls.write expl\u00edcito: hereda la regla de update de Parish (admin de la propia parroquia, o rol de servicio).",
-      "format": "date-time"
-    },
-    "implementation_requested_tier": {
-      "type": "string",
-      "title": "Tramo de implementaci\u00f3n solicitado",
-      "description": "Tramo de precio (ver IMPLEMENTATION_TIERS en src/lib/premium.js y acaciaco-site/apps/cateqhub.html \u2014 mismos tramos en los tres) seg\u00fan ni\u00f1os activos al momento de solicitarla. Autoservicio, igual que implementation_requested_at.",
-      "enum": [
-        "hasta_150",
-        "151_350",
-        "351_mas"
-      ]
-    },
-    "implementation_status": {
-      "type": "string",
-      "title": "Estado de la implementaci\u00f3n asistida",
-      "description": "\"completed\" lo escribe \u00fanicamente ACACIA (rol de servicio, v\u00eda Mission Control) tras confirmar el pago del cargo \u00fanico \u2014 un admin de parroquia puede solicitarla (implementation_requested_at) pero no marcarse a s\u00ed mismo como completada.",
-      "enum": [
-        "none",
-        "requested",
-        "completed"
-      ],
-      "default": "none",
-      "rls": {
-        "write": {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      }
-    },
-    "implementation_completed_at": {
-      "type": "string",
-      "title": "Implementaci\u00f3n asistida completada",
+    "deletion_eligible_since": {
       "format": "date-time",
       "rls": {
         "write": {
@@ -209,26 +65,187 @@
             "role": "admin"
           }
         }
-      }
+      },
+      "title": "Desde cu\u00e1ndo es candidata a borrado",
+      "type": "string"
     },
-    "support_priority_addon_requested_at": {
-      "type": "string",
-      "title": "Soporte prioritario solicitado",
-      "description": "Autoservicio: se\u00f1al de inter\u00e9s en el add-on de soporte prioritario ($250 MXN/mes, sube el tope de prioridad de ticket a \"urgente\") desde Premium.jsx. No activa el beneficio por s\u00ed sola \u2014 ver support_priority_addon.",
-      "format": "date-time"
-    },
-    "support_priority_addon": {
-      "type": "boolean",
-      "title": "Soporte prioritario activo",
-      "description": "Sube el tope de prioridad seleccionable en un ticket de SupportTicket a \"urgent\" (ver src/lib/premium.js maxTicketPriority y SupportTickets.jsx). Solo ACACIA lo activa (rol de servicio, v\u00eda Mission Control) tras confirmar el pago mensual del add-on; se espeja a User.parish_support_priority_addon con el mismo mecanismo que plan/license_status (acci\u00f3n license.set, params.mirror).",
-      "default": false,
+    "export_confirmed_at": {
+      "description": "Se escribe \u00fanicamente desde la funci\u00f3n confirm_premium_export (rol de servicio) \u2014 nunca editable directo, para que no se pueda falsificar la confirmaci\u00f3n.",
+      "format": "date-time",
       "rls": {
         "write": {
           "user_condition": {
             "role": "admin"
           }
         }
-      }
+      },
+      "title": "Exportaci\u00f3n de datos Premium confirmada",
+      "type": "string"
+    },
+    "export_confirmed_by": {
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      },
+      "title": "Qui\u00e9n confirm\u00f3 la exportaci\u00f3n (correo)",
+      "type": "string"
+    },
+    "implementation_completed_at": {
+      "format": "date-time",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      },
+      "title": "Implementaci\u00f3n asistida completada",
+      "type": "string"
+    },
+    "implementation_requested_at": {
+      "description": "Autoservicio: cualquier admin de la parroquia puede estampar esto desde Premium.jsx al pedir la implementaci\u00f3n asistida (pago \u00fanico, ver implementation_requested_tier). Es solo una se\u00f1al de inter\u00e9s, no activa nada \u2014 ACACIA confirma el pago por WhatsApp/factura y reci\u00e9n entonces marca implementation_status=\"completed\" (rol de servicio, v\u00eda Mission Control). Sin rls.write expl\u00edcito: hereda la regla de update de Parish (admin de la propia parroquia, o rol de servicio).",
+      "format": "date-time",
+      "title": "Implementaci\u00f3n asistida solicitada",
+      "type": "string"
+    },
+    "implementation_requested_tier": {
+      "description": "Tramo de precio (ver IMPLEMENTATION_TIERS en src/lib/premium.js y acaciaco-site/apps/cateqhub.html \u2014 mismos tramos en los tres) seg\u00fan ni\u00f1os activos al momento de solicitarla. Autoservicio, igual que implementation_requested_at.",
+      "enum": [
+        "hasta_150",
+        "151_350",
+        "351_mas"
+      ],
+      "title": "Tramo de implementaci\u00f3n solicitado",
+      "type": "string"
+    },
+    "implementation_status": {
+      "default": "none",
+      "description": "\"completed\" lo escribe \u00fanicamente ACACIA (rol de servicio, v\u00eda Mission Control) tras confirmar el pago del cargo \u00fanico \u2014 un admin de parroquia puede solicitarla (implementation_requested_at) pero no marcarse a s\u00ed mismo como completada.",
+      "enum": [
+        "none",
+        "requested",
+        "completed"
+      ],
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      },
+      "title": "Estado de la implementaci\u00f3n asistida",
+      "type": "string"
+    },
+    "join_code": {
+      "description": "C\u00f3digo (ABCD-EFGH) que un catequista escribe para PEDIR acceso. No da acceso: crea una solicitud pendiente que un administrador aprueba o rechaza (JoinRequest). S\u00f3lo lo escribe assign_parish_user (acci\u00f3n join_code, rol de servicio); sin este candado, la RLS de update de Parish deja a cualquier administrador de la parroquia fijar un c\u00f3digo a mano. Los miembros de la parroquia pueden leerlo.",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      },
+      "title": "C\u00f3digo para unirse",
+      "type": "string"
+    },
+    "license_status": {
+      "default": "active",
+      "description": "Solo aplica mientras plan=premium Y la parroquia tiene m\u00e1s de 50 ni\u00f1os activos al vencer su per\u00edodo (si tiene 50 o menos, Mission Control la baja directo a plan=\"free\" sin pasar por este ciclo). Ciclo: active \u2192 read_only \u2192 access_denied \u2192 deletion_eligible si el per\u00edodo (premium_period_end_at) vence sin renovarse \u2014 aplica a TODA la app (n\u00facleo incluido), no solo a Tutores, mientras dura. Escrito exclusivamente por Mission Control (rol de servicio) v\u00eda el puente acaciaControl \u2014 nunca a mano desde el panel de Base44, porque el espejo en User (parish_license_status) quedar\u00eda desincronizado.",
+      "enum": [
+        "active",
+        "read_only",
+        "access_denied",
+        "deletion_eligible"
+      ],
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      },
+      "title": "Estado de licencia",
+      "type": "string"
+    },
+    "name": {
+      "title": "Nombre",
+      "type": "string"
+    },
+    "plan": {
+      "default": "premium",
+      "description": "Nivel de suscripci\u00f3n. \"free\" es un plan permanente y normal (no una penalizaci\u00f3n): n\u00facleo completo (asistencia QR, alta de parroquia/grupos/ni\u00f1os, reportes) sin vencimiento, con tope de 50 ni\u00f1os activos (FREE_PLAN_CHILD_CAP en src/lib/premium.js) y sin Tutores/mensajer\u00eda/tareas/pulseras. Toda parroquia nueva arranca en \"premium\" con una prueba gratuita de 30 d\u00edas (ver premium_period_end_at), con acceso completo y sin el tope de ni\u00f1os. Si ese per\u00edodo (prueba o pago) vence sin renovarse: con \u226450 ni\u00f1os activos, Mission Control baja la parroquia directo a \"free\" (sin fricci\u00f3n); con m\u00e1s de 50, entra al ciclo de license_status (ver abajo) hasta que se pague el nivel Premium que le toque. Se activa/reactiva desde Mission Control (rol de servicio) o el panel de Base44 \u2014 un admin de parroquia puede verlo pero no cambiarlo por s\u00ed mismo.",
+      "enum": [
+        "free",
+        "premium"
+      ],
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      },
+      "title": "Plan",
+      "type": "string"
+    },
+    "premium_period_end_at": {
+      "description": "Al crear la parroquia se estampa a 30 d\u00edas (prueba gratuita). Al confirmarse un pago, Mission Control lo recorre. El cron license-lifecycle usa esta fecha para decidir, al vencer: baja directa a plan=\"free\" (\u226450 ni\u00f1os activos) o el ciclo active \u2192 read_only \u2192 access_denied \u2192 deletion_eligible (>50).",
+      "format": "date-time",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      },
+      "title": "Fin del periodo vigente (prueba o pago)",
+      "type": "string"
+    },
+    "read_only_since": {
+      "format": "date-time",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      },
+      "title": "Desde cu\u00e1ndo est\u00e1 en solo lectura",
+      "type": "string"
+    },
+    "support_priority_addon": {
+      "default": false,
+      "description": "Sube el tope de prioridad seleccionable en un ticket de SupportTicket a \"urgent\" (ver src/lib/premium.js maxTicketPriority y SupportTickets.jsx). Solo ACACIA lo activa (rol de servicio, v\u00eda Mission Control) tras confirmar el pago mensual del add-on; se espeja a User.parish_support_priority_addon con el mismo mecanismo que plan/license_status (acci\u00f3n license.set, params.mirror).",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      },
+      "title": "Soporte prioritario activo",
+      "type": "boolean"
+    },
+    "support_priority_addon_requested_at": {
+      "description": "Autoservicio: se\u00f1al de inter\u00e9s en el add-on de soporte prioritario ($250 MXN/mes, sube el tope de prioridad de ticket a \"urgente\") desde Premium.jsx. No activa el beneficio por s\u00ed sola \u2014 ver support_priority_addon.",
+      "format": "date-time",
+      "title": "Soporte prioritario solicitado",
+      "type": "string"
+    },
+    "tenant_id": {
+      "description": "Copia en texto del id de la propia parroquia (la fija create_parish, rol de servicio). Existe porque una regla RLS que compara el `id` de la entidad contra {{user.data.parish_id}} devuelve vac\u00edo incluso al due\u00f1o; una regla `data.tenant_id` s\u00ed empareja. S\u00f3lo el servicio la escribe.",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      },
+      "title": "Id de la parroquia (copia)",
+      "type": "string"
     }
   },
   "required": [
@@ -239,30 +256,6 @@
       "user_condition": {
         "role": "admin"
       }
-    },
-    "read": {
-      "$or": [
-        {
-          "id": "{{user.data.parish_id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
-    },
-    "update": {
-      "$or": [
-        {
-          "id": "{{user.data.parish_id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
     },
     "delete": {
       "$or": [
@@ -284,6 +277,37 @@
           }
         }
       ]
+    },
+    "read": {
+      "$or": [
+        {
+          "id": "{{user.data.parish_id}}"
+        },
+        {
+          "data.tenant_id": "{{user.data.parish_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "id": "{{user.data.parish_id}}"
+        },
+        {
+          "data.tenant_id": "{{user.data.parish_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     }
-  }
+  },
+  "type": "object"
 }
