@@ -7,10 +7,17 @@
 // (módulo 6 del estándar). Antes eran cuatro ediciones manuales garantizadas
 // por un comentario, y así se perdió la 1.8.0 entera de CHANGELOG.md.
 // tests/unit/release.test.js afirma los invariantes después.
-export const APP_VERSION = "1.10.4";
-export const RELEASE_DATE = "2026-09-28";
+export const APP_VERSION = "1.10.5";
+export const RELEASE_DATE = "2026-10-05";
 
 export const CHANGELOG = [
+  {
+    version: "1.10.5",
+    date: "2026-10-05",
+    changes: [
+      "Auditoría rutinaria (2026-10-05): dependencias — npm audit fix cierra axios (alta), dompurify y moment (moderada); quedan 8 sin arreglo disponible o aceptadas (braces/micromatch/chokidar/tailwindcss: sólo cadena de build, sin llegar al bundle; react-router: migración mayor 6→7 pendiente, riesgo aceptado desde 1.9.3). Revisión de isolación de JoinRequest, join_code, Parish.tenant_id y las acciones join/approve/reject de assign_parish_user: sin cruce entre parroquias (la parroquia sale siempre de la cuenta almacenada, la solicitud se relee y se valida contra ella, el rol sale de lista blanca). Verificado: validate:rls 12/10, test:unit 62/62, lint, build. No verificado: esquema RLS desplegado (sin MCP de Base44), smoke contra el sitio servido, pantallas autenticadas. Sin límite de intentos al probar códigos de unión: riesgo bajo aceptado, el código sólo abre una solicitud que un administrador aprueba.",
+    ],
+  },
   {
     version: "1.10.4",
     date: "2026-09-28",
