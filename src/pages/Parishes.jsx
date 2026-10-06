@@ -249,7 +249,7 @@ export default function Parishes() {
               ) : (
                 <div className="flex flex-col sm:flex-row gap-2">
                   <select
-                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="flex-1 min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     value={successor}
                     onChange={(e) => setSuccessor(e.target.value)}
                     aria-label="Miembro que recibirá la administración"

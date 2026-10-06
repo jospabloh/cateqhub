@@ -150,7 +150,7 @@ export default function Layout() {
       </header>
 
       {/* Content */}
-      <main className="md:pl-60 pb-20 md:pb-0 print:pl-0 print:pb-0">
+      <main className="md:pl-60 pb-36 md:pb-12 print:pl-0 print:pb-0">
         <LicenseBanner parish={parish} />
         <div className="p-4 md:p-8 max-w-6xl mx-auto print:p-0 print:max-w-none">
           {status.isAccessDenied && isBlockedRoute(location.pathname) ? (
@@ -170,7 +170,7 @@ export default function Layout() {
             end={item.end}
             className={({ isActive }) =>
               cn(
-                "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium flex-1 h-full shrink-0 min-w-[56px] transition-colors",
+                "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium whitespace-nowrap flex-1 h-full shrink-0 min-w-[68px] px-1 transition-colors",
                 isActive ? "text-sidebar-primary" : "text-sidebar-foreground/55"
               )
             }
