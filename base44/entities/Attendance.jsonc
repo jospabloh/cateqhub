@@ -1,30 +1,29 @@
 {
   "name": "Attendance",
-  "type": "object",
   "properties": {
-    "parish_id": {
-      "type": "string",
-      "title": "Parroquia",
-      "x-ref": "Parish"
-    },
-    "group_id": {
-      "type": "string",
-      "title": "Grupo",
-      "x-ref": "Group"
-    },
     "child_id": {
-      "type": "string",
       "title": "Ni\u00f1o",
+      "type": "string",
       "x-ref": "Child"
     },
     "date": {
-      "type": "string",
       "format": "date",
-      "title": "Fecha de la clase"
+      "title": "Fecha de la clase",
+      "type": "string"
+    },
+    "group_id": {
+      "title": "Grupo",
+      "type": "string",
+      "x-ref": "Group"
+    },
+    "parish_id": {
+      "title": "Parroquia",
+      "type": "string",
+      "x-ref": "Parish"
     },
     "recorded_by": {
-      "type": "string",
       "title": "Registrado por (usuario)",
+      "type": "string",
       "x-ref": "User"
     }
   },
@@ -37,18 +36,59 @@
   ],
   "rls": {
     "create": {
-      "user_condition": { "role": "admin" }
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "$and": [
+        {
+          "data.parish_id": "{{user.data.parish_id}}"
+        },
+        {
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "data.parish_role": "admin"
+              }
+            }
+          ]
+        }
+      ]
     },
     "read": {
       "$or": [
-        { "user_condition": { "role": "admin" } },
-        { "$and": [
-            { "data.parish_id": "{{user.data.parish_id}}" },
-            { "$or": [
-                { "user_condition": { "data.parish_license_status": "active" } },
-                { "user_condition": { "data.parish_license_status": "read_only" } }
-            ] }
-        ] }
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "$and": [
+            {
+              "data.parish_id": "{{user.data.parish_id}}"
+            },
+            {
+              "$or": [
+                {
+                  "user_condition": {
+                    "data.parish_license_status": "active"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "data.parish_license_status": "read_only"
+                  }
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     "update": {
@@ -71,27 +111,7 @@
           ]
         }
       ]
-    },
-    "delete": {
-      "$and": [
-        {
-          "data.parish_id": "{{user.data.parish_id}}"
-        },
-        {
-          "$or": [
-            {
-              "user_condition": {
-                "role": "admin"
-              }
-            },
-            {
-              "user_condition": {
-                "data.parish_role": "admin"
-              }
-            }
-          ]
-        }
-      ]
     }
-  }
+  },
+  "type": "object"
 }
