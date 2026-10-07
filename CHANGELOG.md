@@ -2,6 +2,11 @@
 
 Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appConfig.js` (consumida por la página "Acerca de" dentro de la app); este archivo es la versión en prosa.
 
+## 1.10.7 — 2026-10-07
+
+- La app repara sola el espejo de licencia de una cuenta que no lo tenga. Las políticas de lectura de Niños, Grupos, Asistencia y Tutores leen parish_license_status del usuario porque Base44 no puede consultar otra fila, y un campo ausente no coincide con nada: la cuenta no ve un solo niño y no hay error, sólo listas vacías. Le pasó al administrador de la única parroquia en producción durante semanas, porque la única forma de repararlo era que alguien ejecutara a mano backfill_parish_license_mirror.
+- Al abrir la app, la función session relee a la persona con rol de servicio y, si le falta el espejo, lo copia de su propia parroquia (nunca asume un estado: si no puede leerla, no escribe nada). Es mejor esfuerzo: un fallo ahí no impide abrir sesión. Una parroquia anterior al campo plan resuelve a premium, nunca a free.
+
 ## 1.10.6 — 2026-10-07
 
 - Corrección a la 1.10.0: las dos funciones que escriben el espejo de licencia en cada usuario (assign_parish_user al dar de alta o editar a un miembro, y backfill_parish_license_mirror) todavía estampaban parish_plan: 'free' cuando la parroquia no traía el campo. Ese plan se retiró en la 1.10.0. Ahora estampan 'premium', que es el único valor que el plan sigue teniendo.

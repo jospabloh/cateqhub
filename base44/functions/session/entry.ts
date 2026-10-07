@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { licenseMirrorPatch } from './licenseMirror.ts';
 
 // Módulo 20 del estándar, capas 1 y 2. Un solo endpoint con router de acciones
 // porque es lo que invoca el hook compartido (`base44.functions.invoke('session',
@@ -28,6 +29,16 @@ Deno.serve(async (req) => {
     // capa 2: se puede estar en varios equipos a la vez, pero la app siempre
     // sabe cuál es el actual y puede enseñar los otros para revisarlos.
     if (action === 'manageSession') {
+      // Repara el espejo de licencia si le falta (ver licenseMirror.ts). Mejor
+      // esfuerzo: un fallo aquí jamás debe impedir abrir una sesión.
+      if (me.parish_id) {
+        try {
+          const parish = await sr.entities.Parish.get(me.parish_id).catch(() => null);
+          const patch = licenseMirrorPatch(me, parish);
+          if (patch) await sr.entities.User.update(me.id, patch);
+        } catch (_e) { /* best-effort */ }
+      }
+
       const device_id = String(body.device_id || '').trim();
       if (!device_id) return Response.json({ error: 'device_id requerido' }, { status: 400 });
       const device_name = String(body.device_name || '').slice(0, 120);

@@ -7,10 +7,18 @@
 // (módulo 6 del estándar). Antes eran cuatro ediciones manuales garantizadas
 // por un comentario, y así se perdió la 1.8.0 entera de CHANGELOG.md.
 // tests/unit/release.test.js afirma los invariantes después.
-export const APP_VERSION = "1.10.6";
+export const APP_VERSION = "1.10.7";
 export const RELEASE_DATE = "2026-10-07";
 
 export const CHANGELOG = [
+  {
+    version: "1.10.7",
+    date: "2026-10-07",
+    changes: [
+      "La app repara sola el espejo de licencia de una cuenta que no lo tenga. Las políticas de lectura de Niños, Grupos, Asistencia y Tutores leen parish_license_status del usuario porque Base44 no puede consultar otra fila, y un campo ausente no coincide con nada: la cuenta no ve un solo niño y no hay error, sólo listas vacías. Le pasó al administrador de la única parroquia en producción durante semanas, porque la única forma de repararlo era que alguien ejecutara a mano backfill_parish_license_mirror.",
+      "Al abrir la app, la función session relee a la persona con rol de servicio y, si le falta el espejo, lo copia de su propia parroquia (nunca asume un estado: si no puede leerla, no escribe nada). Es mejor esfuerzo: un fallo ahí no impide abrir sesión. Una parroquia anterior al campo plan resuelve a premium, nunca a free.",
+    ],
+  },
   {
     version: "1.10.6",
     date: "2026-10-07",
