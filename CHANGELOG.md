@@ -2,6 +2,12 @@
 
 Todas las versiones notables de CateqHub. Fuente estructurada en `src/lib/appConfig.js` (consumida por la página "Acerca de" dentro de la app); este archivo es la versión en prosa.
 
+## 1.10.6 — 2026-10-07
+
+- Corrección a la 1.10.0: las dos funciones que escriben el espejo de licencia en cada usuario (assign_parish_user al dar de alta o editar a un miembro, y backfill_parish_license_mirror) todavía estampaban parish_plan: 'free' cuando la parroquia no traía el campo. Ese plan se retiró en la 1.10.0. Ahora estampan 'premium', que es el único valor que el plan sigue teniendo.
+- La RLS desplegada deja de nombrar el plan gratuito: los cinco permisos de lectura (Niños, Grupos, Asistencia, Tutores y su vínculo) pierden la rama parish_plan = 'free', la edición de Tutores deja de exigir parish_plan = 'premium', y el enum de Parish.plan queda en un solo valor. Ninguna cuenta tenía 'free', así que nadie pierde ni gana acceso por esto: lo que se quita es una condición muerta que el próximo lector iba a creer viva.
+- Las descripciones de Parish.plan, license_status y premium_period_end_at dejan de explicar un tope de 50 niños y una bajada automática a plan gratuito que ya no existen, y cada una dice qué operación gobierna su candado (módulo 19).
+
 ## 1.10.5 — 2026-10-05
 
 - Auditoría rutinaria (2026-10-05): dependencias — npm audit fix cierra axios (alta), dompurify y moment (moderada); quedan 8 sin arreglo disponible o aceptadas (braces/micromatch/chokidar/tailwindcss: sólo cadena de build, sin llegar al bundle; react-router: migración mayor 6→7 pendiente, riesgo aceptado desde 1.9.3). Revisión de isolación de JoinRequest, join_code, Parish.tenant_id y las acciones join/approve/reject de assign_parish_user: sin cruce entre parroquias (la parroquia sale siempre de la cuenta almacenada, la solicitud se relee y se valida contra ella, el rol sale de lista blanca). Verificado: validate:rls 12/10, test:unit 62/62, lint, build. No verificado: esquema RLS desplegado (sin MCP de Base44), smoke contra el sitio servido, pantallas autenticadas. Sin límite de intentos al probar códigos de unión: riesgo bajo aceptado, el código sólo abre una solicitud que un administrador aprueba.

@@ -7,10 +7,19 @@
 // (módulo 6 del estándar). Antes eran cuatro ediciones manuales garantizadas
 // por un comentario, y así se perdió la 1.8.0 entera de CHANGELOG.md.
 // tests/unit/release.test.js afirma los invariantes después.
-export const APP_VERSION = "1.10.5";
-export const RELEASE_DATE = "2026-10-05";
+export const APP_VERSION = "1.10.6";
+export const RELEASE_DATE = "2026-10-07";
 
 export const CHANGELOG = [
+  {
+    version: "1.10.6",
+    date: "2026-10-07",
+    changes: [
+      "Corrección a la 1.10.0: las dos funciones que escriben el espejo de licencia en cada usuario (assign_parish_user al dar de alta o editar a un miembro, y backfill_parish_license_mirror) todavía estampaban parish_plan: 'free' cuando la parroquia no traía el campo. Ese plan se retiró en la 1.10.0. Ahora estampan 'premium', que es el único valor que el plan sigue teniendo.",
+      "La RLS desplegada deja de nombrar el plan gratuito: los cinco permisos de lectura (Niños, Grupos, Asistencia, Tutores y su vínculo) pierden la rama parish_plan = 'free', la edición de Tutores deja de exigir parish_plan = 'premium', y el enum de Parish.plan queda en un solo valor. Ninguna cuenta tenía 'free', así que nadie pierde ni gana acceso por esto: lo que se quita es una condición muerta que el próximo lector iba a creer viva.",
+      "Las descripciones de Parish.plan, license_status y premium_period_end_at dejan de explicar un tope de 50 niños y una bajada automática a plan gratuito que ya no existen, y cada una dice qué operación gobierna su candado (módulo 19).",
+    ],
+  },
   {
     version: "1.10.5",
     date: "2026-10-05",

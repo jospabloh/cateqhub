@@ -46,12 +46,7 @@
             }
           ]
         },
-        {
-          "$or": [
-            { "user_condition": { "data.parish_plan": "free" } },
-            { "user_condition": { "data.parish_license_status": "active" } }
-          ]
-        }
+        { "user_condition": { "data.parish_license_status": "active" } }
       ]
     },
     "read": {
@@ -60,7 +55,6 @@
         { "$and": [
             { "data.parish_id": "{{user.data.parish_id}}" },
             { "$or": [
-                { "user_condition": { "data.parish_plan": "free" } },
                 { "user_condition": { "data.parish_license_status": "active" } },
                 { "user_condition": { "data.parish_license_status": "read_only" } }
             ] }
@@ -86,12 +80,7 @@
             }
           ]
         },
-        {
-          "$or": [
-            { "user_condition": { "data.parish_plan": "free" } },
-            { "user_condition": { "data.parish_license_status": "active" } }
-          ]
-        }
+        { "user_condition": { "data.parish_license_status": "active" } }
       ]
     },
     "delete": {

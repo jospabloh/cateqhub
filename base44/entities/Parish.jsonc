@@ -153,7 +153,7 @@
     },
     "license_status": {
       "default": "active",
-      "description": "Solo aplica mientras plan=premium Y la parroquia tiene m\u00e1s de 50 ni\u00f1os activos al vencer su per\u00edodo (si tiene 50 o menos, Mission Control la baja directo a plan=\"free\" sin pasar por este ciclo). Ciclo: active \u2192 read_only \u2192 access_denied \u2192 deletion_eligible si el per\u00edodo (premium_period_end_at) vence sin renovarse \u2014 aplica a TODA la app (n\u00facleo incluido), no solo a Tutores, mientras dura. Escrito exclusivamente por Mission Control (rol de servicio) v\u00eda el puente acaciaControl \u2014 nunca a mano desde el panel de Base44, porque el espejo en User (parish_license_status) quedar\u00eda desincronizado.",
+      "description": "Ciclo de vigencia: active \u2192 read_only \u2192 access_denied \u2192 deletion_eligible si premium_period_end_at vence sin renovarse. Aplica a TODA la app (n\u00facleo incluido), no s\u00f3lo a Tutores, y desde la 1.10.0 aplica a toda parroquia por igual \u2014 no hay plan gratuito al que bajar. GOBIERNA UPDATE: el candado rls.write de este campo existe porque un administrador de parroquia que se pusiera \"active\" a mano se renovar\u00eda la licencia solo. Lo escribe exclusivamente Mission Control (rol de servicio) v\u00eda el puente acaciaControl, nunca a mano desde el panel, porque el espejo en User (parish_license_status) \u2014 que es lo que lee la RLS de Child/Group/Attendance/Guardian/ChildGuardian, ya que Base44 no puede consultar otra fila \u2014 quedar\u00eda desincronizado.",
       "enum": [
         "active",
         "read_only",
@@ -176,9 +176,8 @@
     },
     "plan": {
       "default": "premium",
-      "description": "Nivel de suscripci\u00f3n. \"free\" es un plan permanente y normal (no una penalizaci\u00f3n): n\u00facleo completo (asistencia QR, alta de parroquia/grupos/ni\u00f1os, reportes) sin vencimiento, con tope de 50 ni\u00f1os activos (FREE_PLAN_CHILD_CAP en src/lib/premium.js) y sin Tutores/mensajer\u00eda/tareas/pulseras. Toda parroquia nueva arranca en \"premium\" con una prueba gratuita de 30 d\u00edas (ver premium_period_end_at), con acceso completo y sin el tope de ni\u00f1os. Si ese per\u00edodo (prueba o pago) vence sin renovarse: con \u226450 ni\u00f1os activos, Mission Control baja la parroquia directo a \"free\" (sin fricci\u00f3n); con m\u00e1s de 50, entra al ciclo de license_status (ver abajo) hasta que se pague el nivel Premium que le toque. Se activa/reactiva desde Mission Control (rol de servicio) o el panel de Base44 \u2014 un admin de parroquia puede verlo pero no cambiarlo por s\u00ed mismo.",
+      "description": "Nivel de suscripci\u00f3n. Desde la 1.10.0 hay UN solo producto y el \u00fanico valor es \"premium\": lo que cambia con el tama\u00f1o de la parroquia es el PRECIO (PREMIUM_TIERS en src/lib/premium.js), no las funciones. El plan \"free\" se retir\u00f3 \u2014 no era algo que ACACIA vendiera, la tabla p\u00fablica empezaba en 51 ni\u00f1os, as\u00ed que una parroquia de 50 o menos no ten\u00eda forma de pagar. Una parroquia creada antes de que este campo existiera NO lo trae (los default se aplican al crear la fila, no retroactivamente) y resuelve a premium en toda la app; el espejo en User lo estampa igual (assign_parish_user, backfill_parish_license_mirror). Toda parroquia nueva arranca con una prueba de 30 d\u00edas (ver premium_period_end_at). GOBIERNA UPDATE: el candado rls.write deja al administrador de la parroquia VER su plan pero no cambi\u00e1rselo \u2014 se activa desde Mission Control (rol de servicio).",
       "enum": [
-        "free",
         "premium"
       ],
       "rls": {
@@ -192,7 +191,7 @@
       "type": "string"
     },
     "premium_period_end_at": {
-      "description": "Al crear la parroquia se estampa a 30 d\u00edas (prueba gratuita). Al confirmarse un pago, Mission Control lo recorre. El cron license-lifecycle usa esta fecha para decidir, al vencer: baja directa a plan=\"free\" (\u226450 ni\u00f1os activos) o el ciclo active \u2192 read_only \u2192 access_denied \u2192 deletion_eligible (>50).",
+      "description": "Al crear la parroquia se estampa a 30 d\u00edas (prueba gratuita). Al confirmarse un pago, Mission Control lo recorre. El cron license-lifecycle usa esta fecha para decidir, al vencer, el ciclo active \u2192 read_only \u2192 access_denied \u2192 deletion_eligible \u2014 sin bajada a plan gratuito, que se retir\u00f3 en la 1.10.0. GOBIERNA UPDATE: el candado rls.write existe porque mover el vencimiento es renovarse la licencia; lo mueve s\u00f3lo quien cobra.",
       "format": "date-time",
       "rls": {
         "write": {
