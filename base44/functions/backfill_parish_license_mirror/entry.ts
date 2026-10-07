@@ -53,7 +53,10 @@ Deno.serve(async (req) => {
           // resto de la parroquia ni de las demás parroquias.
           try {
             await sr.entities.User.update(user.id, {
-              parish_plan: parish.plan ?? 'free',
+              // 'premium' y no 'free': el plan gratuito se retiró en la
+              // 1.10.0 y este backfill es justo lo que corre sobre las filas
+              // viejas, que son las que no traen el campo.
+              parish_plan: parish.plan ?? 'premium',
               parish_license_status: parish.license_status ?? 'active',
               parish_support_priority_addon: parish.support_priority_addon ?? false,
             });

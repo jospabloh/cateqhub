@@ -104,7 +104,13 @@ async function membershipPatch(
     parish_id: parish.id,
     group_id,
     parish_role,
-    parish_plan: parish.plan ?? 'free',
+    // Una parroquia sin `plan` es una creada antes de que el campo existiera
+    // (los `default` de un .jsonc se aplican al crear la fila, no
+    // retroactivamente). Resuelve a 'premium' porque desde la 1.10.0 hay UN
+    // solo producto: `premium` es el único valor que el enum sigue teniendo.
+    // Estampar 'free' aquí escribía un plan retirado, y Guardian.update lo
+    // rechaza — el miembro entraba sin poder editar tutores.
+    parish_plan: parish.plan ?? 'premium',
     parish_license_status: parish.license_status ?? 'active',
     parish_support_priority_addon: parish.support_priority_addon ?? false,
     ...permFlags,
