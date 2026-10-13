@@ -9,6 +9,7 @@ import { PermissionProvider } from '@/lib/PermissionContext';
 import { ThemeProvider } from '@/lib/ThemeContext';
 import SessionControl from '@/components/SessionControl';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
+import UpdateBanner from '@/components/UpdateBanner';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -116,6 +117,10 @@ function App() {
             </Router>
             <Toaster />
             <ThemeSwitcher />
+            {/* Módulo 30: aviso de versión nueva. Una sola vez, junto al selector
+                de tema y fuera de todo layout, para que también lo vea una
+                pestaña parada en el login. */}
+            <UpdateBanner />
             {/* Módulo 20: aviso de inactividad y cierre duro. Se monta una sola
                 vez y alto en el árbol, dentro de AuthProvider —lo necesita para
                 saber si hay sesión— y fuera del Router, porque los diálogos no
