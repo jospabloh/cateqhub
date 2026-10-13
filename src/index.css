@@ -174,3 +174,8 @@
 @media (max-width: 767px) {
   body.has-bottom-nav { --update-banner-top: 4.25rem; }
 }
+/* Desde 768px no hay barra superior sino la barra lateral fija de w-60 (15rem);
+   el aviso se corre a su derecha para no tapar el logo ni el menú. */
+@media (min-width: 768px) {
+  body.has-bottom-nav { --update-banner-left: 15rem; }
+}
