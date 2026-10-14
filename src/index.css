@@ -164,3 +164,18 @@
 @media (max-width: 767px) {
   body.has-bottom-nav { --theme-switcher-bottom: 5.25rem; }
 }
+
+/* Aviso de versión nueva (src/components/UpdateBanner.jsx) — sólo la posición.
+   Bajo 768px Layout.jsx dibuja una barra superior `sticky` de h-14 (3.5rem, más
+   1px de borde) con el botón de cerrar sesión a la derecha; a 0.75rem el aviso
+   quedaría encima de ese botón. Se baja a 3.5rem + el mismo 0.75rem de aire.
+   Va sobre body.has-bottom-nav porque esa clase la pone Layout.jsx, el mismo
+   componente que dibuja la barra: en el login no hay barra y el aviso no baja. */
+@media (max-width: 767px) {
+  body.has-bottom-nav { --update-banner-top: 4.25rem; }
+}
+/* Desde 768px no hay barra superior sino la barra lateral fija de w-60 (15rem);
+   el aviso se corre a su derecha para no tapar el logo ni el menú. */
+@media (min-width: 768px) {
+  body.has-bottom-nav { --update-banner-left: 15rem; }
+}
